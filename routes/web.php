@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\EcosystemAuthController;
+use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -48,4 +52,15 @@ Route::middleware([
             'recentTransactions', 'budgets', 'unreadInsights'
         ));
     })->name('dashboard');
+
+    // Finance domain: every route below is bound to a model by id (route
+    // model binding) and, for the show/edit/update/destroy actions, gated
+    // through the matching Policy so one user can never load, edit, or
+    // delete another user's accounts/transactions/categories/budgets by
+    // guessing/incrementing the id (IDOR). Index/store are scoped to
+    // auth()->id() directly since there's no team-scoping in this app.
+    Route::resource('transactions', TransactionController::class)->except(['show']);
+    Route::resource('accounts', AccountController::class)->only(['index', 'store', 'destroy']);
+    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);
+    Route::resource('budgets', BudgetController::class)->only(['index', 'store', 'destroy']);
 });

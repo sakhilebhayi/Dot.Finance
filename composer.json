@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "sakhilebhayi/dot-finance",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Dot.Finance — a personal finance tracker (accounts, transactions, categories, budgets) in the Dot Ecosystem.",
+    "keywords": ["laravel", "framework", "dot-finance", "personal-finance"],
     "license": "MIT",
     "require": {
         "php": "^8.3",
