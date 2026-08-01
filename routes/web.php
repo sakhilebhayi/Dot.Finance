@@ -44,8 +44,12 @@ Route::middleware([
             ->with('category')
             ->get();
 
-        // AiInsight model not yet generated — placeholder until migration runs
-        $unreadInsights = 0;
+        // AiInsight model now exists (app/Models/AiInsight.php); this counts
+        // real rows for the user. No insight-generation service writes to
+        // this table yet (Anthropic wiring is still roadmap — see wiki.md
+        // §8), so this will genuinely read 0 until that's built, rather
+        // than being a hardcoded stand-in for real data.
+        $unreadInsights = \App\Models\AiInsight::where('user_id', $userId)->count();
 
         return view('dashboard', compact(
             'accounts', 'totalBalance', 'monthlyIncome', 'monthlyExpense',
