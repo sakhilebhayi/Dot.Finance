@@ -43,7 +43,7 @@ class TransactionManagementTest extends TestCase
 
     public function test_authenticated_user_can_view_their_transactions_index(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withPersonalTeam()->create();
         $account = $this->makeAccount($user);
 
         Transaction::create([
@@ -103,7 +103,7 @@ class TransactionManagementTest extends TestCase
 
     public function test_transactions_index_can_be_filtered_by_search_term(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withPersonalTeam()->create();
         $account = $this->makeAccount($user);
 
         Transaction::create([
@@ -124,7 +124,7 @@ class TransactionManagementTest extends TestCase
 
     public function test_transactions_index_can_be_filtered_by_type(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withPersonalTeam()->create();
         $account = $this->makeAccount($user);
 
         Transaction::create([

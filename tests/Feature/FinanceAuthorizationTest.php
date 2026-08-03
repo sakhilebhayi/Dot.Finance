@@ -100,7 +100,7 @@ class FinanceAuthorizationTest extends TestCase
     public function test_transactions_index_never_leaks_another_users_rows(): void
     {
         $owner = User::factory()->create();
-        $viewer = User::factory()->create();
+        $viewer = User::factory()->withPersonalTeam()->create();
 
         $ownerAccount = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
@@ -186,7 +186,7 @@ class FinanceAuthorizationTest extends TestCase
     public function test_accounts_index_never_leaks_another_users_accounts(): void
     {
         $owner = User::factory()->create();
-        $viewer = User::factory()->create();
+        $viewer = User::factory()->withPersonalTeam()->create();
 
         Account::create(['user_id' => $owner->id, 'name' => 'Owner Secret Account', 'type' => 'savings', 'currency' => 'ZAR', 'balance' => 100000]);
         Account::create(['user_id' => $viewer->id, 'name' => 'Viewer Own Account', 'type' => 'checking', 'currency' => 'ZAR', 'balance' => 50]);

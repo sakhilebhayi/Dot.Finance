@@ -18,7 +18,7 @@ class DashboardTest extends TestCase
 
     public function test_dashboard_shows_empty_states_for_a_fresh_user(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withPersonalTeam()->create();
 
         $this->actingAs($user)
             ->get(route('dashboard'))
@@ -29,7 +29,7 @@ class DashboardTest extends TestCase
 
     public function test_dashboard_totals_only_reflect_the_authenticated_users_own_accounts(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->withPersonalTeam()->create();
         $otherUser = User::factory()->create();
 
         Account::create(['user_id' => $user->id, 'name' => 'My Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'balance' => 100]);
