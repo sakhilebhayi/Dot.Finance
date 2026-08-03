@@ -12,14 +12,14 @@ class TransactionController extends Controller
 {
     /**
      * Display a filterable, searchable list of the authenticated user's transactions.
+     *
+     * No explicit user_id filter needed: Transaction's, Account's, and
+     * Category's HasUserScope trait applies it automatically to every
+     * query against those models.
      */
     public function index(Request $request)
     {
-        $userId = $request->user()->id;
-
-        $query = Transaction::query()
-            ->where('user_id', $userId)
-            ->with(['account', 'category']);
+        $query = Transaction::query()->with(['account', 'category']);
 
         if ($search = trim((string) $request->query('search'))) {
             $query->where('description', 'like', '%'.$search.'%');
@@ -47,8 +47,8 @@ class TransactionController extends Controller
 
         $transactions = $query->latest('date')->latest('id')->paginate(20)->withQueryString();
 
-        $accounts = Account::where('user_id', $userId)->orderBy('name')->get();
-        $categories = Category::where('user_id', $userId)->orderBy('name')->get();
+        $accounts = Account::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
 
         return view('transactions.index', compact('transactions', 'accounts', 'categories'));
     }
@@ -58,10 +58,8 @@ class TransactionController extends Controller
      */
     public function create(Request $request)
     {
-        $userId = $request->user()->id;
-
-        $accounts = Account::where('user_id', $userId)->orderBy('name')->get();
-        $categories = Category::where('user_id', $userId)->orderBy('name')->get();
+        $accounts = Account::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
 
         return view('transactions.create', compact('accounts', 'categories'));
     }
@@ -88,9 +86,8 @@ class TransactionController extends Controller
     {
         $this->authorize('update', $transaction);
 
-        $userId = $request->user()->id;
-        $accounts = Account::where('user_id', $userId)->orderBy('name')->get();
-        $categories = Category::where('user_id', $userId)->orderBy('name')->get();
+        $accounts = Account::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
 
         return view('transactions.edit', compact('transaction', 'accounts', 'categories'));
     }

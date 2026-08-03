@@ -16,6 +16,17 @@ use Tests\TestCase;
  * object reference) — one authenticated user reading, editing, or
  * deleting another user's financial data simply by guessing/incrementing
  * a route-model-bound id.
+ *
+ * As of the HasUserScope global scope (Account/Budget/Category/
+ * Transaction/AiInsight, mirroring Dot.Mines' HasTeamFilters pattern),
+ * cross-user access now 404s rather than 403ing: implicit route-model
+ * binding queries through the scope too, so another user's row is
+ * invisible before the Policy ever runs. This is intentionally a
+ * stronger posture than the old assertForbidden() behavior — it's
+ * fail-closed at the query layer, not dependent on every route
+ * remembering to call $this->authorize(). See
+ * test_scope_alone_blocks_cross_user_access_even_without_a_policy_check
+ * below for direct proof the scope itself is load-bearing.
  */
 class FinanceAuthorizationTest extends TestCase
 {
@@ -39,7 +50,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $this->actingAs($attacker)
             ->get(route('transactions.edit', $transaction))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_user_cannot_update_another_users_transaction(): void
@@ -66,7 +77,7 @@ class FinanceAuthorizationTest extends TestCase
                 'type' => 'expense',
                 'date' => now()->toDateString(),
             ])
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('transactions', [
             'id' => $transaction->id,
@@ -92,7 +103,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $this->actingAs($attacker)
             ->delete(route('transactions.destroy', $transaction))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('transactions', ['id' => $transaction->id]);
     }
@@ -141,7 +152,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $this->actingAs($attacker)
             ->delete(route('accounts.destroy', $account))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('accounts', ['id' => $account->id]);
     }
@@ -157,7 +168,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $this->actingAs($attacker)
             ->delete(route('categories.destroy', $category))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('categories', ['id' => $category->id]);
     }
@@ -178,7 +189,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $this->actingAs($attacker)
             ->delete(route('budgets.destroy', $budget))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('budgets', ['id' => $budget->id]);
     }
@@ -196,5 +207,34 @@ class FinanceAuthorizationTest extends TestCase
             ->assertOk()
             ->assertSee('Viewer Own Account')
             ->assertDontSee('Owner Secret Account');
+    }
+
+    /**
+     * Proves HasUserScope itself is load-bearing, independent of any
+     * Policy or controller check: querying Account directly as another
+     * user, with no $this->authorize() anywhere in the path, still
+     * cannot see the row. This is the property that makes the scope
+     * "defense in depth" rather than decorative — it holds even if a
+     * future route forgets to call authorize() entirely.
+     */
+    public function test_scope_alone_blocks_cross_user_access_even_without_a_policy_check(): void
+    {
+        $owner = User::factory()->create();
+        $attacker = User::factory()->create();
+
+        $account = Account::create([
+            'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
+            'currency' => 'ZAR', 'balance' => 500,
+        ]);
+
+        $this->actingAs($attacker);
+
+        $this->assertNull(Account::find($account->id));
+        $this->assertSame(0, Account::query()->count());
+
+        $this->actingAs($owner);
+
+        $this->assertNotNull(Account::find($account->id));
+        $this->assertSame(1, Account::query()->count());
     }
 }

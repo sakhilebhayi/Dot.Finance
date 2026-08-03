@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Budget extends Model
 {
+    use HasUserScope;
+
     protected $fillable = ['user_id', 'category_id', 'amount', 'month', 'year'];
 
     protected $casts = ['amount' => 'decimal:2'];

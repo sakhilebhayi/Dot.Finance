@@ -10,11 +10,13 @@ class AccountController extends Controller
 {
     /**
      * List the authenticated user's accounts.
+     *
+     * No explicit user_id filter needed: Account's HasUserScope trait
+     * applies it automatically to every query against this model.
      */
     public function index(Request $request)
     {
-        $accounts = Account::where('user_id', $request->user()->id)
-            ->withCount('transactions')
+        $accounts = Account::withCount('transactions')
             ->orderBy('name')
             ->get();
 

@@ -10,11 +10,13 @@ class CategoryController extends Controller
 {
     /**
      * List the authenticated user's categories.
+     *
+     * No explicit user_id filter needed: Category's HasUserScope trait
+     * applies it automatically to every query against this model.
      */
     public function index(Request $request)
     {
-        $categories = Category::where('user_id', $request->user()->id)
-            ->withCount('transactions')
+        $categories = Category::withCount('transactions')
             ->orderBy('name')
             ->get();
 

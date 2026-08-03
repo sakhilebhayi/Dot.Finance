@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
+    use HasUserScope;
+
     protected $fillable = ['account_id', 'category_id', 'user_id', 'description', 'amount', 'type', 'date', 'notes'];
 
     protected $casts = [

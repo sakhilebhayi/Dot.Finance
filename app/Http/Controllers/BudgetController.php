@@ -11,18 +11,18 @@ class BudgetController extends Controller
 {
     /**
      * List the authenticated user's budgets, most recent period first.
+     *
+     * No explicit user_id filter needed: Budget's and Category's
+     * HasUserScope trait applies it automatically to every query.
      */
     public function index(Request $request)
     {
-        $userId = $request->user()->id;
-
-        $budgets = Budget::where('user_id', $userId)
-            ->with('category')
+        $budgets = Budget::with('category')
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->get();
 
-        $categories = Category::where('user_id', $userId)->orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
 
         return view('budgets.index', compact('budgets', 'categories'));
     }
