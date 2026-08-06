@@ -5,12 +5,16 @@
         </x-slot>
 
         <div x-data="{ recovery: false }">
-            <div class="mb-4 text-sm text-gray-600 dark:text-gray-400" x-show="! recovery">
-                {{ __('Please confirm access to your account by entering the authentication code provided by your authenticator application.') }}
-            </div>
+            <div class="mb-6">
+                <p class="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--ember)] mb-2">Two-factor</p>
+                <h1 class="font-display font-semibold text-2xl text-[var(--ink)] mb-3">Verify it's you</h1>
+                <p class="text-sm text-[var(--ink-soft)] leading-relaxed" x-show="! recovery">
+                    {{ __('Please confirm access to your account by entering the authentication code provided by your authenticator application.') }}
+                </p>
 
-            <div class="mb-4 text-sm text-gray-600 dark:text-gray-400" x-cloak x-show="recovery">
-                {{ __('Please confirm access to your account by entering one of your emergency recovery codes.') }}
+                <p class="text-sm text-[var(--ink-soft)] leading-relaxed" x-cloak x-show="recovery">
+                    {{ __('Please confirm access to your account by entering one of your emergency recovery codes.') }}
+                </p>
             </div>
 
             <x-validation-errors class="mb-4" />
@@ -29,7 +33,7 @@
                 </div>
 
                 <div class="flex items-center justify-end mt-4">
-                    <button type="button" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 underline cursor-pointer"
+                    <button type="button" class="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] underline cursor-pointer"
                                     x-show="! recovery"
                                     x-on:click="
                                         recovery = true;
@@ -38,7 +42,7 @@
                         {{ __('Use a recovery code') }}
                     </button>
 
-                    <button type="button" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 underline cursor-pointer"
+                    <button type="button" class="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] underline cursor-pointer"
                                     x-cloak
                                     x-show="recovery"
                                     x-on:click="

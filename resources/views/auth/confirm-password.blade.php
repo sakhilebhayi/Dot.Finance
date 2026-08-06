@@ -4,8 +4,12 @@
             <x-authentication-card-logo />
         </x-slot>
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
+        <div class="mb-6">
+            <p class="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--ember)] mb-2">Confirm identity</p>
+            <h1 class="font-display font-semibold text-2xl text-[var(--ink)] mb-3">Confirm your password</h1>
+            <p class="text-sm text-[var(--ink-soft)] leading-relaxed">
+                {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
+            </p>
         </div>
 
         <x-validation-errors class="mb-4" />

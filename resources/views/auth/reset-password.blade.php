@@ -4,6 +4,11 @@
             <x-authentication-card-logo />
         </x-slot>
 
+        <div class="mb-6">
+            <p class="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--ember)] mb-2">Reset access</p>
+            <h1 class="font-display font-semibold text-2xl text-[var(--ink)]">Choose a new password</h1>
+        </div>
+
         <x-validation-errors class="mb-4" />
 
         <form method="POST" action="{{ route('password.update') }}">
