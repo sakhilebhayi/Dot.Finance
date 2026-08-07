@@ -5,10 +5,13 @@ use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
+use App\Models\Account;
+use App\Models\AiInsight;
+use App\Models\Budget;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
-
 
 Route::get('/auth/ecosystem', [EcosystemAuthController::class, 'handle'])->name('ecosystem.auth');
 Route::get('/', function () {
@@ -33,26 +36,26 @@ Route::middleware([
     Route::get('/dashboard', function () {
         $userId = auth()->id();
 
-        $accounts = \App\Models\Account::where('user_id', $userId)->get();
+        $accounts = Account::where('user_id', $userId)->get();
         $totalBalance = $accounts->sum('balance');
 
         $thisMonth = now()->startOfMonth();
-        $monthlyIncome = \App\Models\Transaction::where('user_id', $userId)
+        $monthlyIncome = Transaction::where('user_id', $userId)
             ->where('type', 'income')
             ->where('date', '>=', $thisMonth)
             ->sum('amount');
-        $monthlyExpense = \App\Models\Transaction::where('user_id', $userId)
+        $monthlyExpense = Transaction::where('user_id', $userId)
             ->where('type', 'expense')
             ->where('date', '>=', $thisMonth)
             ->sum('amount');
 
-        $recentTransactions = \App\Models\Transaction::where('user_id', $userId)
+        $recentTransactions = Transaction::where('user_id', $userId)
             ->with(['account', 'category'])
             ->latest('date')
             ->limit(10)
             ->get();
 
-        $budgets = \App\Models\Budget::where('user_id', $userId)
+        $budgets = Budget::where('user_id', $userId)
             ->with('category')
             ->get();
 
@@ -61,7 +64,7 @@ Route::middleware([
         // this table yet (Anthropic wiring is still roadmap — see wiki.md
         // §8), so this will genuinely read 0 until that's built, rather
         // than being a hardcoded stand-in for real data.
-        $unreadInsights = \App\Models\AiInsight::where('user_id', $userId)->count();
+        $unreadInsights = AiInsight::where('user_id', $userId)->count();
 
         return view('dashboard', compact(
             'accounts', 'totalBalance', 'monthlyIncome', 'monthlyExpense',
