@@ -42,6 +42,15 @@
             body { font-family: var(--font-body); background: var(--paper); color: var(--ink); }
             .font-display { font-family: var(--font-display); }
             .font-mono { font-family: var(--font-mono); }
+
+            {{-- Same grid-paper texture as welcome.blade.php's hero — this platform's welcome
+            page has no photo anywhere, so its actual visual style is this ledger-paper grid
+            plus the gold/ember palette, not a stock image. --}}
+            .grid-paper {
+                background-image:
+                    repeating-linear-gradient(0deg, rgba(36,26,16,0.05) 0px, rgba(36,26,16,0.05) 1px, transparent 1px, transparent 32px),
+                    repeating-linear-gradient(90deg, rgba(36,26,16,0.05) 0px, rgba(36,26,16,0.05) 1px, transparent 1px, transparent 32px);
+            }
         </style>
     </head>
     <body>

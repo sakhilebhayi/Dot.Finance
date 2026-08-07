@@ -1,4 +1,4 @@
-<div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 px-4 bg-[var(--paper)]">
+<div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 px-4 bg-[var(--paper)] grid-paper">
     <div>
         {{ $logo }}
     </div>

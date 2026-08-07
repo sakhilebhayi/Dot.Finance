@@ -330,6 +330,9 @@
                     <a href="#features" class="link-underline hover:text-[var(--ink)] pb-0.5">Features</a>
                     <a href="#capabilities" class="link-underline hover:text-[var(--ink)] pb-0.5">How it works</a>
                     <a href="#roadmap" class="link-underline hover:text-[var(--ink)] pb-0.5">Roadmap</a>
+                    <a href="{{ route('policy.show') }}" class="link-underline hover:text-[var(--ink)] pb-0.5">Privacy</a>
+                    <a href="{{ route('cookies') }}" class="link-underline hover:text-[var(--ink)] pb-0.5">Cookies</a>
+                    <a href="{{ route('terms.show') }}" class="link-underline hover:text-[var(--ink)] pb-0.5">Terms</a>
                 </div>
                 <p class="font-mono text-xs tracking-wide text-[var(--ink-faint)]">
                     &copy; {{ date('Y') }} Dot.Finance. Personal finance tracking, made clear.
