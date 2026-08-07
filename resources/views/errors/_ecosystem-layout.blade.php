@@ -6,7 +6,18 @@
         <title>{{ $code }} — @yield('title') · Dot.Finance</title>
         <meta name="robots" content="noindex">
 
-        <link rel="icon" href="{{ asset('favicon.ico') }}">
+        @php
+            $faviconPath = null;
+            foreach (['favicon.ico', 'favicon-32x32.png', 'favicon-16x16.png'] as $faviconCandidate) {
+                if (file_exists(public_path($faviconCandidate))) {
+                    $faviconPath = $faviconCandidate;
+                    break;
+                }
+            }
+        @endphp
+        @if ($faviconPath)
+            <link rel="icon" href="{{ asset($faviconPath) }}">
+        @endif
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
