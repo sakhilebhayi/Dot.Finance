@@ -88,6 +88,36 @@
 
     </div>
 
+    {{-- ─── Cushion ───────────────────────────────────────────────────────── --}}
+    @if($cushion['available'])
+        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.6rem 1.75rem;margin-bottom:2rem;">
+            <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;">
+                <span class="material-symbols-rounded" style="font-size:20px;color:#34d399;">shield</span>
+                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">Your Cushion</span>
+            </div>
+
+            @if($cushion['is_growing'])
+                <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#6ee7b7;margin-bottom:0.4rem;">
+                    Reserves are currently growing, not depleting.
+                </div>
+            @else
+                <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#6ee7b7;margin-bottom:0.4rem;">
+                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of reserves at your current pace.
+                </div>
+            @endif
+
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:{{ $cushion['what_if'] ? '0.6rem' : '0' }};">
+                {{ $cushion['basis'] }}
+            </div>
+
+            @if($cushion['what_if'])
+                <div style="font-size:0.78rem;color:var(--text-secondary,var(--text-muted));">
+                    If your <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.
+                </div>
+            @endif
+        </div>
+    @endif
+
     {{-- ─── Accounts Row ───────────────────────────────────────────────────── --}}
     @if($accounts->count() > 0)
     <div style="margin-bottom:2rem;">

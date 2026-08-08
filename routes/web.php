@@ -9,6 +9,7 @@ use App\Models\Account;
 use App\Models\AiInsight;
 use App\Models\Budget;
 use App\Models\Transaction;
+use App\Services\ReserveRunwayCalculator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -66,9 +67,11 @@ Route::middleware([
         // than being a hardcoded stand-in for real data.
         $unreadInsights = AiInsight::where('user_id', $userId)->count();
 
+        $cushion = (new ReserveRunwayCalculator)->calculate($userId);
+
         return view('dashboard', compact(
             'accounts', 'totalBalance', 'monthlyIncome', 'monthlyExpense',
-            'recentTransactions', 'budgets', 'unreadInsights'
+            'recentTransactions', 'budgets', 'unreadInsights', 'cushion'
         ));
     })->name('dashboard');
 
