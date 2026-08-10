@@ -245,7 +245,7 @@
                 <p style="font-size:0.8rem;color:#a1a1aa;margin:0 0 1rem;">
                     You have <strong style="color:#a78bfa;">{{ $unreadInsights }}</strong> unread insight{{ $unreadInsights !== 1 ? 's' : '' }} waiting for you.
                 </p>
-                <a href="#" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;font-weight:700;color:#a78bfa;text-decoration:none;">
+                <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;font-weight:700;color:#a78bfa;text-decoration:none;">
                     <span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>
                     View Insights
                 </a>

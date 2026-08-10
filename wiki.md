@@ -91,7 +91,8 @@ Full manifest shape, entity/event mapping, and worked publish→PR examples are 
 ## 8. Roadmap
 
 - [x] Generate the `AiInsight` model (schema already existed) — dashboard now counts real rows instead of a hardcoded `0`
-- [ ] Wire the Anthropic client to actually generate and persist spending insights (model/table are ready; no generation service exists yet)
+- [x] Generate a weekly rule-based insight per user (`finance:generate-insights`, using `ReserveRunwayCalculator`'s real numbers) — the dashboard's "AI Insights" card now shows real, computed content
+- [ ] Wire the Anthropic client to generate richer, LLM-authored insights (the rule-based generator above already covers the reserve-runway case with real, honest, non-LLM analysis)
 - [ ] Transaction categorisation via the configured Anthropic model
 - [ ] Bank/CSV transaction import
 - [ ] Anomaly detection on transaction streams

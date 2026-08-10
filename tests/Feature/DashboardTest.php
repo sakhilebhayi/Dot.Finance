@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\AiInsight;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -40,5 +41,16 @@ class DashboardTest extends TestCase
         $response->assertOk()
             ->assertSee('My Wallet')
             ->assertDontSee('Their Wallet');
+    }
+
+    public function test_dashboard_view_insights_link_points_at_the_insights_index(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        AiInsight::create(['user_id' => $user->id, 'type' => 'reserve_runway_healthy', 'insight' => 'Test insight.']);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee(route('insights.index'), false);
     }
 }

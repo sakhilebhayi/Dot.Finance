@@ -285,7 +285,7 @@
                             Still growing — here's what isn't built yet
                         </h2>
                         <p class="text-[var(--ink-soft)] leading-relaxed max-w-2xl">
-                            Bank and CSV transaction import, AI-assisted categorisation and spending insights, anomaly detection, and profit-and-loss or cash-flow charts are all on the roadmap — not shipped today. We'd rather say that plainly than let the page overpromise.
+                            Bank and CSV transaction import, AI-assisted categorisation, anomaly detection, and profit-and-loss or cash-flow charts are all on the roadmap — not shipped today. We'd rather say that plainly than let the page overpromise.
                         </p>
                     </div>
                     @guest
