@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InsightController;
 use App\Http\Controllers\TransactionController;
 use App\Models\Account;
 use App\Models\AiInsight;
@@ -81,6 +82,7 @@ Route::middleware([
     // delete another user's accounts/transactions/categories/budgets by
     // guessing/incrementing the id (IDOR). Index/store are scoped to
     // auth()->id() directly since there's no team-scoping in this app.
+    Route::get('/insights', [InsightController::class, 'index'])->name('insights.index');
     Route::resource('transactions', TransactionController::class)->except(['show']);
     Route::resource('accounts', AccountController::class)->only(['index', 'store', 'destroy']);
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);
