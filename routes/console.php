@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\GenerateInsights;
+use App\Console\Commands\GenerateRecurringTransactions;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -15,4 +16,12 @@ Artisan::command('inspire', function () {
 // follows an existing schedule convention.
 Schedule::command(GenerateInsights::class)
     ->weekly()
+    ->withoutOverlapping();
+
+// Generate any recurring transaction occurrences due today, across all
+// users -- daily rather than matching each transaction's own cadence,
+// since a recurring transaction can be due at any interval (daily through
+// yearly) and this just checks "is next_occurrence_date <= today" each run.
+Schedule::command(GenerateRecurringTransactions::class)
+    ->daily()
     ->withoutOverlapping();

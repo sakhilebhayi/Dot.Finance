@@ -152,6 +152,62 @@
     </div>
     @endif
 
+    {{-- ─── Spending Trend ─────────────────────────────────────────────────── --}}
+    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;margin-bottom:2rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+            <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Spending Trend</h2>
+            <div style="display:flex;align-items:center;gap:1.1rem;">
+                <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--text-muted);">
+                    <span style="width:9px;height:9px;border-radius:2px;background:#60a5fa;display:inline-block;"></span> Income
+                </span>
+                <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--text-muted);">
+                    <span style="width:9px;height:9px;border-radius:2px;background:#f87171;display:inline-block;"></span> Expenses
+                </span>
+            </div>
+        </div>
+
+        @php
+            $trendMonths = $spendingTrend['months'];
+            $trendPeak = $spendingTrend['peak'];
+            $hasTrendData = collect($trendMonths)->contains(fn ($m) => $m['income'] > 0 || $m['expense'] > 0);
+            $chartW = 700;
+            $chartH = 160;
+            $slot = $chartW / max(count($trendMonths), 1);
+            $barW = $slot * 0.28;
+            $barGap = $slot * 0.08;
+        @endphp
+
+        @if($hasTrendData)
+        <svg viewBox="0 0 {{ $chartW }} {{ $chartH + 26 }}" style="width:100%;height:auto;overflow:visible;">
+            @foreach([0.25, 0.5, 0.75, 1] as $fraction)
+            <line x1="0" y1="{{ $chartH - $chartH * $fraction }}" x2="{{ $chartW }}" y2="{{ $chartH - $chartH * $fraction }}" stroke="var(--divider)" stroke-width="1" />
+            @endforeach
+
+            @foreach($trendMonths as $i => $month)
+            @php
+                $slotX = $i * $slot;
+                $incomeH = $trendPeak > 0 ? ($month['income'] / $trendPeak) * $chartH : 0;
+                $expenseH = $trendPeak > 0 ? ($month['expense'] / $trendPeak) * $chartH : 0;
+                $incomeX = $slotX + ($slot / 2) - $barW - ($barGap / 2);
+                $expenseX = $slotX + ($slot / 2) + ($barGap / 2);
+            @endphp
+            <rect x="{{ $incomeX }}" y="{{ $chartH - $incomeH }}" width="{{ $barW }}" height="{{ $incomeH }}" rx="2" fill="#60a5fa">
+                <title>{{ $month['label'] }} income: ${{ number_format($month['income'], 2) }}</title>
+            </rect>
+            <rect x="{{ $expenseX }}" y="{{ $chartH - $expenseH }}" width="{{ $barW }}" height="{{ $expenseH }}" rx="2" fill="#f87171">
+                <title>{{ $month['label'] }} expenses: ${{ number_format($month['expense'], 2) }}</title>
+            </rect>
+            <text x="{{ $slotX + $slot / 2 }}" y="{{ $chartH + 18 }}" text-anchor="middle" font-size="10" style="fill:var(--text-muted);">{{ $month['label'] }}</text>
+            @endforeach
+        </svg>
+        @else
+        <div style="text-align:center;padding:2rem 0;">
+            <span class="material-symbols-rounded" style="font-size:28px;color:#434656;display:block;margin-bottom:0.5rem;">show_chart</span>
+            <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">Not enough transaction history yet to chart a trend.</p>
+        </div>
+        @endif
+    </div>
+
     {{-- ─── Main Two-Column Grid ───────────────────────────────────────────── --}}
     <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;">
 

@@ -11,10 +11,16 @@
                 {{ $transactions->total() }} transaction{{ $transactions->total() !== 1 ? 's' : '' }}
             </p>
         </div>
-        <a href="{{ route('transactions.create') }}" class="dot-btn dot-btn-primary">
-            <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span>
-            Add Transaction
-        </a>
+        <div style="display:flex;gap:0.6rem;">
+            <a href="{{ route('transactions.import.create') }}" class="dot-btn dot-btn-ghost">
+                <span class="material-symbols-rounded" style="font-size:16px;">upload_file</span>
+                Import CSV
+            </a>
+            <a href="{{ route('transactions.create') }}" class="dot-btn dot-btn-primary">
+                <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span>
+                Add Transaction
+            </a>
+        </div>
     </div>
 
     @if (session('status'))
@@ -86,6 +92,9 @@
                         </td>
                         <td style="padding:0.875rem 1rem;font-size:0.82rem;color:var(--text-primary);">
                             {{ $tx->description }}
+                            @if($tx->isRecurring())
+                            <span title="Repeats {{ $tx->recurrence_type }}" style="font-size:0.68rem;">🔁</span>
+                            @endif
                             @if($tx->notes)
                             <div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;">{{ $tx->notes }}</div>
                             @endif

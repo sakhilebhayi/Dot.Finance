@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\TransactionRecurrenceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
+    public function __construct(private readonly TransactionRecurrenceService $recurrenceService) {}
+
     /**
      * Display a filterable, searchable list of the authenticated user's transactions.
      *
@@ -74,6 +78,18 @@ class TransactionController extends Controller
         $validated = $this->validateTransaction($request, $userId);
         $validated['user_id'] = $userId;
 
+        $recurrence = $this->validateRecurrence($request);
+
+        if ($recurrence['recurrence_type']) {
+            $validated['recurrence_type'] = $recurrence['recurrence_type'];
+            $validated['recurrence_interval'] = $recurrence['recurrence_interval'];
+            $validated['next_occurrence_date'] = $this->recurrenceService->advance(
+                Carbon::parse($validated['date']),
+                $recurrence['recurrence_type'],
+                $recurrence['recurrence_interval'],
+            );
+        }
+
         Transaction::create($validated);
 
         return redirect()->route('transactions.index')->with('status', 'Transaction added.');
@@ -136,5 +152,29 @@ class TransactionController extends Controller
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
+    }
+
+    /**
+     * Recurrence is only settable at creation time (see edit.blade.php,
+     * which deliberately doesn't expose these fields) -- update() never
+     * calls this, so an edit can never silently wipe an existing anchor's
+     * recurrence_type/next_occurrence_date by omitting them from the form.
+     */
+    protected function validateRecurrence(Request $request): array
+    {
+        // A field genuinely absent from the request (as opposed to present
+        // but empty) is simply omitted from validate()'s return value, not
+        // set to null -- these fields are entirely optional on the create
+        // form, so both keys are defaulted explicitly rather than trusted
+        // to exist.
+        $validated = $request->validate([
+            'recurrence_type' => ['nullable', Rule::in(['daily', 'weekly', 'monthly', 'yearly'])],
+            'recurrence_interval' => ['nullable', 'integer', 'min:1', 'max:365'],
+        ]);
+
+        return [
+            'recurrence_type' => $validated['recurrence_type'] ?? null,
+            'recurrence_interval' => $validated['recurrence_interval'] ?? 1,
+        ];
     }
 }
