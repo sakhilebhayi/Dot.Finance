@@ -6,11 +6,13 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InsightController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionImportController;
 use App\Models\Account;
 use App\Models\AiInsight;
 use App\Models\Budget;
 use App\Models\Transaction;
 use App\Services\ReserveRunwayCalculator;
+use App\Services\SpendingTrendCalculator;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -69,10 +71,11 @@ Route::middleware([
         $unreadInsights = AiInsight::where('user_id', $userId)->count();
 
         $cushion = (new ReserveRunwayCalculator)->calculate($userId);
+        $spendingTrend = (new SpendingTrendCalculator)->calculate($userId);
 
         return view('dashboard', compact(
             'accounts', 'totalBalance', 'monthlyIncome', 'monthlyExpense',
-            'recentTransactions', 'budgets', 'unreadInsights', 'cushion'
+            'recentTransactions', 'budgets', 'unreadInsights', 'cushion', 'spendingTrend'
         ));
     })->name('dashboard');
 
@@ -83,6 +86,13 @@ Route::middleware([
     // guessing/incrementing the id (IDOR). Index/store are scoped to
     // auth()->id() directly since there's no team-scoping in this app.
     Route::get('/insights', [InsightController::class, 'index'])->name('insights.index');
+
+    // Must be registered before the transactions resource route below --
+    // otherwise "import" is swallowed by {transaction}'s route-model binding.
+    Route::get('/transactions/import', [TransactionImportController::class, 'create'])->name('transactions.import.create');
+    Route::post('/transactions/import/preview', [TransactionImportController::class, 'preview'])->name('transactions.import.preview');
+    Route::post('/transactions/import', [TransactionImportController::class, 'store'])->name('transactions.import.store');
+
     Route::resource('transactions', TransactionController::class)->except(['show']);
     Route::resource('accounts', AccountController::class)->only(['index', 'store', 'destroy']);
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);

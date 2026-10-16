@@ -78,6 +78,23 @@
             <input type="text" name="notes" value="{{ old('notes') }}" maxlength="255" class="dot-input" />
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding-top:0.5rem;border-top:1px solid var(--input-border);">
+            <div>
+                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Repeat (optional)</label>
+                <select name="recurrence_type" class="dot-input">
+                    <option value="">Doesn't repeat</option>
+                    @foreach(['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly'] as $value => $label)
+                    <option value="{{ $value }}" @selected(old('recurrence_type') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <p style="font-size:0.7rem;color:var(--text-muted);margin:0.35rem 0 0;">A new transaction like this one will be logged automatically each period.</p>
+            </div>
+            <div>
+                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Every</label>
+                <input type="number" name="recurrence_interval" min="1" max="365" value="{{ old('recurrence_interval', 1) }}" class="dot-input" />
+            </div>
+        </div>
+
         <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
             <button type="submit" class="dot-btn dot-btn-primary">Save Transaction</button>
             <a href="{{ route('transactions.index') }}" class="dot-btn dot-btn-ghost">Cancel</a>
