@@ -2,85 +2,97 @@
 
 namespace App\Services;
 
-use App\Models\Category;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
-
 /**
- * Parses a bank/statement-style CSV into rows shaped like a Transaction,
- * without touching the database -- CsvImportController::store() is what
- * actually persists rows, after the user has reviewed the preview this
- * produces. No third-party CSV/spreadsheet package is used; PHP's own
- * fgetcsv() is enough for the plain comma-delimited exports this targets.
+ * Reads a bank/statement-style CSV into raw rows, exactly as written: no dates
+ * or amounts are interpreted here. Interpretation needs the user's chosen date
+ * format and number format, so it happens in TransactionImporter.
+ *
+ * Handles a UTF-8 byte-order mark, comma / semicolon / tab delimiters, and
+ * Windows-1252 exports (common from South African banks). No third-party CSV
+ * package: PHP's own fgetcsv() is enough for these plain exports.
  */
 class CsvTransactionParser
 {
-    /**
-     * Header names this recognises, case-insensitively, per logical field.
-     * The first matching column wins.
-     */
+    /** Header names recognised, case-insensitively, per logical field; first match wins. */
     private const HEADER_ALIASES = [
-        'date' => ['date', 'transaction date', 'posted date'],
-        'description' => ['description', 'memo', 'payee', 'details', 'narrative'],
+        'date' => ['date', 'transaction date', 'posted date', 'posting date'],
+        'description' => ['description', 'memo', 'payee', 'details', 'narrative', 'reference'],
         'amount' => ['amount', 'value'],
         'category' => ['category'],
     ];
 
     /**
-     * @return array{rows: array<int, array{line: int, description: ?string, amount: ?string, type: ?string, date: ?string, category_id: ?int, category_name: ?string, error: ?string}>, columns_found: array<string, bool>}
+     * @return array{columns_found: array<string, bool>, rows: list<array{line: int, description: ?string, raw_date: ?string, raw_amount: ?string, category_name: ?string}>}
      */
-    public function parse(UploadedFile $file, int $userId): array
+    public function read(string $path): array
     {
-        $handle = fopen($file->getRealPath(), 'r');
+        $contents = (string) @file_get_contents($path);
 
-        if ($handle === false) {
-            return ['rows' => [], 'columns_found' => []];
+        if (str_starts_with($contents, "\xEF\xBB\xBF")) {
+            $contents = substr($contents, 3);
         }
 
-        $header = fgetcsv($handle);
+        if (! mb_check_encoding($contents, 'UTF-8')) {
+            $contents = mb_convert_encoding($contents, 'UTF-8', 'Windows-1252');
+        }
 
-        if ($header === false) {
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, $contents);
+        rewind($handle);
+
+        $delimiter = $this->delimiter(strtok($contents, "\n") ?: '');
+        $header = fgetcsv($handle, 0, $delimiter, '"', '');
+
+        if ($header === false || $header === [null]) {
             fclose($handle);
 
-            return ['rows' => [], 'columns_found' => []];
+            return ['columns_found' => ['date' => false, 'description' => false, 'amount' => false, 'category' => false], 'rows' => []];
         }
 
-        $columnIndex = $this->mapColumns($header);
-        $categoriesByName = Category::where('user_id', $userId)->get()->keyBy(fn ($c) => mb_strtolower($c->name));
+        $columns = $this->mapColumns($header);
 
         $rows = [];
         $line = 1;
 
-        while (($record = fgetcsv($handle)) !== false) {
+        while (($record = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
             $line++;
 
-            if ($this->isBlankRow($record)) {
-                continue;
+            if (count($record) === 1 && trim((string) $record[0]) === '') {
+                continue; // blank line
             }
 
-            $rows[] = $this->parseRow($record, $columnIndex, $categoriesByName, $line);
+            $rows[] = [
+                'line' => $line,
+                'description' => $this->cell($record, $columns['description']),
+                'raw_date' => $this->cell($record, $columns['date']),
+                'raw_amount' => $this->cell($record, $columns['amount']),
+                'category_name' => $this->cell($record, $columns['category']),
+            ];
         }
 
         fclose($handle);
 
         return [
+            'columns_found' => array_map(fn ($index) => $index !== null, $columns),
             'rows' => $rows,
-            'columns_found' => [
-                'date' => $columnIndex['date'] !== null,
-                'description' => $columnIndex['description'] !== null,
-                'amount' => $columnIndex['amount'] !== null,
-                'category' => $columnIndex['category'] !== null,
-            ],
         ];
     }
 
+    private function delimiter(string $headerLine): string
+    {
+        $counts = [',' => substr_count($headerLine, ','), ';' => substr_count($headerLine, ';'), "\t" => substr_count($headerLine, "\t")];
+        arsort($counts);
+
+        return reset($counts) > 0 ? array_key_first($counts) : ',';
+    }
+
     /**
-     * @param  string[]  $header
+     * @param  array<int, string|null>  $header
      * @return array<string, int|null>
      */
     private function mapColumns(array $header): array
     {
-        $normalized = array_map(fn ($h) => mb_strtolower(trim($h)), $header);
+        $normalized = array_map(fn ($h) => mb_strtolower(trim((string) $h)), $header);
         $map = [];
 
         foreach (self::HEADER_ALIASES as $field => $aliases) {
@@ -100,68 +112,14 @@ class CsvTransactionParser
         return $map;
     }
 
-    private function isBlankRow(array $record): bool
-    {
-        return count($record) === 1 && trim((string) $record[0]) === '';
-    }
-
-    /**
-     * @param  string[]  $record
-     * @param  array<string, int|null>  $columnIndex
-     * @param  Collection<string, Category>  $categoriesByName
-     * @return array{line: int, description: ?string, amount: ?string, type: ?string, date: ?string, category_id: ?int, category_name: ?string, error: ?string}
-     */
-    private function parseRow(array $record, array $columnIndex, $categoriesByName, int $line): array
-    {
-        $description = $this->column($record, $columnIndex['description']);
-        $rawAmount = $this->column($record, $columnIndex['amount']);
-        $rawDate = $this->column($record, $columnIndex['date']);
-        $categoryName = $this->column($record, $columnIndex['category']);
-
-        $error = null;
-        $amount = null;
-        $type = null;
-        $date = null;
-
-        if (! $description) {
-            $error = 'Missing description.';
-        } elseif ($rawAmount === null || ! is_numeric(str_replace(',', '', $rawAmount))) {
-            $error = 'Missing or invalid amount.';
-        } elseif (! $rawDate || strtotime($rawDate) === false) {
-            $error = 'Missing or invalid date.';
-        } else {
-            $numericAmount = (float) str_replace(',', '', $rawAmount);
-            // This app stores amount as an always-positive magnitude with a
-            // separate type enum (confirmed via ReserveRunwayCalculator's
-            // totalExpense - totalIncome usage) -- a bank CSV's sign is the
-            // only signal for which type an imported row is, so it's
-            // consumed here rather than carried through as a negative amount.
-            $type = $numericAmount < 0 ? 'expense' : 'income';
-            $amount = number_format(abs($numericAmount), 2, '.', '');
-            $date = date('Y-m-d', strtotime($rawDate));
-        }
-
-        $category = $categoryName ? $categoriesByName->get(mb_strtolower($categoryName)) : null;
-
-        return [
-            'line' => $line,
-            'description' => $description,
-            'amount' => $amount,
-            'type' => $type,
-            'date' => $date,
-            'category_id' => $category?->id,
-            'category_name' => $categoryName,
-            'error' => $error,
-        ];
-    }
-
-    private function column(array $record, ?int $index): ?string
+    /** @param  array<int, string|null>  $record */
+    private function cell(array $record, ?int $index): ?string
     {
         if ($index === null || ! isset($record[$index])) {
             return null;
         }
 
-        $value = trim($record[$index]);
+        $value = trim((string) $record[$index]);
 
         return $value === '' ? null : $value;
     }

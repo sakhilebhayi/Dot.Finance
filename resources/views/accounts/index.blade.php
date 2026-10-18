@@ -6,7 +6,7 @@
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
             Accounts
         </h1>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Manage the accounts you track balances for.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Each balance is the opening balance plus every transaction since its opening date. You cannot type a balance over it; record a transaction or adjust the opening balance.</p>
     </div>
 
     @if (session('status'))
@@ -26,7 +26,8 @@
                         <tr style="border-bottom:1px solid var(--divider);">
                             <th style="padding:0.75rem 1.5rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Name</th>
                             <th style="padding:0.75rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Type</th>
-                            <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Balance</th>
+                            <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Opening</th>
+                            <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Balance (ledger)</th>
                             <th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>
                         </tr>
                     </thead>
@@ -40,15 +41,16 @@
                                 @endif
                             </td>
                             <td style="padding:0.875rem 1rem;font-size:0.78rem;color:var(--text-secondary);text-transform:capitalize;">{{ $account->type }}</td>
-                            <td style="padding:0.875rem 1rem;text-align:right;font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:{{ (float)$account->balance < 0 ? '#f87171' : '#34d399' }};">
-                                {{ $account->currency }} {{ number_format((float)$account->balance, 2) }}
+                            <td style="padding:0.875rem 1rem;text-align:right;font-size:0.75rem;color:var(--text-muted);">
+                                <x-money :cents="$account->opening_balance_cents" :currency="$account->currency" />
+                                <div style="font-size:0.65rem;">{{ $account->opening_balance_date ? 'from '.$account->opening_balance_date->format('j M Y') : 'no start date' }}</div>
+                            </td>
+                            <td style="padding:0.875rem 1rem;text-align:right;font-size:0.85rem;">
+                                <x-money :cents="$account->balanceCents()" :currency="$account->currency" :tone="true" />
                             </td>
                             <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
-                                <form method="POST" action="{{ route('accounts.destroy', $account) }}" style="display:inline;" onsubmit="return confirm('Delete this account? Its transactions will also be deleted.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" style="font-size:0.75rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
-                                </form>
+                                <a href="{{ route('accounts.edit', $account) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
+                                <a href="{{ route('accounts.confirm-delete', $account) }}" style="font-size:0.75rem;font-weight:600;color:#f87171;text-decoration:none;">Delete</a>
                             </td>
                         </tr>
                         @endforeach
@@ -97,9 +99,14 @@
                         <input type="text" name="currency" value="{{ old('currency', 'ZAR') }}" required maxlength="3" class="dot-input" />
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Balance</label>
-                        <input type="number" step="0.01" name="balance" value="{{ old('balance', '0') }}" required class="dot-input" />
+                        <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Opening balance</label>
+                        <input type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', '0.00') }}" required class="dot-input" />
                     </div>
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Opening balance date</label>
+                    <input type="date" name="opening_balance_date" value="{{ old('opening_balance_date', now()->toDateString()) }}" class="dot-input" />
+                    <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Only transactions on or after this date change the balance.</p>
                 </div>
                 <div>
                     <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Institution (optional)</label>

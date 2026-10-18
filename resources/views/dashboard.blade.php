@@ -19,90 +19,63 @@
         </a>
     </div>
 
-    {{-- ─── KPI Cards ─────────────────────────────────────────────────────── --}}
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:2rem;">
-
-        {{-- Total Balance --}}
-        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Total Balance</span>
-                <div style="width:34px;height:34px;border-radius:9px;background:rgba(5,150,105,0.15);display:flex;align-items:center;justify-content:center;">
-                    <span class="material-symbols-rounded" style="font-size:18px;color:#34d399;">account_balance_wallet</span>
-                </div>
-            </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:#6ee7b7;line-height:1;">
-                ${{ number_format($totalBalance, 2) }}
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
-                Across {{ $accounts->count() }} account{{ $accounts->count() !== 1 ? 's' : '' }}
-            </div>
+    {{-- ─── Position: one ruled row per currency, never a mixed total ──────── --}}
+    <div class="dot-card" style="margin-bottom:2rem;overflow:hidden;">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--divider);display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Position by currency</h2>
+            <span style="font-size:0.7rem;color:var(--text-muted);">Balances are derived from your ledger. {{ now()->format('F Y') }} income and spending exclude transfers.</span>
         </div>
-
-        {{-- Monthly Income --}}
-        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Monthly Income</span>
-                <div style="width:34px;height:34px;border-radius:9px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
-                    <span class="material-symbols-rounded" style="font-size:18px;color:#60a5fa;">trending_up</span>
-                </div>
-            </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:#60a5fa;line-height:1;">
-                ${{ number_format($monthlyIncome, 2) }}
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
-                {{ now()->format('F Y') }}
-            </div>
+        @if(count($position) > 0)
+        <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--divider);">
+                        <th style="padding:0.6rem 1.5rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Currency</th>
+                        <th style="padding:0.6rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Balance</th>
+                        <th style="padding:0.6rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Income this month</th>
+                        <th style="padding:0.6rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Spending this month</th>
+                        <th style="padding:0.6rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Net this month</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($position as $code => $row)
+                    <tr style="border-bottom:1px solid var(--divider);">
+                        <td style="padding:0.9rem 1.5rem;font-size:0.85rem;font-weight:700;color:var(--text-primary);">
+                            {{ $code }}
+                            <span style="font-size:0.68rem;font-weight:500;color:var(--text-muted);margin-left:0.4rem;">{{ $row['accounts'] }} account{{ $row['accounts'] === 1 ? '' : 's' }}</span>
+                        </td>
+                        <td style="padding:0.9rem 1rem;text-align:right;font-size:1.05rem;"><x-money :cents="$row['balance_cents']" :currency="$code" :tone="true" /></td>
+                        <td style="padding:0.9rem 1rem;text-align:right;font-size:0.88rem;"><x-money :cents="$row['income_cents']" :currency="$code" style="color:#60a5fa;" /></td>
+                        <td style="padding:0.9rem 1rem;text-align:right;font-size:0.88rem;"><x-money :cents="$row['expense_cents']" :currency="$code" style="color:#f87171;" /></td>
+                        <td style="padding:0.9rem 1.5rem;text-align:right;font-size:0.88rem;"><x-money :cents="$row['net_cents']" :currency="$code" :signed="true" :tone="true" /></td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-
-        {{-- Monthly Expenses --}}
-        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Monthly Expenses</span>
-                <div style="width:34px;height:34px;border-radius:9px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;">
-                    <span class="material-symbols-rounded" style="font-size:18px;color:#f87171;">trending_down</span>
-                </div>
-            </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:#f87171;line-height:1;">
-                ${{ number_format($monthlyExpense, 2) }}
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
-                {{ now()->format('F Y') }}
-            </div>
+        @else
+        <div style="padding:2rem 1.5rem;text-align:center;">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No accounts yet. <a href="{{ route('accounts.index') }}" style="color:#059669;font-weight:600;">Add an account</a> with an opening balance and the ledger takes it from there.</p>
         </div>
-
-        {{-- Active Budgets --}}
-        <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Active Budgets</span>
-                <div style="width:34px;height:34px;border-radius:9px;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;">
-                    <span class="material-symbols-rounded" style="font-size:18px;color:#a78bfa;">savings</span>
-                </div>
-            </div>
-            <div style="font-family:'Syne',sans-serif;font-size:1.65rem;font-weight:800;color:#a78bfa;line-height:1;">
-                {{ $budgets->count() }}
-            </div>
-            <div style="margin-top:0.5rem;font-size:0.72rem;color:var(--text-muted);">
-                Budget{{ $budgets->count() !== 1 ? 's' : '' }} configured
-            </div>
-        </div>
-
+        @endif
     </div>
 
-    {{-- ─── Cushion ───────────────────────────────────────────────────────── --}}
+    {{-- ─── Cushion (one per currency) ─────────────────────────────────────── --}}
+    @foreach($cushions as $code => $cushion)
     @if($cushion['available'])
         <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.6rem 1.75rem;margin-bottom:2rem;">
             <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;">
                 <span class="material-symbols-rounded" style="font-size:20px;color:#34d399;">shield</span>
-                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">Your Cushion</span>
+                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">Your {{ $code }} cushion</span>
             </div>
 
             @if($cushion['is_growing'])
                 <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#6ee7b7;margin-bottom:0.4rem;">
-                    Reserves are currently growing, not depleting.
+                    {{ $code }} reserves are currently growing, not depleting.
                 </div>
             @else
                 <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#6ee7b7;margin-bottom:0.4rem;">
-                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of reserves at your current pace.
+                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at your current pace.
                 </div>
             @endif
 
@@ -117,6 +90,7 @@
             @endif
         </div>
     @endif
+    @endforeach
 
     {{-- ─── Accounts Row ───────────────────────────────────────────────────── --}}
     @if($accounts->count() > 0)
@@ -143,8 +117,8 @@
                 @if($account->institution)
                 <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.75rem;">{{ $account->institution }}</div>
                 @endif
-                <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:{{ (float)$account->balance < 0 ? '#f87171' : '#6ee7b7' }};">
-                    {{ $account->currency ?? '$' }}{{ number_format(abs((float)$account->balance), 2) }}
+                <div style="font-size:1.15rem;">
+                    <x-money :cents="$account->balanceCents()" :currency="$account->currency" :tone="true" />
                 </div>
             </div>
             @endforeach
@@ -152,11 +126,20 @@
     </div>
     @endif
 
-    {{-- ─── Spending Trend ─────────────────────────────────────────────────── --}}
+    {{-- ─── Spending Trend (one currency at a time) ───────────────────────── --}}
+    @if($spendingTrend)
     <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;margin-bottom:2rem;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-            <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Spending Trend</h2>
-            <div style="display:flex;align-items:center;gap:1.1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem;flex-wrap:wrap;">
+            <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Spending Trend <span style="color:var(--text-muted);font-weight:500;">&middot; {{ $trendCurrency }}</span></h2>
+            <div style="display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap;">
+                @if(count($currencies) > 1)
+                <span style="display:flex;align-items:center;gap:0.5rem;font-size:0.7rem;color:var(--text-muted);">
+                    Currency:
+                    @foreach($currencies as $code)
+                    <a href="{{ route('dashboard', ['currency' => $code]) }}" style="font-weight:{{ $code === $trendCurrency ? '800' : '500' }};color:{{ $code === $trendCurrency ? 'var(--text-primary)' : '#059669' }};text-decoration:none;">{{ $code }}</a>
+                    @endforeach
+                </span>
+                @endif
                 <span style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--text-muted);">
                     <span style="width:9px;height:9px;border-radius:2px;background:#60a5fa;display:inline-block;"></span> Income
                 </span>
@@ -168,8 +151,8 @@
 
         @php
             $trendMonths = $spendingTrend['months'];
-            $trendPeak = $spendingTrend['peak'];
-            $hasTrendData = collect($trendMonths)->contains(fn ($m) => $m['income'] > 0 || $m['expense'] > 0);
+            $trendPeak = $spendingTrend['peak_cents'];
+            $hasTrendData = collect($trendMonths)->contains(fn ($m) => $m['income_cents'] > 0 || $m['expense_cents'] > 0);
             $chartW = 700;
             $chartH = 160;
             $slot = $chartW / max(count($trendMonths), 1);
@@ -178,7 +161,7 @@
         @endphp
 
         @if($hasTrendData)
-        <svg viewBox="0 0 {{ $chartW }} {{ $chartH + 26 }}" style="width:100%;height:auto;overflow:visible;">
+        <svg viewBox="0 0 {{ $chartW }} {{ $chartH + 26 }}" style="width:100%;height:auto;overflow:visible;" role="img" aria-label="Income and expenses by month in {{ $trendCurrency }}">
             @foreach([0.25, 0.5, 0.75, 1] as $fraction)
             <line x1="0" y1="{{ $chartH - $chartH * $fraction }}" x2="{{ $chartW }}" y2="{{ $chartH - $chartH * $fraction }}" stroke="var(--divider)" stroke-width="1" />
             @endforeach
@@ -186,16 +169,16 @@
             @foreach($trendMonths as $i => $month)
             @php
                 $slotX = $i * $slot;
-                $incomeH = $trendPeak > 0 ? ($month['income'] / $trendPeak) * $chartH : 0;
-                $expenseH = $trendPeak > 0 ? ($month['expense'] / $trendPeak) * $chartH : 0;
+                $incomeH = $trendPeak > 0 ? ($month['income_cents'] / $trendPeak) * $chartH : 0;
+                $expenseH = $trendPeak > 0 ? ($month['expense_cents'] / $trendPeak) * $chartH : 0;
                 $incomeX = $slotX + ($slot / 2) - $barW - ($barGap / 2);
                 $expenseX = $slotX + ($slot / 2) + ($barGap / 2);
             @endphp
             <rect x="{{ $incomeX }}" y="{{ $chartH - $incomeH }}" width="{{ $barW }}" height="{{ $incomeH }}" rx="2" fill="#60a5fa">
-                <title>{{ $month['label'] }} income: ${{ number_format($month['income'], 2) }}</title>
+                <title>{{ $month['label'] }} income: {{ \App\Support\Money::format($month['income_cents'], $trendCurrency) }}</title>
             </rect>
             <rect x="{{ $expenseX }}" y="{{ $chartH - $expenseH }}" width="{{ $barW }}" height="{{ $expenseH }}" rx="2" fill="#f87171">
-                <title>{{ $month['label'] }} expenses: ${{ number_format($month['expense'], 2) }}</title>
+                <title>{{ $month['label'] }} expenses: {{ \App\Support\Money::format($month['expense_cents'], $trendCurrency) }}</title>
             </rect>
             <text x="{{ $slotX + $slot / 2 }}" y="{{ $chartH + 18 }}" text-anchor="middle" font-size="10" style="fill:var(--text-muted);">{{ $month['label'] }}</text>
             @endforeach
@@ -207,6 +190,12 @@
         </div>
         @endif
     </div>
+    @else
+    <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;margin-bottom:2rem;">
+        <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0 0 0.75rem;">Spending Trend</h2>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">Not enough transaction history yet to chart a trend.</p>
+    </div>
+    @endif
 
     {{-- ─── Main Two-Column Grid ───────────────────────────────────────────── --}}
     <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;">
@@ -251,8 +240,8 @@
                                 <span style="font-size:0.72rem;color:var(--text-muted);">—</span>
                                 @endif
                             </td>
-                            <td style="padding:0.875rem 1rem;text-align:right;font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:700;color:{{ $tx->type === 'income' ? '#34d399' : ($tx->type === 'expense' ? '#f87171' : '#b7c8e1') }};">
-                                {{ $tx->type === 'income' ? '+' : ($tx->type === 'expense' ? '-' : '') }}${{ number_format((float)$tx->amount, 2) }}
+                            <td style="padding:0.875rem 1rem;text-align:right;font-size:0.85rem;">
+                                <x-money :cents="$tx->signedCents() !== 0 ? $tx->signedCents() : $tx->amount_cents" :currency="$tx->currency" :signed="$tx->signedCents() !== 0" style="color:{{ $tx->type === 'income' ? '#34d399' : ($tx->type === 'expense' ? '#f87171' : 'var(--text-secondary)') }};" />
                             </td>
                             <td style="padding:0.875rem 1.5rem;text-align:center;">
                                 @php
@@ -264,7 +253,7 @@
                                     };
                                 @endphp
                                 <span style="padding:0.18rem 0.6rem;border-radius:9999px;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;background:{{ $typeBadge['bg'] }};color:{{ $typeBadge['color'] }};">
-                                    {{ $tx->type }}
+                                    {{ $tx->isTransfer() ? 'transfer '.($tx->transfer_direction ?? '') : $tx->type }}
                                 </span>
                             </td>
                         </tr>
@@ -283,33 +272,27 @@
         {{-- ─── Right Column ─────────────────────────────────────────────── --}}
         <div style="display:flex;flex-direction:column;gap:1.25rem;">
 
-            {{-- AI Insights Card --}}
+            {{-- Rule-based summary card --}}
             <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;">
                 <div style="display:flex;align-items:center;gap:0.65rem;margin-bottom:1rem;">
-                    <div style="width:32px;height:32px;border-radius:8px;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;">
-                        <span class="material-symbols-rounded" style="font-size:17px;color:#a78bfa;">psychology</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:rgba(74,222,128,0.12);display:flex;align-items:center;justify-content:center;">
+                        <span class="material-symbols-rounded" style="font-size:17px;color:#34d399;">summarize</span>
                     </div>
-                    <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">AI Insights</h3>
-                    @if($unreadInsights > 0)
-                    <span style="margin-left:auto;padding:0.15rem 0.55rem;border-radius:9999px;background:rgba(139,92,246,0.2);color:#a78bfa;font-size:0.65rem;font-weight:700;">
-                        {{ $unreadInsights }} new
-                    </span>
-                    @endif
+                    <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Rule-based summary</h3>
                 </div>
 
-                @if($unreadInsights > 0)
+                @if($summaryCount > 0)
                 <p style="font-size:0.8rem;color:#a1a1aa;margin:0 0 1rem;">
-                    You have <strong style="color:#a78bfa;">{{ $unreadInsights }}</strong> unread insight{{ $unreadInsights !== 1 ? 's' : '' }} waiting for you.
+                    {{ $summaryCount }} summar{{ $summaryCount === 1 ? 'y' : 'ies' }}, one a week, written from your ledger by fixed rules. Not AI.
                 </p>
-                <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;font-weight:700;color:#a78bfa;text-decoration:none;">
+                <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);font-size:0.75rem;font-weight:700;color:#34d399;text-decoration:none;">
                     <span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>
-                    View Insights
+                    View summaries
                 </a>
                 @else
                 <div style="text-align:center;padding:0.75rem 0;">
-                    <span class="material-symbols-rounded" style="font-size:28px;color:#434656;display:block;margin-bottom:0.5rem;">check_circle</span>
-                    <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No new insights</p>
-                    <p style="font-size:0.7rem;color:#434656;margin:0.3rem 0 0;">Check back soon for AI-powered analysis.</p>
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No summaries yet</p>
+                    <p style="font-size:0.7rem;color:#434656;margin:0.3rem 0 0;">One is written each week once there is spending history.</p>
                 </div>
                 @endif
             </div>
@@ -317,7 +300,7 @@
             {{-- Budget Overview --}}
             <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;flex:1;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;">
-                    <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Budget Overview</h3>
+                    <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Budgets this month</h3>
                     <a href="{{ route('budgets.index') }}" style="font-size:0.72rem;font-weight:600;color:#059669;text-decoration:none;">Manage</a>
                 </div>
 
@@ -325,15 +308,15 @@
                 <div style="display:flex;flex-direction:column;gap:1rem;">
                     @foreach($budgets->take(5) as $budget)
                     @php
-                        $spent = $budget->spentAmount();
-                        $limit = (float)$budget->amount;
-                        $pct   = $limit > 0 ? min(100, round(($spent / $limit) * 100)) : 0;
+                        $spent = $budget->spentCents();
+                        $limit = $budget->amount_cents;
+                        $pct   = $limit > 0 ? min(100, intdiv($spent * 100, $limit)) : 0;
                         $barColor = $pct >= 90 ? '#f87171' : ($pct >= 70 ? '#fbbf24' : '#34d399');
                     @endphp
                     <div>
-                        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.35rem;">
-                            <span style="font-size:0.78rem;font-weight:600;color:#a1a1aa;">{{ $budget->category?->name ?? 'Uncategorized' }}</span>
-                            <span style="font-size:0.7rem;color:var(--text-muted);">${{ number_format($spent, 2) }} / ${{ number_format($limit, 2) }}</span>
+                        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.35rem;gap:0.5rem;">
+                            <span style="font-size:0.78rem;font-weight:600;color:#a1a1aa;">{{ $budget->category?->name ?? 'Uncategorized' }} <span style="color:var(--text-muted);font-weight:500;">{{ $budget->currency }}</span></span>
+                            <span style="font-size:0.7rem;color:var(--text-muted);" class="metric-val">{{ \App\Support\Money::format($spent) }} / {{ \App\Support\Money::format($limit, $budget->currency) }}</span>
                         </div>
                         <div style="height:6px;border-radius:9999px;background:var(--track-bg);overflow:hidden;">
                             <div style="height:100%;width:{{ $pct }}%;border-radius:9999px;background:{{ $barColor }};transition:width 0.6s ease;"></div>

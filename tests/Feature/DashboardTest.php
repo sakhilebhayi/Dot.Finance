@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
-use App\Models\AiInsight;
+use App\Models\Insight;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -33,8 +33,8 @@ class DashboardTest extends TestCase
         $user = User::factory()->withPersonalTeam()->create();
         $otherUser = User::factory()->create();
 
-        Account::create(['user_id' => $user->id, 'name' => 'My Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'balance' => 100]);
-        Account::create(['user_id' => $otherUser->id, 'name' => 'Their Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'balance' => 999999]);
+        Account::create(['user_id' => $user->id, 'name' => 'My Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'opening_balance_cents' => 10000]);
+        Account::create(['user_id' => $otherUser->id, 'name' => 'Their Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'opening_balance_cents' => 99999900]);
 
         $response = $this->actingAs($user)->get(route('dashboard'));
 
@@ -46,7 +46,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_view_insights_link_points_at_the_insights_index(): void
     {
         $user = User::factory()->withPersonalTeam()->create();
-        AiInsight::create(['user_id' => $user->id, 'type' => 'reserve_runway_healthy', 'insight' => 'Test insight.']);
+        Insight::create(['user_id' => $user->id, 'type' => 'reserve_runway_healthy', 'insight' => 'Test insight.']);
 
         $response = $this->actingAs($user)->get(route('dashboard'));
 

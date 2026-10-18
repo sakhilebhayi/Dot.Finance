@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AiInsight;
+use App\Models\Insight;
 
 class InsightController extends Controller
 {
     /**
-     * Display the authenticated user's generated insights, newest first.
+     * Display the authenticated user's weekly rule-based summaries, newest first.
      *
-     * No explicit user_id filter needed: AiInsight's HasUserScope trait
+     * No explicit user_id filter needed: Insight's HasUserScope trait
      * applies it automatically to every query against the model, the
      * same convention TransactionController's index() already documents.
      */
     public function index()
     {
-        $insights = AiInsight::latest()->paginate(20);
+        $insights = Insight::latest('id')->paginate(20);
 
         return view('insights.index', compact('insights'));
     }

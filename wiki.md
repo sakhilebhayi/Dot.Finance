@@ -1,10 +1,10 @@
 ---
 title: Dot.Finance — Platform Wiki
-version: 0.4.0
+version: 0.5.0
 status: draft
 owners: [Finance Platform Lead]
 platform-id: dot-finance
-last-review: 2026-08-07
+last-review: 2026-10-18
 ---
 
 # Dot.Finance
@@ -17,53 +17,74 @@ Purpose: this is Dot.Finance's own knowledge home — owned and maintained by th
 
 ## 1. What Dot.Finance Is
 
-Dot.Finance is a personal/team financial-tracking application: users connect accounts, log transactions, set category budgets, and get AI-generated spending insights. It's built as a Laravel 12 + Livewire 3 monolith (PHP 8.4, PostgreSQL, Tailwind CSS), using Laravel Jetstream for auth and team management, and Sanctum for both API tokens and ecosystem single sign-on.
+Dot.Finance is a personal finance ledger: a signed-in user records accounts, transactions, transfers between their own accounts, categories, budgets and recurring items, and reads balances, a monthly cash-flow report, a 90-day projection from recurring items, and a weekly rule-based summary. It is a Laravel 13 monolith (PHP 8.3+, developed on 8.5; PostgreSQL in production, SQLite in tests), using Laravel Jetstream for auth and teams and Sanctum for API tokens and ecosystem single sign-on.
 
-**Status:** early but real. This is not a blank-slate repo — there is a working schema, models, dashboard, and an ecosystem-SSO handoff flow already committed. What's *not* yet built is everything past the personal-finance core: bank sync, AI categorisation, anomaly detection, invoice reconciliation with Dot.Billing, and any Dot.Brain Knowledge Pack integration. Those are represented below as roadmap, not shipped behavior — see §8.
+**Tenancy is undecided and unchanged.** Every finance record is owned by `user_id` (the `HasUserScope` global scope), not by a team. Whether this becomes company/team finance is an open owner decision (see Open Questions); nothing in the ledger work assumed an answer.
 
-This wiki intentionally documents both registers side by side: §2–§5 describe what runs today; §6–§8 describe the ecosystem-integration layer that Dot.Brain's view of this platform (linked above) already assumes but which does not yet exist in this codebase.
+**What the ledger guarantees:**
+
+- **Balances are derived, never typed.** An account has an opening balance and an opening date; its balance is the opening balance plus every transaction dated on or after that date, computed in SQL. Nothing else can set it.
+- **Money is integer cents** in one currency per account. Totals are always per currency; two currencies are never added.
+- **Transfers** are two linked ledger entries (out and in), written atomically, never counted as income or spending.
+- **Nothing is hard-deleted.** Transactions, accounts, categories and budgets are soft-deleted, and every create, update and delete is written to an append-only audit log.
+- **Imports are safe to repeat.** A CSV import fingerprints each row, so importing the same statement twice skips what is already there.
+
+**Status:** real and working, but small. There is no bank sync, no AI of any kind (the weekly summary is fixed arithmetic and fixed sentences), no anomaly detection, no invoice reconciliation, and no Dot.Brain integration. Those are roadmap, not shipped behaviour (see §8).
+
+This wiki documents both registers side by side: §2-§5 describe what runs today; §6-§8 describe the ecosystem-integration layer that Dot.Brain's view of this platform (linked above) already assumes but which does not yet exist in this codebase.
 
 ## 2. Architecture
 
-- **Framework:** Laravel 12 (PHP 8.4), server-rendered with Livewire 3 + Alpine.js islands, Tailwind CSS for styling, Vite for the asset pipeline.
-- **Auth & teams:** Laravel Jetstream (`app/Models/Team.php`, `TeamInvitation.php`, `Membership.php`) — multi-tenant team structure is scaffolded, but the finance tables (`accounts`, `transactions`, `categories`, `budgets`) are keyed to `user_id`, not `team_id`. Team-scoped finances are not wired up yet; today's data model is single-user.
-- **Database:** PostgreSQL, single shared instance per the ecosystem's SSO story (`README.md` calls out `DB_*` pointed at a shared InfoDot/Dot Postgres instance).
-- **Ecosystem SSO:** `app/Http/Controllers/Auth/EcosystemAuthController.php` accepts a Sanctum personal-access-token query param scoped `ecosystem:read`, validates and single-use-consumes it, then logs the bearer in and redirects to `/dashboard`. This is the actual, working cross-platform entry point today — simple, token-based, no OAuth dance.
-- **AI:** `config/services.php` wires an `anthropic` service block (`ANTHROPIC_API_KEY`, model `claude-sonnet-4-6`) intended to power transaction categorisation and spending insights. The `ai_insights` table exists in the schema (migration `2026_06_27_000001_create_finance_tables.php`), and `app/Models/AiInsight.php` now exists (`user_id`, `insight`, `type`, `user()` relation) — the dashboard route queries real `AiInsight::where('user_id', ...)->count()` instead of a hardcoded `0`. No service yet writes rows into this table, so the count is genuinely (and honestly) always 0 today — generating real insights via the configured Anthropic model is still roadmap, not code-ready.
-- **Dashboard:** `routes/web.php` computes account balances, this-month income/expense totals, recent transactions, and per-category budgets directly in the route closure (no dedicated controller yet) and renders `resources/views/dashboard.blade.php`.
+- **Framework:** Laravel 13 (PHP 8.3+), server-rendered Blade with Alpine.js, Tailwind (CDN) for styling. Jetstream's navigation menu is the only Livewire component in use.
+- **Auth & teams:** Laravel Jetstream (`Team`, `TeamInvitation`, `Membership`). Teams are scaffolded and synced from InfoDot, but the finance tables are keyed to `user_id`, not `team_id`.
+- **Database:** PostgreSQL in production. The migrations and queries are written to run on SQLite as well (the test suite runs on SQLite); they have not been run against Postgres in CI here.
+- **Ecosystem SSO:** `EcosystemAuthController` accepts a handoff token on `/auth/ecosystem`, and either validates it against a local Sanctum token or redeems it through InfoDot, then logs the user in and redirects to `/dashboard`.
+- **Money:** `App\Support\Money` (integer cents, decimal-string parsing, formatting) and the `MoneyAmount` validation rule, which rejects floats, exponents and more than two decimals. Every amount in the database is `amount_cents`; the legacy decimal columns are kept and mirrored for rollback safety and are not read.
+- **Ledger:** `Account::withBalance()` derives balances; `LedgerSummary` gives per-currency position; `TransferService` writes transfer pairs; `LedgerReconciler` (the `finance:check-balances` command and the Reconciliation page) re-derives every balance independently and checks ledger invariants.
+- **Audit:** `FinanceAuditObserver` writes `finance_audit_log` rows (append-only; the model and builder refuse update and delete). Free text (descriptions, notes) is recorded as "changed" without the words.
+- **Import:** `TransactionImporter` stages an uploaded CSV on the server, previews it with the user's chosen date and number formats, and imports it in one database transaction.
+- **Recurring:** `recurring_rules` hold the schedule (editable, pausable, stoppable); `TransactionRecurrenceService` writes due occurrences daily. `ForecastService` projects 90 days from the same rules and writes nothing.
+- **Summaries:** `finance:generate-insights` writes one rule-based summary per user per ISO week (unique key on `user_id, iso_week`). The table keeps its old name, `ai_insights`, because the database is shared across the ecosystem.
+- **Scheduled commands:** `finance:generate-recurring-transactions` (daily), `finance:generate-insights` (weekly), `finance:prune-imports` (daily).
 
 ## 3. Domain Entities (as implemented)
 
 | Entity | Table | Key fields | Notes |
 |---|---|---|---|
-| Account | `accounts` | `user_id`, `name`, `type` (checking/savings/credit/investment/cash), `currency` (default ZAR), `balance`, `institution` | One row per user-owned account; no bank-sync integration yet, balances are manually maintained |
-| Category | `categories` | `user_id`, `name`, `icon`, `color`, `type` (income/expense) | Per-user, not shared/global taxonomy |
-| Transaction | `transactions` | `account_id`, `category_id` (nullable), `user_id`, `description`, `amount`, `type` (income/expense/transfer), `date`, `notes` | Core ledger entry; category is optional, deletable without cascading the transaction |
-| Budget | `budgets` | `user_id`, `category_id`, `amount`, `month`, `year` | Unique per (user, category, month, year); `Budget::spentAmount()` sums matching expense transactions on demand — no materialized rollup |
-| AiInsight | `ai_insights` | `user_id`, `insight`, `type` (default `spending`) | Model now exists (`app/Models/AiInsight.php`); no service writes rows yet — see §2 |
+| Account | `accounts` | `user_id`, `name`, `type`, `currency` (one per account, locked once it has transactions), `opening_balance_cents`, `opening_balance_date`, `institution`, soft delete | The balance is derived (opening + ledger since the opening date). The old `balance` column survives only as the record of what was typed before the ledger migration. |
+| Category | `categories` | `user_id`, `name`, `icon`, `color`, `type` (income/expense), soft delete | Type is locked while transactions or budgets use it. A transaction's category must match its type. |
+| Transaction | `transactions` | `account_id`, `category_id`, `amount_cents`, `currency`, `type` (income/expense/transfer), `transfer_direction` and `transfer_group` (transfers), `date`, `recurring_rule_id`, `import_fingerprint`, `import_batch_id`, soft delete | A ledger entry. Currency is inherited from the account. A transfer is two entries sharing a `transfer_group`. |
+| RecurringRule | `recurring_rules` | `account_id`, `category_id`, `amount_cents`, `currency`, `type`, `recurrence_type`, `recurrence_interval`, `start_date`, `next_occurrence_date`, `end_date`, `paused_at`, `ended_at`, soft delete | Replaces the old "anchor transaction carries the schedule" model. Editing a rule only changes what is generated from then on. |
+| Budget | `budgets` | `user_id`, `category_id`, `amount_cents`, `currency`, `month`, `year`, soft delete | One per category, currency and month. Spend for all budgets comes from one grouped query and only counts expenses in the same currency. |
+| FinanceAuditLog | `finance_audit_log` | `user_id`, `action`, `actor`, `subject_type`, `subject_id`, `subject_label`, `currency`, `changes` (json), `context`, `created_at` | Append-only. Read-only page at `/audit`. |
+| Insight | `ai_insights` | `user_id`, `insight`, `type`, `iso_week` | A weekly rule-based summary, not AI. Unique per user per ISO week. |
 
-There is deliberately no `entity:asset` graph modeling, no portfolio/product concept, and no credit/insurance domain in the current codebase — this is a personal transaction tracker, not (yet) a financial-products platform.
+There is deliberately no asset graph, portfolio or product concept, and no credit/insurance domain: this is a personal ledger, not a financial-products platform.
 
 ## 4. Events Emitted
 
-None today. There is no event bus, queue-fired domain event, or webhook emission in the current code — no `Event::fire`/listener wiring for account, transaction, or budget lifecycle changes was found. Laravel Horizon/Redis queueing is referenced in the README's tech-stack table but not present in `composer.json`'s current dependency set at this stage of the build. Domain events (`finance.transaction.created`, `finance.budget.exceeded`, etc.) are a roadmap item — see §8.
+None. There is no event bus, queue-fired domain event or webhook emission. The audit log records changes for the user to read; nothing subscribes to it. Domain events (`finance.transaction.created`, `finance.budget.exceeded`, etc.) are a roadmap item (see §8).
 
 ## 5. What's Real vs. What's Aspirational (README vs. code)
 
-The README (`README.md`) describes a fuller product than what's built: bank sync, AI categorisation, anomaly detection, P&L/cash-flow reports, invoice reconciliation with Dot.Billing. Reading the actual code:
-
-| README claim | Code reality |
+| Claim | Code reality |
 |---|---|
-| Account management | Implemented — manual accounts, no bank sync |
-| Transaction import (CSV/bank sync) | Not implemented |
-| AI categorisation | Not implemented — `ai_insights` table exists, no model/service |
-| Budget tracking | Implemented — `Budget::spentAmount()` computed live |
-| Anomaly detection | Not implemented |
-| P&L / cash-flow reports with charts | Not implemented — dashboard shows raw sums only |
-| Invoice reconciliation with Dot.Billing | Not implemented |
-| Ecosystem SSO | Implemented — `EcosystemAuthController` |
+| Account management | Implemented: accounts with an opening balance; the balance is derived from the ledger. No bank sync. |
+| Transaction import | Implemented as CSV import (date format and number format chosen by the user, duplicate rows skipped). No bank sync. |
+| Transfers between accounts | Implemented: two linked entries, same currency or an explicit converted amount. |
+| Budget tracking | Implemented: per category, currency and month. |
+| Recurring transactions | Implemented: editable, pausable, stoppable rules. |
+| Cash-flow report | Implemented: monthly income, spending and net, per currency, as tables. |
+| Forecast | Implemented as a 90-day projection from recurring items only, labelled as not a prediction. |
+| Weekly summaries | Implemented as rule-based summaries (not AI), one per user per ISO week. |
+| Audit trail | Implemented: append-only log and a read-only page. |
+| AI categorisation / AI insights | Not implemented. Nothing in this repo calls a language model. |
+| Anomaly detection | Not implemented. |
+| Invoice reconciliation with Dot.Billing | Not implemented. |
+| Team-scoped finances | Not implemented; undecided. |
+| Ecosystem SSO | Implemented: `EcosystemAuthController`. |
 
-This wiki reports the code-reality column as current state and treats the README's fuller vision as direction, not fact.
+This wiki reports the code-reality column as current state and treats anything else as direction, not fact.
 
 ## 6. Relationship to Dot.Brain's Platform Doc
 
@@ -73,7 +94,7 @@ The gap is real and worth naming plainly: today's Dot.Finance is a personal tran
 
 ## 7. Connecting to Dot.Brain
 
-**Current state: not connected.** No DKP manifest (`platform.dkp.json`), no Knowledge Pack publishing code, and no `dot-brain` client/SDK dependency exist in this repository. The `anthropic` service config is for this app's own AI insight feature, not for Dot.Brain integration.
+**Current state: not connected.** No DKP manifest (`platform.dkp.json`), no Knowledge Pack publishing code, and no `dot-brain` client/SDK dependency exist in this repository. The `anthropic` block in `config/services.php` (and `ANTHROPIC_*` in `.env.example`) is unused: nothing in this repository calls it, and the weekly summary does not use a language model.
 
 **Planned integration**, aligned with Dot.Brain's ingested view:
 
@@ -90,18 +111,27 @@ Full manifest shape, entity/event mapping, and worked publish→PR examples are 
 
 ## 8. Roadmap
 
-- [x] Generate the `AiInsight` model (schema already existed) — dashboard now counts real rows instead of a hardcoded `0`
-- [x] Generate a weekly rule-based insight per user (`finance:generate-insights`, using `ReserveRunwayCalculator`'s real numbers) — the dashboard's "AI Insights" card now shows real, computed content
-- [ ] Wire the Anthropic client to generate richer, LLM-authored insights (the rule-based generator above already covers the reserve-runway case with real, honest, non-LLM analysis)
-- [ ] Transaction categorisation via the configured Anthropic model
-- [ ] Bank/CSV transaction import
+Done:
+
+- [x] Ledger-derived balances, integer money, per-currency totals, linked transfers
+- [x] Soft deletes and an append-only audit log with a read-only page
+- [x] Edit screens for accounts, categories and budgets; editable, pausable, stoppable recurring items
+- [x] CSV import with a chosen date and number format, and duplicate detection
+- [x] Monthly cash-flow report and a 90-day projection from recurring items
+- [x] Weekly rule-based summary, one per user per ISO week
+
+Not done:
+
+- [ ] Bank feed import (CSV is the only import)
+- [ ] Transaction categorisation by a language model, if it is ever wanted (nothing calls one today)
 - [ ] Anomaly detection on transaction streams
-- [ ] P&L and cash-flow reporting with chart visualisations
-- [ ] Team-scoped finances (Jetstream teams exist; finance tables are still user-scoped only)
+- [ ] Charts beyond the dashboard trend and the forecast line
+- [ ] Team-scoped finances (undecided; finance tables are user-scoped only)
 - [ ] Invoice reconciliation with Dot.Billing
 - [ ] Domain event emission (transaction created, budget exceeded, account synced)
 - [ ] First DKP manifest (`platform.dkp.json`) and Knowledge Pack publishing client
-- [ ] Decide whether/when this platform grows into the financial-products (credit/insurance/savings) domain Dot.Brain's platform doc anticipates, or stays a personal-finance tracker with that domain built elsewhere
+- [ ] Decide whether this platform grows into the financial-products (credit/insurance/savings) domain Dot.Brain's platform doc anticipates, or stays a personal ledger with that domain built elsewhere
+- [ ] Drop the legacy decimal columns (`accounts.balance`, `transactions.amount`, `budgets.amount`) and the unused `transactions.recurrence_*` columns once the migration has been verified in production
 
 ## Open Questions
 
@@ -113,6 +143,7 @@ Full manifest shape, entity/event mapping, and worked publish→PR examples are 
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.5.0 | 2026-10-18 | Ledger integrity pass | Made the ledger trustworthy without changing tenancy (still `user_id`-scoped). Balances are derived from opening balance + ledger; money is integer cents with per-currency totals; transfers are linked pairs; soft deletes plus an append-only audit log; edit screens; editable recurring rules; CSV import with chosen formats and duplicate detection; cash-flow report; 90-day projection from recurring items; weekly summaries are rule-based, deduplicated per ISO week and no longer labelled AI. Rewrote §1-§5 and §8 to describe exactly what exists. |
 | 0.4.0 | 2026-08-07 | Platform-loop pass | Ecosystem-wide standardization pass: branded transactional email theme, POPIA-aligned legal pages, and hero-styled auth pages, matching the pattern piloted on InfoDot and already rolled out to 11 sibling platforms. **Legal pages:** enabled `Features::termsAndPrivacyPolicy()` in `config/jetstream.php` (previously commented out — `policy.blade.php`/`terms.blade.php` already existed from the 0.3.2 auth redesign, styled and ready, but were unreachable since the routes didn't exist). Rewrote `resources/markdown/policy.md` and `terms.md` from Jetstream's 3-line stock placeholders, naming **BluePin Inc** as the responsible party and aligned with South Africa's POPIA, grounded in this platform's real single-user data model: manually-entered accounts/transactions/categories/budgets (explicitly no bank-sync, per §2/§3/§5), the configured-but-inactive Anthropic AI-insight feature (§2's "no service yet writes rows" is called out honestly, framed as *not yet active* rather than glossed over), and the ecosystem SSO handoff. Added a hand-wired `/cookies` route (Jetstream has no Cookie Policy equivalent) reading a new `resources/markdown/cookies.md`, grounded in this platform's real session cookie name (`dot-finance-session`, confirmed in `config/session.php`, not guessed). Created `resources/views/cookies.blade.php`, matching `policy.blade.php`/`terms.blade.php`'s existing paper/ember card styling exactly (no new visual pattern introduced). Footer of `welcome.blade.php` got Privacy/Cookies/Terms links via `route('policy.show')`/`route('cookies')`/`route('terms.show')`, added to the existing footer link row alongside Features/How it works/Roadmap — additive only. **Auth page background:** this platform's `welcome.blade.php` hero has **no photo at all** — unlike every other platform standardized so far, its actual visual identity (established in the 0.3.1 redesign) is a `.grid-paper` ledger-ruled texture over the paper/gold/ember palette, with a bespoke hand-drawn ledger-receipt SVG illustration, not a stock or Unsplash image. Rather than force in an unrelated photo to match the ecosystem's usual pattern, matched what the welcome page *actually* does: copied the `.grid-paper` CSS rule (`repeating-linear-gradient`, two axes, `rgba(36,26,16,0.05)` on 32px steps) from `welcome.blade.php`'s inline `<style>` block into `layouts/guest.blade.php`'s own `<style>` block, and added the `grid-paper` class to `components/authentication-card.blade.php`'s full-screen wrapper (previously flat `bg-[var(--paper)]` with no texture). This is the correct reading of the task brief's "same visual style as the welcome page" instruction when that style is a texture/palette rather than a photo. **Branded transactional email theme:** published Laravel's markdown mail vendor views (`vendor:publish --provider="Illuminate\Mail\MailServiceProvider"` — this platform had never had them published before) and rewrote both `resources/views/vendor/mail/html/message.blade.php` (real `<img>` logo via `asset('images/logo.png')` in the header, hardcoded "Dot.Finance"/"Personal finance tracking, made clear." in the footer rather than trusting `config('app.name')`) and `themes/default.css` (hardcoded hex only, matching `welcome.blade.php`'s real tokens: ink `#241a10`, gold `#e8af39`/`#c98a1f`, ember `#dd6e29`, paper `#fbf5e9`/`#f1e4c9` — no CSS custom properties, since email clients don't reliably support them; primary button uses gold with dark-ink text, matching the welcome page's own CTA button contrast choice). This makes the theme apply automatically to every markdown `MailMessage`, including Fortify's built-in password-reset/email-verification notifications, with zero per-notification code changes. Verified via a temporary `/_mail-preview` route rendering `ResetPassword::toMail()` — dark header band with real logo, gold button with correctly-computed dark-ink text, branded footer — removed before commit. **Verification:** `npm run build` clean; `php artisan config:clear && route:clear && view:clear`; full suite green, 64 tests / 57 passed / 7 skipped (pre-existing feature-flag gates, unchanged) / 0 failed, confirming this pass introduced no regressions; browser-verified `/login` and `/privacy-policy` at desktop and mobile widths — grid-paper texture renders correctly full-screen, no horizontal overflow, zero console errors. |
 | 0.3.2 | 2026-08-06 | Platform-loop pass | **Auth page family redesign, following the same paper/ledger convention set on `welcome.blade.php` (0.3.1).** Hero/CTA photo (Task 1): deliberately skipped, not added. Searched Unsplash directly (`ledger accounting flatlay`, `receipts finance desk flatlay`, `coins budget`) and reviewed the first ~16 results across both queries — every candidate was generic stock imagery (a pile of coins on a table, a receipt on white, a calculator flatlay) that would either compete with or visually dilute the hero's existing bespoke hand-drawn ledger-ticket illustration (torn-edge receipt, coin emblem, ledger rules, chevron) rather than clearly earning its place next to it; nothing cleared the bar of "genuinely excellent." No URL was fetched or `curl`-verified because none was worth using. This matches the task brief's own stated default for this platform. **Auth pages (Task 2), scoped exactly per the brief:** `resources/views/layouts/guest.blade.php` gained the platform's Google Fonts `<link>` (Fraunces/Work Sans/IBM Plex Mono) and a verbatim copy of `welcome.blade.php`'s `:root` palette block (`--paper #fbf5e9`, `--ink #241a10`, `--gold #e8af39`, `--ember #dd6e29`, etc.), with `html`/`body` background and text set to `var(--paper)`/`var(--ink)` and the old Figtree/`bg-gray-100` Jetstream default fully removed. `components/authentication-card.blade.php` recolored to a `var(--paper-deep)` card on a `var(--paper)` page with a hairline `var(--line)` border, replacing the old `bg-white dark:bg-gray-800` box. `components/authentication-card-logo.blade.php` bumped from Jetstream's stock `h-16`-only (already reasonable here, but unconditional across breakpoints) to `h-16 sm:h-20` — matched to the exact class the welcome page's nav uses for its full logo lockup, per the explicit instruction not to repeat the ecosystem's earlier undersized-logo mistake. Shared low-level primitives `button.blade.php`/`input.blade.php`/`checkbox.blade.php` had their indigo-500/600 focus rings and accents swapped for the platform's `#e8af39`/`#c98a1f` gold family, using literal hex arbitrary-value classes rather than `var(--gold)` so the components render identically regardless of which layout wraps them (guest vs. the authenticated dashboard's independent `layouts/app.blade.php`, which defines its own separate `--accent:#4ade80` token system and does not share guest.blade.php's `:root` block). `label.blade.php`/`input-error.blade.php`/`validation-errors.blade.php` were left untouched — no indigo present, semantic red/gray already legible on the new paper background. **A real bug was caught during browser verification, not just assumed fixed:** the first screenshot of `/login` showed both input fields rendering as near-black boxes — Tailwind's `dark:` variants in the original `input.blade.php`/`checkbox.blade.php` (`dark:bg-gray-900 dark:text-gray-300`) were activating from this browser's `prefers-color-scheme: dark`, clashing badly with the now-fixed-light paper card (guest pages have no dark-mode toggle, unlike the dashboard's own `data-theme` mechanism, so nothing was meant to trigger this). Fixed by hard-pinning `input`/`checkbox` to `bg-white`/`text-gray-900` in both light and `dark:` variants so they're immune to OS/browser color-scheme regardless of layout; re-verified clean afterward. All 7 auth pages (`login`, `register`, `forgot-password`, `reset-password`, `confirm-password`, `two-factor-challenge`, `verify-email`) got a small `font-mono` eyebrow + `font-display` heading above each form for orientation (e.g. "Sign in / Welcome back", "Create account / Start your ledger") — no illustration, per the brief's "utility pages not marketing pages" instruction — plus inline link/description recoloring from `gray-600`/`indigo-500` to `var(--ink-soft)`/gold focus rings, with `dark:` variants dropped from page-level markup (not from the shared components) since these pages, like `welcome.blade.php`, commit to a single fixed light theme. No `action`/`method`/`route()`/`@csrf`/input `name`/`@error`/`wire:model` was touched on any page — only surrounding classes and markup. Also restyled `policy.blade.php`/`terms.blade.php` (in scope: both render real injected content via `{!! $policy !!}`/`{!! $terms !!}`, not lorem-ipsum) to the same wrapper treatment plus a heading; confirmed via browser that `/policy` currently 404s cleanly (standard Laravel 404 page, no PHP error) because `Features::termsAndPrivacyPolicy()` is commented out in `config/jetstream.php` — a pre-existing, unrelated config state, not something this pass changed or needs to fix, but noted here since it means these two restyled views aren't reachable until that feature flag is enabled. **Verified for real:** `npm run build` clean (`public/build/assets/app-*.css` 67.68 kB, up from the pre-change 65.24 kB baseline, consistent with the added utility classes); `php artisan serve --port=8083` boots clean against the already-migrated `dot_finance_pilot` Postgres database; real in-browser checks of `/login`, `/register`, `/forgot-password`, `/reset-password/faketoken?email=...` (renders the form correctly with the token/email pre-filled), `/user/confirm-password` and `/two-factor-challenge` (both redirect cleanly to `/login`, no fatal error, as expected for unauthenticated requests), and `/policy` (clean 404) — at 375px mobile and 1600px desktop, `document.documentElement.scrollWidth === window.innerWidth` confirmed at both widths on `/login` and `/register` (no horizontal overflow), `read_console_messages` clean throughout, all form fields/labels/buttons legible against the paper/ink pairing already proven on `welcome.blade.php`. |
 | 0.3.1 | 2026-08-06 | Platform-loop pass | Redesigned `resources/views/welcome.blade.php`, following the ecosystem's guest-facing-design pilot pattern set on Dot.Mines (four combined skills: `frontend-design`, `design-taste-frontend-v1`, `emil-design-eng`, `ui-ux-pro-max`). The prior page was the same generic dark-SaaS template pattern flagged on the pilot — near-black `bg-gray-900`, green/emerald gradient text and buttons, floating blurred orb elements, fabricated stat tiles (`5` account types, `1:1` budget-to-category), and a fake dashboard-preview card with invented numbers (`R 24,500`, `R 16,120`) — none of it grounded in this platform's real identity. Sampled the real logo (`public/images/logo.png`) directly rather than reusing Dot.Mines' gold/umber/warm-ink palette verbatim: kept the logo's own mustard-gold (`--gold #e8af39`) and burnt-orange (`--ember #dd6e29`) as the two accents, but built them into a **light ivory-paper theme** (`--paper #fbf5e9`, `--ink #241a10`) instead of a dark theme — a deliberate structural break from both the pilot's dark near-black background and the generic "dark + single bright accent" AI-slop default, chosen because a paper/ledger register fits a personal-finance tracker's real subject matter. Typography: `Fraunces` (display serif, paired with the rounded logo wordmark) + `Work Sans` (body) + `IBM Plex Mono` (data/labels, tabular figures) — a different pairing from Dot.Mines' `Outfit`/`Plus Jakarta Sans`/`JetBrains Mono` and clear of the banned `Inter`. Replaced the 3-equal-card feature grid and icon-in-colored-box cliché with the same divided asymmetric list pattern as the pilot (hairline borders, mono field-tags, since the six features aren't a sequence). Signature element: a hand-drawn-line **ledger receipt/statement illustration** in the hero (torn perforated bottom edge, ruled statement lines, a circular coin emblem echoing the logo's money-bag-and-crown icon with its `R` monogram, and a chevron echoing the logo's arrow) — this platform's own equivalent of the pilot's headframe silhouette, grounded in ledgers/statements rather than mining. Rewrote all copy from this wiki's §1 and §3 to remove fabricated stats and hype language ("Take Control", floating "Manual & Simple"/"Category Budgets" badges) in favor of concrete, functional claims about what's actually shipped (manual accounts, transaction search/filter, custom categories, live-computed budgets, per-user policy scoping, ecosystem SSO), and kept the honest "what's not built yet" roadmap section rather than the README's fuller aspirational claims. Removed the four dead `href="#"` footer links (About/Contact/Careers/Blog, Privacy/Terms/Cookie) and the three dead social-icon links — unfinished-artifact clutter, same class of issue the pilot's follow-up fix flagged. Motion: a single restrained scroll-reveal (IntersectionObserver, `prefers-reduced-motion` respected) and `scale(0.97)` press-feedback — no perpetual float/pulse/ping animation (the prior page's `float-animation` and `animate-ping` badges were both removed). **Logo legibility explicitly verified, not assumed** — the pilot's own follow-up fix (nav logo 36px→64/80px, footer 28px→44px) was treated as a hard lesson, not history: this page was built with `h-16 sm:h-20` (64/80px) nav and `h-11` (44px) footer from the start, then confirmed with `npm run build`, a local `php artisan serve --port=8813` preview, and real DOM/screenshot checks in-browser at 500px (nav logo measured 64px tall, image `complete`, natural size matching the real file, no horizontal overflow), 1600px desktop, and 375px mobile — all clean, no console errors, no overflow. (The local Postgres session-store database wasn't provisioned in this sandbox; verification used a `SESSION_DRIVER=array` runtime override for the preview server only, without touching `.env`.) |

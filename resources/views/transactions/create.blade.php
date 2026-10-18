@@ -6,7 +6,7 @@
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
             Add Transaction
         </h1>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Log a new income, expense, or transfer.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Log income or an expense. To move money between your own accounts, <a href="{{ route('transfers.create') }}" style="color:#059669;font-weight:600;">record a transfer</a>.</p>
     </div>
 
     @if ($errors->any())
@@ -30,12 +30,12 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount</label>
-                <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
             </div>
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
-                <select name="type" required class="dot-input">
-                    @foreach(['expense', 'income', 'transfer'] as $type)
+                <select name="type" required class="dot-input" id="type-select">
+                    @foreach(['expense', 'income'] as $type)
                     <option value="{{ $type }}" @selected(old('type', 'expense') === $type)>{{ ucfirst($type) }}</option>
                     @endforeach
                 </select>
@@ -48,7 +48,7 @@
                 <select name="account_id" required class="dot-input">
                     <option value="">Select account</option>
                     @foreach($accounts as $account)
-                    <option value="{{ $account->id }}" @selected((string) old('account_id') === (string) $account->id)>{{ $account->name }}</option>
+                    <option value="{{ $account->id }}" @selected((string) old('account_id') === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
                     @endforeach
                 </select>
                 @if($accounts->isEmpty())
@@ -59,10 +59,10 @@
             </div>
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category (optional)</label>
-                <select name="category_id" class="dot-input">
+                <select name="category_id" class="dot-input" id="category-select">
                     <option value="">Uncategorized</option>
                     @foreach($categories as $category)
-                    <option value="{{ $category->id }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                    <option value="{{ $category->id }}" data-type="{{ $category->type }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }} ({{ $category->type }})</option>
                     @endforeach
                 </select>
             </div>
@@ -102,5 +102,25 @@
     </form>
 
 </div>
+
+<script>
+    // A category can only be used on a transaction of its own type; hide the others as the type changes.
+    (function () {
+        var type = document.getElementById('type-select');
+        var category = document.getElementById('category-select');
+        if (!type || !category) return;
+        function sync() {
+            Array.prototype.forEach.call(category.options, function (o) {
+                if (!o.dataset.type) return;
+                var match = o.dataset.type === type.value;
+                o.hidden = !match;
+                o.disabled = !match;
+                if (!match && o.selected) category.value = '';
+            });
+        }
+        type.addEventListener('change', sync);
+        sync();
+    })();
+</script>
 
 </x-app-layout>

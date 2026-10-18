@@ -19,10 +19,10 @@ class ReserveRunwayCalculatorTest extends TestCase
     {
         return Account::create([
             'user_id' => $user->id,
-            'name' => ucfirst($type) . ' account',
+            'name' => ucfirst($type).' account',
             'type' => $type,
             'currency' => 'ZAR',
-            'balance' => $balance,
+            'opening_balance_cents' => (int) round($balance * 100),
             'institution' => null,
         ]);
     }
@@ -52,9 +52,10 @@ class ReserveRunwayCalculatorTest extends TestCase
         // Need at least one expense transaction for the calculator to have data to work with.
         $this->createTransaction($user, $checking, 'expense', 200, now());
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
-        $this->assertEqualsWithDelta(1600.0, $result['liquid_reserves'], 0.01);
+        // Derived balances: checking 1000 - 200 expense, savings 500, cash 100. Credit/investment excluded.
+        $this->assertSame(140_000, $result['liquid_reserves_cents']);
     }
 
     public function test_burn_rate_averages_the_trailing_three_months(): void
@@ -67,10 +68,11 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'expense', 200, now()->subMonths(1)->startOfMonth()->addDays(2));
         $this->createTransaction($user, $account, 'expense', 300, now()->startOfMonth()->addDays(2));
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
-        $this->assertEqualsWithDelta(200.0, $result['avg_monthly_burn'], 0.01);
-        $this->assertSame(15, $result['months']); // 3000 / 200 = 15
+        $this->assertSame(20_000, $result['avg_monthly_burn_cents']);
+        // The ledger balance already includes those expenses: 3000 - 600 = 2400, and 2400 / 200 = 12.
+        $this->assertSame(12, $result['months']);
     }
 
     public function test_transfers_are_excluded_from_burn_rate(): void
@@ -81,9 +83,9 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'expense', 100, now());
         $this->createTransaction($user, $account, 'transfer', 9999, now()); // must not affect burn
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
-        $this->assertEqualsWithDelta(100.0, $result['avg_monthly_burn'], 0.01);
+        $this->assertSame(10_000, $result['avg_monthly_burn_cents']);
     }
 
     public function test_non_burning_case_reports_growing_with_no_months_figure(): void
@@ -94,11 +96,45 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'income', 500, now());
         $this->createTransaction($user, $account, 'expense', 200, now());
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
         $this->assertTrue($result['available']);
         $this->assertTrue($result['is_growing']);
         $this->assertNull($result['months']);
+    }
+
+    public function test_each_currency_gets_its_own_runway_and_they_never_mix(): void
+    {
+        $user = User::factory()->create();
+        $zar = $this->createAccount($user, 'checking', 1000);
+        $usd = Account::create([
+            'user_id' => $user->id, 'name' => 'Dollar account', 'type' => 'checking', 'currency' => 'USD',
+            'opening_balance_cents' => 50_000,
+        ]);
+        $this->createTransaction($user, $zar, 'expense', 100, now());
+        $this->createTransaction($user, $usd, 'expense', 50, now());
+
+        $all = (new ReserveRunwayCalculator)->calculateAll($user->id);
+
+        $this->assertSame(['USD', 'ZAR'], array_keys($all));
+        $this->assertSame(90_000, $all['ZAR']['liquid_reserves_cents']);
+        $this->assertSame(10_000, $all['ZAR']['avg_monthly_burn_cents']);
+        $this->assertSame(45_000, $all['USD']['liquid_reserves_cents']);
+        $this->assertSame(5_000, $all['USD']['avg_monthly_burn_cents']);
+    }
+
+    public function test_the_runway_follows_the_ledger_not_a_typed_number(): void
+    {
+        $user = User::factory()->create();
+        $account = $this->createAccount($user, 'checking', 1000);
+        $this->createTransaction($user, $account, 'expense', 100, now());
+
+        $before = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $this->createTransaction($user, $account, 'income', 400, now());
+        $after = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+
+        $this->assertSame(90_000, $before['liquid_reserves_cents']);
+        $this->assertSame(130_000, $after['liquid_reserves_cents']);
     }
 
     public function test_insufficient_data_reports_unavailable(): void
@@ -107,7 +143,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createAccount($user, 'checking', 1000);
         // No transactions at all.
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
         $this->assertFalse($result['available']);
         $this->assertSame('insufficient_data', $result['reason']);
@@ -120,10 +156,10 @@ class ReserveRunwayCalculatorTest extends TestCase
 
         $this->createTransaction($user, $account, 'expense', 100, now());
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
         $this->assertTrue($result['available']);
-        $this->assertEqualsWithDelta(100.0, $result['avg_monthly_burn'], 0.01);
+        $this->assertSame(10_000, $result['avg_monthly_burn_cents']);
     }
 
     public function test_what_if_identifies_the_largest_expense_category(): void
@@ -136,7 +172,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'expense', 800, now(), $rent);
         $this->createTransaction($user, $account, 'expense', 200, now(), $food);
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
         $this->assertNotNull($result['what_if']);
         $this->assertSame('Rent', $result['what_if']['category']);
@@ -148,7 +184,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $account = $this->createAccount($user, 'checking', 1000);
         $this->createTransaction($user, $account, 'income', 500, now());
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
         $this->assertNull($result['what_if']);
     }
@@ -159,7 +195,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $account = $this->createAccount($user, 'checking', 1000);
         $this->createTransaction($user, $account, 'expense', 100, now());
 
-        $result = (new ReserveRunwayCalculator())->calculate($user->id);
+        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
 
         $this->assertNotEmpty($result['basis']);
     }
