@@ -22,7 +22,7 @@ class GenerateInsightsTest extends TestCase
             'name' => ucfirst($type).' account',
             'type' => $type,
             'currency' => 'ZAR',
-            'balance' => $balance,
+            'opening_balance_cents' => (int) round($balance * 100),
             'institution' => null,
         ]);
     }
@@ -69,8 +69,8 @@ class GenerateInsightsTest extends TestCase
     public function test_shrinking_but_comfortable_runway_gets_a_healthy_insight(): void
     {
         $user = User::factory()->create();
-        $account = $this->createAccount($user, 'checking', 3000);
-        // 3000 / 200 per month = 15 months -- well above the 3-month threshold.
+        $account = $this->createAccount($user, 'checking', 3200);
+        // 3200 opening - 200 expense = 3000 derived, / 200 per month = 15 months -- well above the 3-month threshold.
         $this->createTransaction($user, $account, 'expense', 200, now());
 
         $this->artisan('finance:generate-insights');
@@ -84,8 +84,8 @@ class GenerateInsightsTest extends TestCase
     public function test_critically_low_runway_gets_a_warning_insight(): void
     {
         $user = User::factory()->create();
-        $account = $this->createAccount($user, 'checking', 200);
-        // 200 / 100 per month = 2 months -- below the 3-month threshold.
+        $account = $this->createAccount($user, 'checking', 300);
+        // 300 opening - 100 expense = 200 derived, / 100 per month = 2 months -- below the 3-month threshold.
         $this->createTransaction($user, $account, 'expense', 100, now());
 
         $this->artisan('finance:generate-insights');
@@ -99,7 +99,7 @@ class GenerateInsightsTest extends TestCase
     public function test_warning_insight_includes_the_what_if_category_when_available(): void
     {
         $user = User::factory()->create();
-        $account = $this->createAccount($user, 'checking', 200);
+        $account = $this->createAccount($user, 'checking', 350);
         $rent = Category::create(['user_id' => $user->id, 'name' => 'Rent', 'type' => 'expense', 'color' => '#000000']);
         $food = Category::create(['user_id' => $user->id, 'name' => 'Food', 'type' => 'expense', 'color' => '#000000']);
 

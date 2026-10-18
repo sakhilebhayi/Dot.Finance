@@ -4,15 +4,12 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InsightController;
+use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
-use App\Models\Account;
-use App\Models\AiInsight;
-use App\Models\Budget;
-use App\Models\Transaction;
-use App\Services\ReserveRunwayCalculator;
-use App\Services\SpendingTrendCalculator;
+use App\Http\Controllers\TransferController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -37,47 +34,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        $userId = auth()->id();
-
-        $accounts = Account::where('user_id', $userId)->get();
-        $totalBalance = $accounts->sum('balance');
-
-        $thisMonth = now()->startOfMonth();
-        $monthlyIncome = Transaction::where('user_id', $userId)
-            ->where('type', 'income')
-            ->where('date', '>=', $thisMonth)
-            ->sum('amount');
-        $monthlyExpense = Transaction::where('user_id', $userId)
-            ->where('type', 'expense')
-            ->where('date', '>=', $thisMonth)
-            ->sum('amount');
-
-        $recentTransactions = Transaction::where('user_id', $userId)
-            ->with(['account', 'category'])
-            ->latest('date')
-            ->limit(10)
-            ->get();
-
-        $budgets = Budget::where('user_id', $userId)
-            ->with('category')
-            ->get();
-
-        // AiInsight model now exists (app/Models/AiInsight.php); this counts
-        // real rows for the user. No insight-generation service writes to
-        // this table yet (Anthropic wiring is still roadmap — see wiki.md
-        // §8), so this will genuinely read 0 until that's built, rather
-        // than being a hardcoded stand-in for real data.
-        $unreadInsights = AiInsight::where('user_id', $userId)->count();
-
-        $cushion = (new ReserveRunwayCalculator)->calculate($userId);
-        $spendingTrend = (new SpendingTrendCalculator)->calculate($userId);
-
-        return view('dashboard', compact(
-            'accounts', 'totalBalance', 'monthlyIncome', 'monthlyExpense',
-            'recentTransactions', 'budgets', 'unreadInsights', 'cushion', 'spendingTrend'
-        ));
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     // Finance domain: every route below is bound to a model by id (route
     // model binding) and, for the show/edit/update/destroy actions, gated
@@ -92,6 +49,10 @@ Route::middleware([
     Route::get('/transactions/import', [TransactionImportController::class, 'create'])->name('transactions.import.create');
     Route::post('/transactions/import/preview', [TransactionImportController::class, 'preview'])->name('transactions.import.preview');
     Route::post('/transactions/import', [TransactionImportController::class, 'store'])->name('transactions.import.store');
+
+    Route::get('/transfers/create', [TransferController::class, 'create'])->name('transfers.create');
+    Route::post('/transfers', [TransferController::class, 'store'])->name('transfers.store');
+    Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
 
     Route::resource('transactions', TransactionController::class)->except(['show']);
     Route::resource('accounts', AccountController::class)->only(['index', 'store', 'destroy']);

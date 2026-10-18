@@ -6,7 +6,7 @@
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
             Add Transaction
         </h1>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Log a new income, expense, or transfer.</p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Log income or an expense. To move money between your own accounts, <a href="{{ route('transfers.create') }}" style="color:#059669;font-weight:600;">record a transfer</a>.</p>
     </div>
 
     @if ($errors->any())
@@ -30,12 +30,12 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount</label>
-                <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
             </div>
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
                 <select name="type" required class="dot-input">
-                    @foreach(['expense', 'income', 'transfer'] as $type)
+                    @foreach(['expense', 'income'] as $type)
                     <option value="{{ $type }}" @selected(old('type', 'expense') === $type)>{{ ucfirst($type) }}</option>
                     @endforeach
                 </select>
@@ -48,7 +48,7 @@
                 <select name="account_id" required class="dot-input">
                     <option value="">Select account</option>
                     @foreach($accounts as $account)
-                    <option value="{{ $account->id }}" @selected((string) old('account_id') === (string) $account->id)>{{ $account->name }}</option>
+                    <option value="{{ $account->id }}" @selected((string) old('account_id') === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
                     @endforeach
                 </select>
                 @if($accounts->isEmpty())

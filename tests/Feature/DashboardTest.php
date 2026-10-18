@@ -33,8 +33,8 @@ class DashboardTest extends TestCase
         $user = User::factory()->withPersonalTeam()->create();
         $otherUser = User::factory()->create();
 
-        Account::create(['user_id' => $user->id, 'name' => 'My Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'balance' => 100]);
-        Account::create(['user_id' => $otherUser->id, 'name' => 'Their Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'balance' => 999999]);
+        Account::create(['user_id' => $user->id, 'name' => 'My Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'opening_balance_cents' => 10000]);
+        Account::create(['user_id' => $otherUser->id, 'name' => 'Their Wallet', 'type' => 'cash', 'currency' => 'ZAR', 'opening_balance_cents' => 99999900]);
 
         $response = $this->actingAs($user)->get(route('dashboard'));
 

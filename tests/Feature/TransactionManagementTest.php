@@ -20,7 +20,7 @@ class TransactionManagementTest extends TestCase
             'name' => 'Main Checking',
             'type' => 'checking',
             'currency' => 'ZAR',
-            'balance' => 1000,
+            'opening_balance_cents' => 100000,
             'institution' => 'Test Bank',
         ], $overrides));
     }

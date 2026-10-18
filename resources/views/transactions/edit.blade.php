@@ -31,12 +31,13 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount</label>
-                <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount', $transaction->amount) }}" required class="dot-input" />
+                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount', $transaction->amount) }}" required class="dot-input" />
+                <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">In {{ $transaction->currency }}, the currency of its account.</p>
             </div>
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
                 <select name="type" required class="dot-input">
-                    @foreach(['expense', 'income', 'transfer'] as $type)
+                    @foreach(['expense', 'income'] as $type)
                     <option value="{{ $type }}" @selected(old('type', $transaction->type) === $type)>{{ ucfirst($type) }}</option>
                     @endforeach
                 </select>
@@ -48,7 +49,7 @@
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Account</label>
                 <select name="account_id" required class="dot-input">
                     @foreach($accounts as $account)
-                    <option value="{{ $account->id }}" @selected((string) old('account_id', $transaction->account_id) === (string) $account->id)>{{ $account->name }}</option>
+                    <option value="{{ $account->id }}" @selected((string) old('account_id', $transaction->account_id) === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
                     @endforeach
                 </select>
             </div>

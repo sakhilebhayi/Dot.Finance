@@ -16,6 +16,10 @@
                 <span class="material-symbols-rounded" style="font-size:16px;">upload_file</span>
                 Import CSV
             </a>
+            <a href="{{ route('transfers.create') }}" class="dot-btn dot-btn-ghost">
+                <span class="material-symbols-rounded" style="font-size:16px;">swap_horiz</span>
+                Transfer
+            </a>
             <a href="{{ route('transactions.create') }}" class="dot-btn dot-btn-primary">
                 <span class="material-symbols-rounded" style="font-size:16px;">add_circle</span>
                 Add Transaction
@@ -93,7 +97,12 @@
                         <td style="padding:0.875rem 1rem;font-size:0.82rem;color:var(--text-primary);">
                             {{ $tx->description }}
                             @if($tx->isRecurring())
-                            <span title="Repeats {{ $tx->recurrence_type }}" style="font-size:0.68rem;">🔁</span>
+                            <span title="Repeats {{ $tx->recurrence_type }}" style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-left:0.35rem;">repeats {{ $tx->recurrence_type }}</span>
+                            @endif
+                            @if($tx->isLinkedTransferLeg())
+                            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;">Transfer {{ $tx->transfer_direction === 'out' ? 'out of' : 'into' }} this account &middot; deleting it deletes both legs</div>
+                            @elseif($tx->isTransfer())
+                            <div style="font-size:0.68rem;color:#c98a1f;margin-top:0.15rem;">Legacy transfer: no destination was recorded, so it has never moved a balance and is not counted.</div>
                             @endif
                             @if($tx->notes)
                             <div style="font-size:0.68rem;color:var(--text-muted);margin-top:0.15rem;">{{ $tx->notes }}</div>
@@ -111,12 +120,14 @@
                             <span style="font-size:0.72rem;color:var(--text-muted);">—</span>
                             @endif
                         </td>
-                        <td style="padding:0.875rem 1rem;text-align:right;font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:700;color:{{ $tx->type === 'income' ? '#34d399' : ($tx->type === 'expense' ? '#f87171' : 'var(--text-secondary)') }};">
-                            {{ $tx->type === 'income' ? '+' : ($tx->type === 'expense' ? '-' : '') }}${{ number_format((float)$tx->amount, 2) }}
+                        <td style="padding:0.875rem 1rem;text-align:right;font-size:0.85rem;">
+                            <x-money :cents="$tx->signedCents() !== 0 ? $tx->signedCents() : $tx->amount_cents" :currency="$tx->currency" :signed="$tx->signedCents() !== 0" style="color:{{ $tx->type === 'income' ? '#34d399' : ($tx->type === 'expense' ? '#f87171' : 'var(--text-secondary)') }};" />
                         </td>
                         <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
+                            @unless($tx->isTransfer())
                             <a href="{{ route('transactions.edit', $tx) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
-                            <form method="POST" action="{{ route('transactions.destroy', $tx) }}" style="display:inline;" onsubmit="return confirm('Delete this transaction?');">
+                            @endunless
+                            <form method="POST" action="{{ route('transactions.destroy', $tx) }}" style="display:inline;" onsubmit="return confirm('{{ $tx->isLinkedTransferLeg() ? 'Delete this transfer? Both legs will be deleted.' : 'Delete this transaction?' }}');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" style="font-size:0.75rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>

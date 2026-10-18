@@ -6,55 +6,62 @@ use App\Models\Transaction;
 use Carbon\CarbonImmutable;
 
 /**
- * Buckets a user's income/expense transactions into trailing calendar
- * months, for the dashboard's spending trend chart. Every month in the
- * window is represented even if it has no transactions (so the chart never
- * silently skips a gap month), which is why this walks a generated month
- * range rather than grouping only the months present in the data.
+ * Buckets a user's income/expense transactions, in ONE currency, into trailing
+ * calendar months for the dashboard trend chart. Every month in the window is
+ * represented even if empty (the chart never silently skips a gap month), which
+ * is why this walks a generated month range rather than grouping only the months
+ * present in the data. Transfers are neither income nor expense and are ignored.
  */
 class SpendingTrendCalculator
 {
     private const TRAILING_MONTHS = 6;
 
-    public function calculate(int $userId): array
+    /**
+     * @return array{currency: string, months: list<array{label: string, income_cents: int, expense_cents: int, net_cents: int}>, peak_cents: int}
+     */
+    public function calculate(int $userId, string $currency): array
     {
         $windowStart = now()->subMonths(self::TRAILING_MONTHS - 1)->startOfMonth();
 
-        // Bucketed in PHP rather than via a SQL date-format function
-        // (e.g. strftime/to_char), which differs between the sqlite test
-        // driver and the production Postgres connection -- matches the
-        // grouping approach ReserveRunwayCalculator already uses.
-        $transactions = Transaction::where('user_id', $userId)
+        // One grouped query; bucketed into months in PHP because the SQL
+        // date-format function differs per driver (strftime / to_char).
+        $rows = Transaction::withoutGlobalScopes()
+            ->where('user_id', $userId)
+            ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])
-            ->where('date', '>=', $windowStart)
-            ->get()
-            ->groupBy(fn (Transaction $t) => $t->date->format('Y-m'));
+            ->whereDate('date', '>=', $windowStart->toDateString())
+            ->selectRaw('type, date, SUM(amount_cents) AS total')
+            ->groupBy('type', 'date')
+            ->get();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $key = substr((string) $row->getRawOriginal('date'), 0, 7).'|'.$row->type;
+            $totals[$key] = ($totals[$key] ?? 0) + (int) $row->total;
+        }
 
         $months = [];
         $cursor = CarbonImmutable::parse($windowStart);
 
         for ($i = 0; $i < self::TRAILING_MONTHS; $i++) {
             $key = $cursor->format('Y-m');
-            $rows = $transactions->get($key, collect());
-
-            $income = (float) $rows->where('type', 'income')->sum('amount');
-            $expense = (float) $rows->where('type', 'expense')->sum('amount');
+            $income = $totals[$key.'|income'] ?? 0;
+            $expense = $totals[$key.'|expense'] ?? 0;
 
             $months[] = [
                 'label' => $cursor->format('M Y'),
-                'income' => $income,
-                'expense' => $expense,
-                'net' => $income - $expense,
+                'income_cents' => $income,
+                'expense_cents' => $expense,
+                'net_cents' => $income - $expense,
             ];
 
             $cursor = $cursor->addMonthNoOverflow();
         }
 
-        $peak = max(1.0, ...array_map(fn (array $m) => max($m['income'], $m['expense']), $months));
-
         return [
+            'currency' => $currency,
             'months' => $months,
-            'peak' => $peak,
+            'peak_cents' => max(1, ...array_map(fn (array $m) => max($m['income_cents'], $m['expense_cents']), $months)),
         ];
     }
 }

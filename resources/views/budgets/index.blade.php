@@ -22,19 +22,19 @@
             <div style="display:flex;flex-direction:column;">
                 @foreach($budgets as $budget)
                 @php
-                    $spent = $budget->spentAmount();
-                    $limit = (float) $budget->amount;
-                    $pct   = $limit > 0 ? min(100, round(($spent / $limit) * 100)) : 0;
+                    $spent = $budget->spentCents();
+                    $limit = $budget->amount_cents;
+                    $pct   = $limit > 0 ? min(100, intdiv($spent * 100, $limit)) : 0;
                     $barColor = $pct >= 90 ? '#f87171' : ($pct >= 70 ? '#fbbf24' : '#34d399');
                 @endphp
                 <div style="padding:1.1rem 1.5rem;border-bottom:1px solid var(--divider);">
                     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.5rem;">
                         <div>
                             <span style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">{{ $budget->category?->name ?? 'Uncategorized' }}</span>
-                            <span style="font-size:0.72rem;color:var(--text-muted);margin-left:0.5rem;">{{ \Carbon\Carbon::create()->month($budget->month)->format('F') }} {{ $budget->year }}</span>
+                            <span style="font-size:0.72rem;color:var(--text-muted);margin-left:0.5rem;">{{ \Carbon\Carbon::create()->month($budget->month)->format('F') }} {{ $budget->year }} &middot; {{ $budget->currency }}</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:0.75rem;">
-                            <span style="font-size:0.75rem;color:var(--text-muted);">${{ number_format($spent, 2) }} / ${{ number_format($limit, 2) }}</span>
+                            <span style="font-size:0.75rem;color:var(--text-muted);" class="metric-val">{{ \App\Support\Money::format($spent) }} / {{ \App\Support\Money::format($limit, $budget->currency) }}</span>
                             <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Delete this budget?');">
                                 @csrf
                                 @method('DELETE')
@@ -70,7 +70,11 @@
             </div>
             @endif
 
-            @if($categories->isEmpty())
+            @if($currencies === [])
+            <p style="font-size:0.78rem;color:var(--text-muted);">
+                You need an account first so there is a currency to budget in &mdash; <a href="{{ route('accounts.index') }}" style="color:#059669;">add one</a>.
+            </p>
+            @elseif($categories->isEmpty())
             <p style="font-size:0.78rem;color:var(--text-muted);">
                 You need a category first — <a href="{{ route('categories.index') }}" style="color:#059669;">create one</a>.
             </p>
@@ -87,7 +91,16 @@
                 </div>
                 <div>
                     <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Monthly limit</label>
-                    <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                    <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Currency</label>
+                    <select name="currency" required class="dot-input">
+                        @foreach($currencies as $code)
+                        <option value="{{ $code }}" @selected(old('currency') === $code)>{{ $code }}</option>
+                        @endforeach
+                    </select>
+                    <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">A budget only counts spending in its own currency.</p>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                     <div>

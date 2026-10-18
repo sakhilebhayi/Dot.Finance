@@ -39,7 +39,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $account = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
 
         $transaction = Transaction::create([
@@ -60,7 +60,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $account = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
 
         $transaction = Transaction::create([
@@ -92,7 +92,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $account = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
 
         $transaction = Transaction::create([
@@ -115,11 +115,11 @@ class FinanceAuthorizationTest extends TestCase
 
         $ownerAccount = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
         $viewerAccount = Account::create([
             'user_id' => $viewer->id, 'name' => 'Viewer Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
 
         Transaction::create([
@@ -147,7 +147,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $account = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
 
         $this->actingAs($attacker)
@@ -199,8 +199,8 @@ class FinanceAuthorizationTest extends TestCase
         $owner = User::factory()->create();
         $viewer = User::factory()->withPersonalTeam()->create();
 
-        Account::create(['user_id' => $owner->id, 'name' => 'Owner Secret Account', 'type' => 'savings', 'currency' => 'ZAR', 'balance' => 100000]);
-        Account::create(['user_id' => $viewer->id, 'name' => 'Viewer Own Account', 'type' => 'checking', 'currency' => 'ZAR', 'balance' => 50]);
+        Account::create(['user_id' => $owner->id, 'name' => 'Owner Secret Account', 'type' => 'savings', 'currency' => 'ZAR', 'opening_balance_cents' => 10000000]);
+        Account::create(['user_id' => $viewer->id, 'name' => 'Viewer Own Account', 'type' => 'checking', 'currency' => 'ZAR', 'opening_balance_cents' => 5000]);
 
         $this->actingAs($viewer)
             ->get(route('accounts.index'))
@@ -224,7 +224,7 @@ class FinanceAuthorizationTest extends TestCase
 
         $account = Account::create([
             'user_id' => $owner->id, 'name' => 'Owner Account', 'type' => 'checking',
-            'currency' => 'ZAR', 'balance' => 500,
+            'currency' => 'ZAR', 'opening_balance_cents' => 50000,
         ]);
 
         $this->actingAs($attacker);

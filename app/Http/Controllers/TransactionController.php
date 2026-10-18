@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Rules\MoneyAmount;
 use App\Services\TransactionRecurrenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -102,6 +103,10 @@ class TransactionController extends Controller
     {
         $this->authorize('update', $transaction);
 
+        if ($transaction->isTransfer()) {
+            return $this->transferLocked();
+        }
+
         $accounts = Account::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
 
@@ -115,7 +120,17 @@ class TransactionController extends Controller
     {
         $this->authorize('update', $transaction);
 
+        if ($transaction->isTransfer()) {
+            return $this->transferLocked();
+        }
+
         $validated = $this->validateTransaction($request, $request->user()->id);
+
+        // A transaction's currency is its account's currency. Re-pointing it at an
+        // account in another currency would silently turn "100 ZAR" into "100 USD".
+        if (Account::findOrFail($validated['account_id'])->currency !== $transaction->currency) {
+            return back()->withErrors(['account_id' => "This transaction is in {$transaction->currency}. Pick an account in the same currency, or delete it and enter it again."])->withInput();
+        }
 
         $transaction->update($validated);
 
@@ -129,9 +144,11 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
 
+        $isTransfer = $transaction->isLinkedTransferLeg();
+
         $transaction->delete();
 
-        return redirect()->route('transactions.index')->with('status', 'Transaction deleted.');
+        return redirect()->route('transactions.index')->with('status', $isTransfer ? 'Transfer deleted (both legs).' : 'Transaction deleted.');
     }
 
     /**
@@ -147,11 +164,18 @@ class TransactionController extends Controller
             'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $userId)],
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $userId)],
             'description' => ['required', 'string', 'max:255'],
-            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999999.99'],
-            'type' => ['required', Rule::in(['income', 'expense', 'transfer'])],
+            'amount' => ['required', new MoneyAmount],
+            // Transfers have two legs and their own form (see TransferController).
+            'type' => ['required', Rule::in(['income', 'expense'])],
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
+    }
+
+    private function transferLocked()
+    {
+        return redirect()->route('transactions.index')
+            ->with('status', 'A transfer is two linked entries and cannot be edited. Delete it and record it again.');
     }
 
     /**

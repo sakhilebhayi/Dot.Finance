@@ -132,6 +132,10 @@
                 <span class="material-symbols-rounded nav-icon">receipt_long</span>
                 Transactions
             </a>
+            <a href="{{ route('transfers.create') }}" class="nav-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">swap_horiz</span>
+                Transfers
+            </a>
             <a href="{{ route('accounts.index') }}" class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">account_balance_wallet</span>
                 Accounts
@@ -143,6 +147,11 @@
             <a href="{{ route('categories.index') }}" class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">sell</span>
                 Categories
+            </a>
+            <div class="nav-section-label">Control</div>
+            <a href="{{ route('reconciliation.index') }}" class="nav-item {{ request()->routeIs('reconciliation.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">fact_check</span>
+                Reconciliation
             </a>
             <div class="sidebar-divider" style="margin:10px 0;"></div>
             <a href="{{ route('profile.show') }}" class="nav-item {{ request()->routeIs('profile.show') ? 'active' : '' }}">
