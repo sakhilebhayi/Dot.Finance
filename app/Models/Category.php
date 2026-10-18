@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\HasLedgerContext;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,9 +13,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Category extends Model
 {
     /** @use HasFactory<CategoryFactory> */
-    use HasFactory, HasUserScope, SoftDeletes;
+    use HasFactory, HasLedgerContext, SoftDeletes;
 
-    protected $fillable = ['user_id', 'name', 'icon', 'color', 'type'];
+    protected $fillable = ['user_id', 'team_id', 'name', 'icon', 'color', 'type'];
 
     public function user(): BelongsTo
     {

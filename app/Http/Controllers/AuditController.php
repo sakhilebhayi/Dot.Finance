@@ -8,8 +8,10 @@ use App\Models\FinanceAuditLog;
 use Illuminate\Http\Request;
 
 /**
- * A read-only view of the signed-in user's own audit entries. There is no
- * write route for this resource at all: no create, update or delete.
+ * A read-only view of the active ledger's audit entries: the person's own in the
+ * personal ledger, the whole company's (every member's actions) in a company ledger,
+ * where only an owner or admin may read it. There is no write route for this
+ * resource at all: no create, update or delete.
  */
 class AuditController extends Controller
 {
@@ -17,6 +19,8 @@ class AuditController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view-audit');
+
         $subject = in_array($request->query('subject'), self::SUBJECTS, true) ? $request->query('subject') : null;
 
         $entries = FinanceAuditLog::query()

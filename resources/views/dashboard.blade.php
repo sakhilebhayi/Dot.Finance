@@ -23,7 +23,7 @@
     <div class="dot-card" style="margin-bottom:2rem;overflow:hidden;">
         <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--divider);display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
             <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Position by currency</h2>
-            <span style="font-size:0.7rem;color:var(--text-muted);">Balances are derived from your ledger. {{ now()->format('F Y') }} income and spending exclude transfers.</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">Balances are derived from {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger. {{ now()->format('F Y') }} income and spending exclude transfers.</span>
         </div>
         @if(count($position) > 0)
         <div style="overflow-x:auto;">
@@ -55,7 +55,17 @@
         </div>
         @else
         <div style="padding:2rem 1.5rem;text-align:center;">
+            @if($activeLedger?->isCompany())
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;"><strong style="color:var(--text-secondary);">{{ $activeLedger->label() }} has no accounts yet.</strong>
+                @can('create', \App\Models\Account::class)
+                <a href="{{ route('accounts.index') }}" style="color:#059669;font-weight:600;">Create the first company account</a> with an opening balance and the company ledger takes it from there.
+                @else
+                A company owner or admin needs to create the first company account.
+                @endcan
+            </p>
+            @else
             <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No accounts yet. <a href="{{ route('accounts.index') }}" style="color:#059669;font-weight:600;">Add an account</a> with an opening balance and the ledger takes it from there.</p>
+            @endif
         </div>
         @endif
     </div>

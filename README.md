@@ -100,6 +100,16 @@ The ledger migrations convert existing data in place. **Back up the database fir
 4. `php artisan finance:check-balances` and review the output.
 5. `php artisan up`
 
+### Upgrading to company ledgers
+
+`2026_10_18_300000_add_company_context_to_ledger_tables` adds `team_id` next to `user_id` on every ledger table and makes `user_id` nullable (a company row has no personal owner). **Back up the database first.**
+
+- Existing rows are not changed: they keep their `user_id`, get `team_id = NULL`, and stay in their owner's personal ledger.
+- It is idempotent: if it stops half way, run `php artisan migrate` again.
+- It deliberately does not run inside a transaction. On SQLite, making a column nullable rebuilds the table, and SQLite only keeps child rows (transactions under accounts) when foreign keys can be switched off, which it refuses inside a transaction. PostgreSQL alters the column in place.
+- It can be rolled back **only while no company ledger rows exist**. Rolling back past company data would delete a company's books, so `migrate:rollback` refuses and leaves everything as it was.
+- Every ledger table gets a database rule that exactly one of `user_id` / `team_id` is set (a CHECK constraint on PostgreSQL, equivalent triggers on SQLite).
+
 History before the migration date is not reconstructed: each typed balance becomes an opening balance as of that day, and only transactions dated on or after it change the balance. The old `accounts.balance`, `transactions.amount`, `budgets.amount` and `transactions.recurrence_*` columns are kept (the decimals are mirrored on write) and can be dropped in a later release.
 
 ## Testing

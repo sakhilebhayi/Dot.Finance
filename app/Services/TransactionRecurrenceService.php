@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\RecurringRule;
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -19,23 +20,27 @@ use Illuminate\Support\Facades\DB;
 class TransactionRecurrenceService
 {
     /**
-     * Generate every occurrence currently due, across all users. Returns the
-     * number of transactions created.
+     * Generate every occurrence currently due, in every ledger (each person's and each
+     * company's), one ledger at a time. Returns the number of transactions created.
+     *
+     * The scheduler has no signed-in person, so each ledger is named explicitly.
      */
     public function generateDueOccurrences(): int
     {
-        $rules = RecurringRule::withoutGlobalScope('user')
-            ->whereNull('paused_at')
-            ->whereNull('ended_at')
-            ->whereNotNull('next_occurrence_date')
-            ->whereDate('next_occurrence_date', '<=', now()->toDateString())
-            ->whereHas('account', fn ($q) => $q->withoutGlobalScope('user')->whereNull('accounts.deleted_at'))
-            ->get();
-
         $created = 0;
 
-        foreach ($rules as $rule) {
-            $created += $this->catchUp($rule);
+        foreach (LedgerContext::owningRowsIn('recurring_rules', liveOnly: true) as $context) {
+            $created += LedgerContext::run($context, function () use ($context) {
+                $rules = RecurringRule::query()->forContext($context)
+                    ->whereNull('paused_at')
+                    ->whereNull('ended_at')
+                    ->whereNotNull('next_occurrence_date')
+                    ->whereDate('next_occurrence_date', '<=', now()->toDateString())
+                    ->whereHas('account', fn ($q) => $q->forContext($context)->whereNull('accounts.deleted_at'))
+                    ->get();
+
+                return $rules->sum(fn (RecurringRule $rule) => $this->catchUp($rule));
+            });
         }
 
         return $created;
@@ -57,10 +62,9 @@ class TransactionRecurrenceService
                     break;
                 }
 
-                Transaction::create([
+                Transaction::create($rule->ledgerOwner() + [
                     'account_id' => $rule->account_id,
                     'category_id' => $rule->category_id,
-                    'user_id' => $rule->user_id,
                     'description' => $rule->description,
                     'amount_cents' => $rule->amount_cents,
                     'currency' => $rule->currency,
@@ -204,7 +208,7 @@ class TransactionRecurrenceService
         $rule->fill($attributes);
 
         if ($cadenceChanged && $rule->next_occurrence_date !== null) {
-            $lastEntry = Transaction::withoutGlobalScope('user')->where('recurring_rule_id', $rule->id)->max('date');
+            $lastEntry = Transaction::query()->forContext($rule->ledgerContext())->where('recurring_rule_id', $rule->id)->max('date');
             $base = $lastEntry ? Carbon::parse(substr((string) $lastEntry, 0, 10)) : $rule->start_date;
 
             $rule->start_date = $base;

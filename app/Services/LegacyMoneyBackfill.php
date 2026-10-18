@@ -68,8 +68,8 @@ class LegacyMoneyBackfill
     }
 
     /**
-     * A budget never had a currency. It gets the currency of the user's most-used
-     * account (their evident home currency), falling back to ZAR, the app default.
+     * A budget never had a currency. It gets the currency of its ledger's most-used
+     * account (the evident home currency), falling back to ZAR, the app default.
      */
     private function budgets(): int
     {
@@ -77,7 +77,11 @@ class LegacyMoneyBackfill
 
         DB::table('budgets')->where('amount_cents', 0)->where('amount', '<>', 0)->orderBy('id')->chunkById(500, function ($rows) use (&$count) {
             foreach ($rows as $row) {
-                $currency = DB::table('accounts')->where('user_id', $row->user_id)
+                // A company budget (team_id set) reads its own company's accounts; before the
+                // company-ledger migration the column does not exist and every budget is personal.
+                $companyId = property_exists($row, 'team_id') ? $row->team_id : null;
+                $currency = DB::table('accounts')
+                    ->when($companyId !== null, fn ($q) => $q->where('team_id', $companyId), fn ($q) => $q->where('user_id', $row->user_id))
                     ->select('currency', DB::raw('COUNT(*) as uses'))->groupBy('currency')->orderByDesc('uses')->orderBy('currency')
                     ->value('currency') ?? 'ZAR';
 

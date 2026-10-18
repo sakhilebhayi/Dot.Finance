@@ -50,7 +50,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $this->assertSame(0, Insight::where('user_id', $user->id)->count());
+        $this->assertSame(0, Insight::withoutGlobalScopes()->where('user_id', $user->id)->count());
     }
 
     public function test_growing_reserves_gets_a_healthy_insight(): void
@@ -62,7 +62,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $insight = Insight::where('user_id', $user->id)->first();
+        $insight = Insight::withoutGlobalScopes()->where('user_id', $user->id)->first();
         $this->assertNotNull($insight);
         $this->assertSame('reserve_runway_healthy', $insight->type);
         $this->assertStringContainsString('growing', $insight->insight);
@@ -77,7 +77,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $insight = Insight::where('user_id', $user->id)->first();
+        $insight = Insight::withoutGlobalScopes()->where('user_id', $user->id)->first();
         $this->assertNotNull($insight);
         $this->assertSame('reserve_runway_healthy', $insight->type);
         $this->assertStringContainsString('15 months', $insight->insight);
@@ -92,7 +92,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $insight = Insight::where('user_id', $user->id)->first();
+        $insight = Insight::withoutGlobalScopes()->where('user_id', $user->id)->first();
         $this->assertNotNull($insight);
         $this->assertSame('reserve_runway_warning', $insight->type);
         $this->assertStringContainsString('2 months', $insight->insight);
@@ -114,7 +114,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $insight = Insight::where('user_id', $user->id)->first();
+        $insight = Insight::withoutGlobalScopes()->where('user_id', $user->id)->first();
         $this->assertSame('reserve_runway_warning', $insight->type);
         $this->assertStringContainsString('Rent', $insight->insight);
     }
@@ -129,8 +129,8 @@ class GenerateInsightsTest extends TestCase
         $this->artisan('finance:generate-insights');
         $this->artisan('finance:generate-insights');
 
-        $this->assertSame(1, Insight::where('user_id', $user->id)->count());
-        $this->assertSame('2026-W42', Insight::where('user_id', $user->id)->value('iso_week'));
+        $this->assertSame(1, Insight::withoutGlobalScopes()->where('user_id', $user->id)->count());
+        $this->assertSame('2026-W42', Insight::withoutGlobalScopes()->where('user_id', $user->id)->value('iso_week'));
 
         Carbon::setTestNow();
     }
@@ -146,7 +146,7 @@ class GenerateInsightsTest extends TestCase
         Carbon::setTestNow('2026-10-21');
         $this->artisan('finance:generate-insights');
 
-        $this->assertSame(['2026-W42', '2026-W43'], Insight::where('user_id', $user->id)->orderBy('iso_week')->pluck('iso_week')->all());
+        $this->assertSame(['2026-W42', '2026-W43'], Insight::withoutGlobalScopes()->where('user_id', $user->id)->orderBy('iso_week')->pluck('iso_week')->all());
 
         Carbon::setTestNow();
     }
@@ -160,7 +160,7 @@ class GenerateInsightsTest extends TestCase
         Carbon::setTestNow('2027-01-01'); // Friday: ISO week 53 of 2026
         $this->artisan('finance:generate-insights');
 
-        $this->assertSame('2026-W53', Insight::where('user_id', $user->id)->value('iso_week'));
+        $this->assertSame('2026-W53', Insight::withoutGlobalScopes()->where('user_id', $user->id)->value('iso_week'));
 
         Carbon::setTestNow();
     }
@@ -184,7 +184,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $text = Insight::where('user_id', $user->id)->sole()->insight;
+        $text = Insight::withoutGlobalScopes()->where('user_id', $user->id)->sole()->insight;
         $this->assertStringContainsString('ZAR', $text);
         $this->assertStringContainsString('USD', $text);
         $this->assertStringContainsString('ZAR 200.00', $text);
@@ -211,7 +211,7 @@ class GenerateInsightsTest extends TestCase
 
         $this->artisan('finance:generate-insights');
 
-        $this->assertSame(1, Insight::where('user_id', $userA->id)->count());
-        $this->assertSame(0, Insight::where('user_id', $userB->id)->count());
+        $this->assertSame(1, Insight::withoutGlobalScopes()->where('user_id', $userA->id)->count());
+        $this->assertSame(0, Insight::withoutGlobalScopes()->where('user_id', $userB->id)->count());
     }
 }

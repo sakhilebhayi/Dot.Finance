@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Casts\DateOnly;
-use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\HasLedgerContext;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 class Account extends Model
 {
     /** @use HasFactory<AccountFactory> */
-    use HasFactory, HasUserScope, SoftDeletes;
+    use HasFactory, HasLedgerContext, SoftDeletes;
 
     /**
      * There is deliberately no `balance` here. The legacy accounts.balance column
@@ -24,7 +24,7 @@ class Account extends Model
      * ledger (see scopeWithBalance) and cannot be assigned.
      */
     protected $fillable = [
-        'user_id', 'name', 'type', 'currency', 'institution',
+        'user_id', 'team_id', 'name', 'type', 'currency', 'institution',
         'opening_balance_cents', 'opening_balance_date',
     ];
 
@@ -36,6 +36,11 @@ class Account extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 
     public function transactions(): HasMany
@@ -80,7 +85,7 @@ class Account extends Model
             return (int) $this->attributes['derived_balance_cents'];
         }
 
-        $fresh = static::withoutGlobalScope('user')->withBalance()->whereKey($this->getKey())->first();
+        $fresh = static::query()->forContext($this->ledgerContext())->withBalance()->whereKey($this->getKey())->first();
 
         return (int) ($fresh?->attributes['derived_balance_cents'] ?? $this->opening_balance_cents);
     }
@@ -92,6 +97,6 @@ class Account extends Model
      */
     public function hasTransactions(): bool
     {
-        return Transaction::withoutGlobalScopes()->where('account_id', $this->id)->exists();
+        return Transaction::query()->forContext($this->ledgerContext())->withTrashed()->where('account_id', $this->id)->exists();
     }
 }

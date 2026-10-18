@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Insight;
-use App\Models\User;
 use App\Services\ReserveRunwayCalculator;
+use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\UniqueConstraintViolationException;
 
 #[Signature('finance:generate-insights')]
-#[Description('Write each user\'s weekly rule-based summary (plain arithmetic on their ledger, not AI); at most one per user per ISO week')]
+#[Description('Write each ledger\'s weekly rule-based summary (plain arithmetic on a person\'s or a company\'s ledger, not AI); at most one per ledger per ISO week')]
 class GenerateInsights extends Command
 {
     private const CRITICAL_MONTHS_THRESHOLD = 3;
@@ -22,48 +22,57 @@ class GenerateInsights extends Command
         $calculator = new ReserveRunwayCalculator;
         $week = now()->format('o-\\WW');
 
-        foreach (User::all() as $user) {
-            // One summary per user per ISO week: a second run, a retry or a
-            // manual run in the same week leaves the existing one alone.
-            if (Insight::withoutGlobalScope('user')->where('user_id', $user->id)->where('iso_week', $week)->exists()) {
-                continue;
-            }
+        // Every ledger that has an account: each person's personal ledger and each company's.
+        // There is no signed-in person here, so each one is named explicitly.
+        $contexts = LedgerContext::owningRowsIn('accounts', liveOnly: true)
+            ->filter(fn (LedgerContext $context) => ! $context->isCompany() || $context->team()?->isCompany());
 
-            $sentences = [];
-            $warning = false;
-
-            foreach ($calculator->calculateAll($user->id) as $result) {
-                if (! $result['available']) {
-                    continue;
-                }
-
-                if ($result['is_growing'] || $result['months'] >= self::CRITICAL_MONTHS_THRESHOLD) {
-                    $sentences[] = $this->healthyInsightText($result);
-
-                    continue;
-                }
-
-                $warning = true;
-                $sentences[] = $this->warningInsightText($result);
-            }
-
-            if ($sentences === []) {
-                continue;
-            }
-
-            try {
-                Insight::create([
-                    'user_id' => $user->id,
-                    'type' => $warning ? 'reserve_runway_warning' : 'reserve_runway_healthy',
-                    'insight' => implode(' ', $sentences),
-                    'iso_week' => $week,
-                ]);
-            } catch (UniqueConstraintViolationException) {
-                // another run wrote this week's summary between the check and the insert
-            }
+        foreach ($contexts as $context) {
+            LedgerContext::run($context, fn () => $this->summarise($context, $calculator, $week));
         }
 
         return self::SUCCESS;
+    }
+
+    private function summarise(LedgerContext $context, ReserveRunwayCalculator $calculator, string $week): void
+    {
+        // One summary per ledger per ISO week: a second run, a retry or a
+        // manual run in the same week leaves the existing one alone.
+        if (Insight::query()->forContext($context)->where('iso_week', $week)->exists()) {
+            return;
+        }
+
+        $sentences = [];
+        $warning = false;
+
+        foreach ($calculator->calculateAll($context) as $result) {
+            if (! $result['available']) {
+                continue;
+            }
+
+            if ($result['is_growing'] || $result['months'] >= self::CRITICAL_MONTHS_THRESHOLD) {
+                $sentences[] = $this->healthyInsightText($result);
+
+                continue;
+            }
+
+            $warning = true;
+            $sentences[] = $this->warningInsightText($result);
+        }
+
+        if ($sentences === []) {
+            return;
+        }
+
+        try {
+            Insight::create($context->ownerAttributes() + [
+                'type' => $warning ? 'reserve_runway_warning' : 'reserve_runway_healthy',
+                'insight' => implode(' ', $sentences),
+                'iso_week' => $week,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // another run wrote this week's summary between the check and the insert
+        }
     }
 
     /**

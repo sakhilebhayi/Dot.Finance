@@ -8,6 +8,8 @@ use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Rules\MoneyAmount;
 use App\Services\TransactionRecurrenceService;
+use App\Support\Ledger\LedgerContext;
+use App\Support\Ledger\LedgerRule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -19,11 +21,10 @@ class TransactionController extends Controller
     public function __construct(private readonly TransactionRecurrenceService $recurrenceService) {}
 
     /**
-     * Display a filterable, searchable list of the authenticated user's transactions.
+     * Display a filterable, searchable list of the active ledger's transactions.
      *
-     * No explicit user_id filter needed: Transaction's, Account's, and
-     * Category's HasUserScope trait applies it automatically to every
-     * query against those models.
+     * No explicit owner filter needed: Transaction's, Account's, and Category's
+     * shared ledger scope confines every query to the active context.
      */
     public function index(Request $request)
     {
@@ -66,6 +67,8 @@ class TransactionController extends Controller
      */
     public function create(Request $request)
     {
+        $this->authorize('create', Transaction::class);
+
         $accounts = Account::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
 
@@ -73,25 +76,26 @@ class TransactionController extends Controller
     }
 
     /**
-     * Persist a new transaction for the authenticated user.
+     * Persist a new transaction in the active ledger.
      */
     public function store(Request $request)
     {
-        $userId = $request->user()->id;
+        $this->authorize('create', Transaction::class);
 
-        $validated = $this->validateTransaction($request, $userId);
-        $validated['user_id'] = $userId;
+        $context = $this->ledger();
+
+        $validated = $this->validateTransaction($request, $context);
+        $validated += $context->ownerAttributes();
 
         $recurrence = $this->validateRecurrence($request);
 
-        DB::transaction(function () use ($validated, $recurrence, $userId) {
+        DB::transaction(function () use ($validated, $recurrence, $context) {
             // A repeat creates a rule (the editable, pausable schedule) and links
             // this first entry to it. The scheduler writes the later ones.
             if ($recurrence['recurrence_type']) {
                 $start = Carbon::parse($validated['date'])->startOfDay();
 
-                $rule = RecurringRule::create([
-                    'user_id' => $userId,
+                $rule = RecurringRule::create($context->ownerAttributes() + [
                     'account_id' => $validated['account_id'],
                     'category_id' => $validated['category_id'] ?? null,
                     'description' => $validated['description'],
@@ -136,7 +140,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * Update an existing transaction owned by the authenticated user.
+     * Update an existing transaction in the active ledger.
      */
     public function update(Request $request, Transaction $transaction)
     {
@@ -146,7 +150,7 @@ class TransactionController extends Controller
             return $this->transferLocked();
         }
 
-        $validated = $this->validateTransaction($request, $request->user()->id, $transaction);
+        $validated = $this->validateTransaction($request, $this->ledger(), $transaction);
 
         // A transaction's currency is its account's currency. Re-pointing it at an
         // account in another currency would silently turn "100 ZAR" into "100 USD".
@@ -160,7 +164,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * Delete a transaction owned by the authenticated user.
+     * Delete a transaction in the active ledger.
      */
     public function destroy(Transaction $transaction)
     {
@@ -176,22 +180,22 @@ class TransactionController extends Controller
     /**
      * Shared validation rules for storing/updating a transaction.
      *
-     * account_id/category_id are constrained to rows owned by $userId so a
-     * user cannot attach their transaction to another user's account or
+     * account_id/category_id are constrained to rows in the active ledger so nobody
+     * can attach a transaction to another person's or another company's account or
      * category by tampering with the submitted id.
      */
-    protected function validateTransaction(Request $request, int $userId, ?Transaction $existing = null): array
+    protected function validateTransaction(Request $request, LedgerContext $context, ?Transaction $existing = null): array
     {
         $validated = $request->validate([
-            'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $userId)->whereNull('deleted_at')],
-            'category_id' => ['nullable', 'integer', function (string $attribute, mixed $value, \Closure $fail) use ($userId, $existing) {
+            'account_id' => ['required', 'integer', LedgerRule::exists('accounts', $context)->whereNull('deleted_at')],
+            'category_id' => ['nullable', 'integer', function (string $attribute, mixed $value, \Closure $fail) use ($existing) {
                 // Re-saving a transaction whose category was deleted since must not
                 // silently strip it, so the unchanged id is always accepted.
                 if ($existing !== null && (int) $value === (int) $existing->category_id) {
                     return;
                 }
 
-                if (! Category::where('user_id', $userId)->whereKey($value)->exists()) {
+                if (! Category::whereKey($value)->exists()) {
                     $fail('The selected category is invalid.');
                 }
             }],

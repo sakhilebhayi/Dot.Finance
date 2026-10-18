@@ -17,7 +17,9 @@ class TransactionFactory extends Factory
     {
         return [
             'account_id' => Account::factory(),
+            // A transaction belongs to whichever ledger its account belongs to.
             'user_id' => fn (array $attributes) => Account::withoutGlobalScopes()->find($attributes['account_id'])->user_id,
+            'team_id' => fn (array $attributes) => Account::withoutGlobalScopes()->find($attributes['account_id'])->team_id,
             'description' => 'Entry '.fake()->unique()->bothify('??-####'),
             'amount_cents' => 1000,
             'type' => 'expense',

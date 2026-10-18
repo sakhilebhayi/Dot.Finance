@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Per-currency position of a user's ledger. Nothing here ever adds two
+ * Per-currency position of one ledger (a person's or a company's). Nothing here ever adds two
  * currencies together: every figure is keyed by ISO currency code.
  */
 class LedgerSummary
@@ -16,15 +17,15 @@ class LedgerSummary
     /**
      * Derived balance, this month's income and expense, and net, per currency.
      * Transfers are excluded from income and expense: they move money between
-     * the user's own accounts and are neither.
+     * the ledger's own accounts and are neither.
      *
      * @return array<string, array{currency: string, accounts: int, balance_cents: int, income_cents: int, expense_cents: int, net_cents: int}>
      */
-    public function position(int $userId, ?Carbon $month = null): array
+    public function position(LedgerContext $context, ?Carbon $month = null): array
     {
         $month ??= now();
 
-        $accounts = Account::withoutGlobalScope('user')->withBalance()->where('user_id', $userId)->get();
+        $accounts = Account::query()->forContext($context)->withBalance()->get();
 
         $position = [];
         foreach ($accounts as $account) {
@@ -33,8 +34,7 @@ class LedgerSummary
             $position[$account->currency]['balance_cents'] += $account->balanceCents();
         }
 
-        $rows = Transaction::withoutGlobalScope('user')
-            ->where('user_id', $userId)
+        $rows = Transaction::query()->forContext($context)
             ->whereIn('type', ['income', 'expense'])
             ->whereDate('date', '>=', $month->copy()->startOfMonth()->toDateString())
             ->whereDate('date', '<=', $month->copy()->endOfMonth()->toDateString())
@@ -59,9 +59,9 @@ class LedgerSummary
     }
 
     /** @return Collection<int, Account> accounts with their derived balance loaded */
-    public function accounts(int $userId): Collection
+    public function accounts(LedgerContext $context): Collection
     {
-        return Account::withoutGlobalScope('user')->withBalance()->where('user_id', $userId)->orderBy('name')->get();
+        return Account::query()->forContext($context)->withBalance()->orderBy('name')->get();
     }
 
     private function blank(string $currency): array

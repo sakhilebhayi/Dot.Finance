@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Re-derives every account balance a second, independent way and checks the
@@ -15,28 +17,48 @@ use App\Support\Money;
  * "drift" from a stored number the way the old typed balance did. What can go
  * wrong is the data underneath: a transfer with one leg, a transaction whose
  * currency disagrees with its account, an amount whose cents and legacy decimal
- * mirror disagree, a legacy row nobody backfilled. This checks all of those, and
+ * mirror disagree, a legacy row nobody backfilled, a row tied to a record in another
+ * ledger (a company transaction on a personal account). This checks all of those, and
  * recomputes each balance in PHP from the raw rows to confirm the SQL expression
  * itself.
  */
 class LedgerReconciler
 {
     /**
+     * Check every ledger there is, one at a time (the console check). Each ledger's accounts
+     * and findings are reported on their own; nothing is merged across ledgers.
+     *
      * @return array{accounts: list<array<string, mixed>>, findings: list<array{severity: string, code: string, message: string}>}
      */
-    public function run(?int $userId = null): array
+    public function runAll(): array
     {
-        $accountsQuery = Account::withoutGlobalScope('user')->withBalance()->orderBy('user_id')->orderBy('name');
-        if ($userId !== null) {
-            $accountsQuery->where('user_id', $userId);
+        $contexts = LedgerContext::owningRowsIn('accounts')
+            ->merge(LedgerContext::owningRowsIn('transactions'))
+            ->unique(fn (LedgerContext $c) => $c->key());
+
+        $report = ['accounts' => [], 'findings' => []];
+
+        foreach ($contexts as $context) {
+            $one = $this->run($context);
+            $report['accounts'] = array_merge($report['accounts'], $one['accounts']);
+            $report['findings'] = array_merge($report['findings'], $one['findings']);
         }
-        $accounts = $accountsQuery->get();
+
+        return $report;
+    }
+
+    /**
+     * @return array{accounts: list<array<string, mixed>>, findings: list<array{severity: string, code: string, message: string}>}
+     */
+    public function run(LedgerContext $context): array
+    {
+        $accounts = Account::query()->forContext($context)->withBalance()->orderBy('name')->get();
 
         $findings = [];
         $summary = [];
 
         foreach ($accounts as $account) {
-            $rows = Transaction::withoutGlobalScope('user')->where('account_id', $account->id)->get();
+            $rows = Transaction::query()->forContext($context)->where('account_id', $account->id)->get();
 
             $recomputed = $account->opening_balance_cents;
             $counted = 0;
@@ -51,7 +73,8 @@ class LedgerReconciler
             $derived = $account->balanceCents();
             $summary[] = [
                 'account_id' => $account->id,
-                'user_id' => $account->user_id,
+                'ledger' => $context->key(),
+                'ledger_label' => $context->label(),
                 'name' => $account->name,
                 'currency' => $account->currency,
                 'opening_cents' => $account->opening_balance_cents,
@@ -94,23 +117,56 @@ class LedgerReconciler
             }
         }
 
-        return ['accounts' => $summary, 'findings' => array_merge($findings, $this->transferFindings($userId))];
+        return ['accounts' => $summary, 'findings' => array_merge($findings, $this->transferFindings($context), $this->crossContextFindings($context))];
+    }
+
+    /**
+     * A row that points at a record in another ledger. The models refuse to write one, so
+     * finding one means something wrote around them (raw SQL, an old import, a bad restore).
+     *
+     * @return list<array{severity: string, code: string, message: string}>
+     */
+    private function crossContextFindings(LedgerContext $context): array
+    {
+        $mine = fn ($q, string $alias) => $context->isCompany()
+            ? $q->where("{$alias}.team_id", $context->teamId)
+            : $q->where("{$alias}.user_id", $context->userId)->whereNull("{$alias}.team_id");
+        $differs = fn (string $child, string $parent) => "(COALESCE({$child}.user_id, 0) <> COALESCE({$parent}.user_id, 0) OR COALESCE({$child}.team_id, 0) <> COALESCE({$parent}.team_id, 0))";
+
+        $checks = [
+            ['transactions', 'account_id', 'accounts', 'Transaction'],
+            ['transactions', 'category_id', 'categories', 'Transaction'],
+            ['budgets', 'category_id', 'categories', 'Budget'],
+            ['recurring_rules', 'account_id', 'accounts', 'Recurring rule'],
+            ['recurring_rules', 'category_id', 'categories', 'Recurring rule'],
+        ];
+
+        $findings = [];
+        foreach ($checks as [$child, $column, $parent, $label]) {
+            $query = DB::table("{$child} as c")->join("{$parent} as p", 'p.id', '=', "c.{$column}")->whereRaw($differs('c', 'p'));
+            $mine($query, 'c');
+
+            foreach ($query->pluck('c.id') as $id) {
+                $findings[] = $this->finding('error', 'context_mismatch', sprintf(
+                    '%s #%d points (%s) at a %s in a different ledger.', $label, $id, $column, $parent === 'accounts' ? 'account' : 'category'
+                ));
+            }
+        }
+
+        return $findings;
     }
 
     /** @return list<array{severity: string, code: string, message: string}> */
-    private function transferFindings(?int $userId): array
+    private function transferFindings(LedgerContext $context): array
     {
-        $query = Transaction::withoutGlobalScope('user')->whereNotNull('transfer_group');
-        if ($userId !== null) {
-            $query->where('user_id', $userId);
-        }
+        $query = Transaction::query()->forContext($context)->whereNotNull('transfer_group');
 
         $findings = [];
         foreach ($query->get()->groupBy('transfer_group') as $group => $legs) {
             $out = $legs->where('transfer_direction', 'out');
             $in = $legs->where('transfer_direction', 'in');
 
-            if ($legs->count() === 1 && Transaction::onlyTrashed()->withoutGlobalScope('user')->where('transfer_group', $group)->exists()) {
+            if ($legs->count() === 1 && Transaction::onlyTrashed()->forContext($context)->where('transfer_group', $group)->exists()) {
                 // The other leg was deleted along with its account. That money
                 // already moved, so this is history, not damage.
                 $findings[] = $this->finding('info', 'transfer_peer_deleted', sprintf(

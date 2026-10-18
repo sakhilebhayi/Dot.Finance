@@ -5,17 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Rules\MoneyAmount;
 use App\Services\TransferService;
+use App\Support\Ledger\LedgerRule;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class TransferController extends Controller
 {
     public function create(): View
     {
+        $this->authorize('record-entries');
+
         $accounts = Account::orderBy('name')->get();
 
         return view('transfers.create', compact('accounts'));
@@ -23,11 +25,14 @@ class TransferController extends Controller
 
     public function store(Request $request, TransferService $transfers): RedirectResponse
     {
+        $this->authorize('record-entries');
+
         $user = $request->user();
+        $context = $this->ledger();
 
         $validated = $request->validate([
-            'from_account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $user->id)],
-            'to_account_id' => ['required', 'integer', 'different:from_account_id', Rule::exists('accounts', 'id')->where('user_id', $user->id)],
+            'from_account_id' => ['required', 'integer', LedgerRule::exists('accounts', $context)],
+            'to_account_id' => ['required', 'integer', 'different:from_account_id', LedgerRule::exists('accounts', $context)],
             'amount' => ['required', new MoneyAmount],
             'converted_amount' => ['nullable', new MoneyAmount],
             'date' => ['required', 'date'],
@@ -55,7 +60,7 @@ class TransferController extends Controller
             Money::parse((string) $validated['amount']),
             $converted,
             Carbon::parse($validated['date']),
-            $validated['description'] ?: 'Transfer',
+            ($validated['description'] ?? null) ?: 'Transfer',
             $validated['notes'] ?? null,
         );
 

@@ -9,7 +9,7 @@ class ReconciliationController extends Controller
 {
     public function index(Request $request, LedgerReconciler $reconciler)
     {
-        $report = $reconciler->run($request->user()->id);
+        $report = $reconciler->run($this->ledger());
 
         return view('reconciliation.index', [
             'accounts' => $report['accounts'],

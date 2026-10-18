@@ -15,7 +15,7 @@ class CashFlowController extends Controller
         $months = in_array($months, self::RANGES, true) ? $months : 12;
 
         return view('reports.cash-flow', [
-            'report' => $report->monthly($request->user()->id, $months),
+            'report' => $report->monthly($this->ledger(), $months),
             'months' => $months,
             'ranges' => self::RANGES,
         ]);

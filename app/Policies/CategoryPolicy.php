@@ -4,52 +4,41 @@ namespace App\Policies;
 
 use App\Models\Category;
 use App\Models\User;
+use App\Support\Ledger\LedgerAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
+/**
+ * What a person may do with a category: decided by LedgerAccess from the ledger the
+ * category belongs to (their own personal ledger, or a company they belong to) and
+ * their role in it. Another ledger's category never reaches here: the shared ledger
+ * scope already 404s it.
+ */
 class CategoryPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     *
-     * Dot.Finance is single-user, not team-scoped: ownership is always
-     * checked against user_id, never team_id.
-     */
     public function view(User $user, Category $category): bool
     {
-        return $user->id === $category->user_id;
+        return LedgerAccess::forRow($user, $category)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canEditStructure() ?? false;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Category $category): bool
     {
-        return $user->id === $category->user_id;
+        return LedgerAccess::forRow($user, $category)?->canEditStructure() ?? false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Category $category): bool
     {
-        return $user->id === $category->user_id;
+        return LedgerAccess::forRow($user, $category)?->canDestroyStructure() ?? false;
     }
 }

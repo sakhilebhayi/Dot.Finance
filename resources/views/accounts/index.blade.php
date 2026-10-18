@@ -60,7 +60,17 @@
             @else
             <div style="padding:3rem 1.5rem;text-align:center;">
                 <span class="material-symbols-rounded" style="font-size:36px;color:var(--text-faint);display:block;margin-bottom:0.75rem;">account_balance_wallet</span>
+                @if($activeLedger?->isCompany())
+                <p style="font-size:0.82rem;color:var(--text-muted);margin:0;"><strong style="color:var(--text-secondary);">{{ $activeLedger->label() }} has no accounts yet.</strong>
+                    @can('create', \App\Models\Account::class)
+                    Use the form to <strong>Create the first company account</strong>; every company transaction, budget and report builds on it.
+                    @else
+                    A company owner or admin needs to create the first company account.
+                    @endcan
+                </p>
+                @else
                 <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No accounts yet. Add one to start tracking balances.</p>
+                @endif
             </div>
             @endif
         </div>

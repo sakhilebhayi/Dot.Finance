@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Casts\DateOnly;
-use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\HasLedgerContext;
 use App\Support\Money;
 use Database\Factories\TransactionFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -22,10 +22,10 @@ use Illuminate\Support\Facades\DB;
 class Transaction extends Model
 {
     /** @use HasFactory<TransactionFactory> */
-    use HasFactory, HasUserScope, SoftDeletes;
+    use HasFactory, HasLedgerContext, SoftDeletes;
 
     protected $fillable = [
-        'account_id', 'category_id', 'user_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'date', 'notes',
+        'account_id', 'category_id', 'user_id', 'team_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'date', 'notes',
         'transfer_direction', 'transfer_group', 'recurring_rule_id', 'import_fingerprint', 'import_batch_id',
     ];
 
@@ -57,7 +57,7 @@ class Transaction extends Model
     {
         static::creating(function (Transaction $transaction): void {
             if ($transaction->currency === null && $transaction->account_id !== null) {
-                $transaction->currency = Account::withoutGlobalScopes()->whereKey($transaction->account_id)->value('currency');
+                $transaction->currency = DB::table('accounts')->where('id', $transaction->account_id)->value('currency');
             }
         });
 
@@ -77,7 +77,7 @@ class Transaction extends Model
             static::$groupsBeingDeleted[$group] = true;
 
             try {
-                static::withoutGlobalScope('user')
+                static::query()->forContext($transaction->ledgerContext())
                     ->where('transfer_group', $group)
                     ->whereKeyNot($transaction->getKey())
                     ->get()
@@ -139,6 +139,16 @@ class Transaction extends Model
         };
     }
 
+    public function ledgerInheritsFrom(): ?string
+    {
+        return 'account_id';
+    }
+
+    public function ledgerReferences(): array
+    {
+        return ['account_id' => Account::class, 'category_id' => Category::class, 'recurring_rule_id' => RecurringRule::class];
+    }
+
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class)->withTrashed();
@@ -183,7 +193,7 @@ class Transaction extends Model
             return null;
         }
 
-        return static::withoutGlobalScope('user')
+        return static::query()->forContext($this->ledgerContext())
             ->where('transfer_group', $this->transfer_group)
             ->whereKeyNot($this->getKey())
             ->first();
