@@ -67,6 +67,7 @@
         .ledger-opt[aria-current="true"] { background:rgba(74,222,128,0.1); color:#22c55e; font-weight:600; cursor:default; }
         .ledger-opt .material-symbols-rounded { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
         .ledger-opt-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+        .ledger-role { padding:2px 10px 6px 39px; font-size:10.5px; color:var(--text-muted); }
         .ledger-current { display:flex; align-items:center; gap:9px; padding:6.5px 10px; font-size:12.5px; font-weight:600; color:var(--text-secondary); }
         .ledger-current .material-symbols-rounded { font-size:16px; width:20px; text-align:center; color:var(--text-muted); }
         .sidebar-nav { padding:0 10px; flex:1; overflow-y:auto; scrollbar-width:none; }
@@ -116,6 +117,7 @@
 @php
     // $activeLedger (the person's own ledger or one of their companies) comes from the view composer in AppServiceProvider.
     $ledgerLabel = $activeLedger?->isCompany() ? $activeLedger->label() : 'Personal';
+    $ledgerAccess = Auth::check() ? \App\Support\Ledger\LedgerAccess::current(Auth::user()) : null;
 @endphp
 <body>
     <x-banner />
@@ -147,10 +149,12 @@
                 <span class="material-symbols-rounded nav-icon">receipt_long</span>
                 Transactions
             </a>
+            @can('record-entries')
             <a href="{{ route('transfers.create') }}" class="nav-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">swap_horiz</span>
                 Transfers
             </a>
+            @endcan
             <a href="{{ route('accounts.index') }}" class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">account_balance_wallet</span>
                 Accounts
@@ -181,10 +185,12 @@
                 Weekly summaries
             </a>
             <div class="nav-section-label">Control</div>
+            @can('view-audit')
             <a href="{{ route('audit.index') }}" class="nav-item {{ request()->routeIs('audit.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">history</span>
                 Audit log
             </a>
+            @endcan
             <a href="{{ route('reconciliation.index') }}" class="nav-item {{ request()->routeIs('reconciliation.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">fact_check</span>
                 Reconciliation
@@ -234,6 +240,11 @@
     @livewire('navigation-menu')
 
     <div class="content-wrap">
+        @if ($activeLedger?->isCompany() && $ledgerAccess && ! $ledgerAccess->canRecordEntries())
+        <div role="note" style="margin:1.25rem 2.5rem 0;padding:0.7rem 1rem;border-radius:0.6rem;background:var(--btn-ghost-bg);border:1px solid var(--card-border);color:var(--text-secondary);font-size:0.8rem;">
+            You have read-only access to {{ $activeLedger->label() }}: everything here, reports and the forecast included, can be read but not changed. A company owner or admin can change your role in InfoDot.
+        </div>
+        @endif
         <main>{{ $slot }}</main>
     </div>
 

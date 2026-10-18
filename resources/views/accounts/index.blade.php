@@ -15,7 +15,9 @@
     </div>
     @endif
 
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
+    @php $canAdd = auth()->user()->can('create', \App\Models\Account::class); @endphp
+
+    <div style="display:grid;grid-template-columns:{{ $canAdd ? '1fr 340px' : '1fr' }};gap:1.5rem;align-items:start;">
 
         {{-- ─── Accounts List ───────────────────────────────────────────── --}}
         <div class="dot-card" style="overflow:hidden;">
@@ -28,7 +30,7 @@
                             <th style="padding:0.75rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Type</th>
                             <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Opening</th>
                             <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Balance (ledger)</th>
-                            <th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>
+                            @if($canAdd)<th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>@endif
                         </tr>
                     </thead>
                     <tbody>
@@ -48,10 +50,16 @@
                             <td style="padding:0.875rem 1rem;text-align:right;font-size:0.85rem;">
                                 <x-money :cents="$account->balanceCents()" :currency="$account->currency" :tone="true" />
                             </td>
+                            @if($canAdd)
                             <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
+                                @can('update', $account)
                                 <a href="{{ route('accounts.edit', $account) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
+                                @endcan
+                                @can('delete', $account)
                                 <a href="{{ route('accounts.confirm-delete', $account) }}" style="font-size:0.75rem;font-weight:600;color:#f87171;text-decoration:none;">Delete</a>
+                                @endcan
                             </td>
+                            @endif
                         </tr>
                         @endforeach
                     </tbody>
@@ -76,6 +84,7 @@
         </div>
 
         {{-- ─── Quick Add ───────────────────────────────────────────────── --}}
+        @can('create', \App\Models\Account::class)
         <div class="dot-card" style="padding:1.4rem 1.5rem;">
             <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0 0 1rem;">Add Account</h3>
 
@@ -125,6 +134,7 @@
                 <button type="submit" class="dot-btn dot-btn-primary" style="justify-content:center;margin-top:0.25rem;">Add Account</button>
             </form>
         </div>
+        @endcan
 
     </div>
 

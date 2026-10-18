@@ -13,10 +13,12 @@
                 {{ now()->format('l, F j, Y') }}
             </p>
         </div>
+        @can('create', \App\Models\Transaction::class)
         <a href="{{ route('transactions.create') }}" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.65rem 1.4rem;border-radius:9999px;background:linear-gradient(135deg,#059669,#047857);font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700;color:#fff;text-decoration:none;box-shadow:0 6px 18px rgba(5,150,105,0.3);">
             <span class="material-symbols-rounded" style="font-size:18px;">add_circle</span>
             Add Transaction
         </a>
+        @endcan
     </div>
 
     {{-- ─── Position: one ruled row per currency, never a mixed total ──────── --}}
@@ -342,7 +344,9 @@
                 <div style="text-align:center;padding:1rem 0;">
                     <span class="material-symbols-rounded" style="font-size:28px;color:#434656;display:block;margin-bottom:0.5rem;">savings</span>
                     <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No budgets set up yet.</p>
+                    @can('create', \App\Models\Budget::class)
                     <a href="{{ route('budgets.index') }}" style="font-size:0.72rem;color:#059669;text-decoration:none;font-weight:600;">Create a budget</a>
+                    @endcan
                 </div>
                 @endif
             </div>

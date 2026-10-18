@@ -16,8 +16,12 @@ use Illuminate\Database\Eloquent\Model;
  *   owner, admin   everything: structure (accounts, categories, budgets) including
  *                  deleting them, opening-balance adjustments, entries, imports,
  *                  the company audit log.
- *   anyone else    read-only for now. The editor and viewer roles arrive in the
- *                  roles change that stacks on this one.
+ *   editor         records, edits and deletes transactions and recurring rules, makes
+ *                  transfers, runs imports, and creates and edits accounts, categories
+ *                  and budgets. Cannot delete those, adjust opening balances, or read the
+ *                  audit log.
+ *   viewer         reads everything (reports, forecast, reconciliation) and changes nothing.
+ *                  Any role this app does not define is a viewer too.
  *
  * A person who does not belong to the ledger has no access at all (null).
  */
@@ -78,6 +82,17 @@ final class LedgerAccess
         return in_array($this->role, ['owner', 'admin'], true);
     }
 
+    private function isEditor(): bool
+    {
+        return $this->role === 'editor';
+    }
+
+    /** What to call the role on screen. */
+    public function roleLabel(): string
+    {
+        return $this->personal ? 'Owner' : ucfirst($this->role);
+    }
+
     public function canRead(): bool
     {
         return true;
@@ -86,13 +101,13 @@ final class LedgerAccess
     /** Record, edit and delete transactions and recurring rules, make transfers, run imports. */
     public function canRecordEntries(): bool
     {
-        return $this->isManager();
+        return $this->isManager() || $this->isEditor();
     }
 
     /** Create and edit accounts, categories and budgets. */
     public function canEditStructure(): bool
     {
-        return $this->isManager();
+        return $this->isManager() || $this->isEditor();
     }
 
     /** Delete accounts, categories and budgets. */

@@ -113,7 +113,11 @@
 
     @if($f['included_rules'] === 0 && count($f['currencies']) > 0)
     <div class="dot-card" style="padding:1.25rem 1.5rem;margin-bottom:1.5rem;font-size:0.82rem;color:var(--text-muted);">
-        Nothing recurring to project. Tick "Repeat" when you <a href="{{ route('transactions.create') }}" style="color:#059669;font-weight:600;">add a transaction</a> (rent, salary, a subscription) and it will appear here.
+        Nothing recurring to project. @can('create', \App\Models\Transaction::class)
+        Tick "Repeat" when you <a href="{{ route('transactions.create') }}" style="color:#059669;font-weight:600;">add a transaction</a> (rent, salary, a subscription) and it will appear here.
+        @else
+        Recurring items (rent, salary, a subscription) will appear here once someone who can record entries sets them up.
+        @endcan
     </div>
     @endif
 

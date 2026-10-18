@@ -45,6 +45,21 @@ Accounts, transactions, categories and budgets are soft-deleted, never erased.
 
 No bank feeds, no AI categorisation, no anomaly detection, no invoice reconciliation, no team-scoped finances, and no currency conversion (a cross-currency transfer takes the amount that arrived as an input).
 
+## Roles in a company ledger
+
+A company's role comes from InfoDot on every sign-in (`SyncTeamsFromInfoDot`): InfoDot owner and admin become `admin`, `editor` stays `editor`, **`viewer`, anything else and an empty role become `viewer`**. A role this app has never heard of never arrives with write access. In your own personal ledger you can always do everything.
+
+| Action | Owner / admin | Editor | Viewer |
+|---|---|---|---|
+| Read everything: dashboard, transactions, reports, forecast, reconciliation, weekly summaries | yes | yes | yes |
+| Record, edit and delete transactions and recurring rules; transfers; CSV imports | yes | yes | no |
+| Create and edit accounts, categories and budgets | yes | yes | no |
+| Delete accounts, categories and budgets | yes | no | no |
+| Adjust an opening balance | yes | no | no |
+| Read the company audit log (every member's actions, with who did them) | yes | no | no |
+
+Controls a role cannot use are hidden, not shown dead, and the same rule is enforced on the server by the policies (`LedgerAccess` is the single definition). A company's owner always has the admin abilities, even with no membership row.
+
 ## Commands
 
 | Command | What it does |

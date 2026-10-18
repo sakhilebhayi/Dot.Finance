@@ -15,7 +15,9 @@
     </div>
     @endif
 
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
+    @php $canAdd = auth()->user()->can('create', \App\Models\Budget::class); @endphp
+
+    <div style="display:grid;grid-template-columns:{{ $canAdd ? '1fr 340px' : '1fr' }};gap:1.5rem;align-items:start;">
 
         <div class="dot-card" style="overflow:hidden;">
             @if($budgets->count() > 0)
@@ -35,12 +37,16 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:0.75rem;">
                             <span style="font-size:0.75rem;color:var(--text-muted);" class="metric-val">{{ \App\Support\Money::format($spent) }} / {{ \App\Support\Money::format($limit, $budget->currency) }}</span>
+                            @can('update', $budget)
                             <a href="{{ route('budgets.edit', $budget) }}" style="font-size:0.72rem;font-weight:600;color:#059669;text-decoration:none;">Edit</a>
+                            @endcan
+                            @can('delete', $budget)
                             <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Delete this budget?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" style="font-size:0.72rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
                             </form>
+                            @endcan
                         </div>
                     </div>
                     <div style="height:6px;border-radius:9999px;background:var(--track-bg);overflow:hidden;">
@@ -58,6 +64,7 @@
             @endif
         </div>
 
+        @if($canAdd)
         <div class="dot-card" style="padding:1.4rem 1.5rem;">
             <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0 0 1rem;">Add Budget</h3>
 
@@ -121,6 +128,7 @@
             </form>
             @endif
         </div>
+        @endif
 
     </div>
 

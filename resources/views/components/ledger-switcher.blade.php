@@ -2,6 +2,7 @@
 @php
     $ledgerChoices = app(\App\Support\Ledger\LedgerContextManager::class)->contextsFor(Auth::user());
     $ledgerActive = \App\Support\Ledger\LedgerContext::current();
+    $ledgerRole = \App\Support\Ledger\LedgerAccess::current(Auth::user());
 @endphp
 <div class="ledger-switch">
     @if (count($ledgerChoices) > 1)
@@ -16,6 +17,9 @@
                     <span class="ledger-opt-name">{{ $choice->label() }}</span>
                 </button>
             @endforeach
+            @if ($ledgerActive?->isCompany() && $ledgerRole)
+                <div class="ledger-role">Your role: {{ $ledgerRole->roleLabel() }}@unless ($ledgerRole->canRecordEntries()) (read-only)@endunless</div>
+            @endif
         </form>
     @else
         <div class="nav-section-label">Ledger</div>
