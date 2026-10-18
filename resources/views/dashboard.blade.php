@@ -272,33 +272,27 @@
         {{-- ─── Right Column ─────────────────────────────────────────────── --}}
         <div style="display:flex;flex-direction:column;gap:1.25rem;">
 
-            {{-- AI Insights Card --}}
+            {{-- Rule-based summary card --}}
             <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.4rem 1.5rem;">
                 <div style="display:flex;align-items:center;gap:0.65rem;margin-bottom:1rem;">
-                    <div style="width:32px;height:32px;border-radius:8px;background:rgba(139,92,246,0.15);display:flex;align-items:center;justify-content:center;">
-                        <span class="material-symbols-rounded" style="font-size:17px;color:#a78bfa;">psychology</span>
+                    <div style="width:32px;height:32px;border-radius:8px;background:rgba(74,222,128,0.12);display:flex;align-items:center;justify-content:center;">
+                        <span class="material-symbols-rounded" style="font-size:17px;color:#34d399;">summarize</span>
                     </div>
                     <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Rule-based summary</h3>
-                    @if($unreadInsights > 0)
-                    <span style="margin-left:auto;padding:0.15rem 0.55rem;border-radius:9999px;background:rgba(139,92,246,0.2);color:#a78bfa;font-size:0.65rem;font-weight:700;">
-                        {{ $unreadInsights }} new
-                    </span>
-                    @endif
                 </div>
 
-                @if($unreadInsights > 0)
+                @if($summaryCount > 0)
                 <p style="font-size:0.8rem;color:#a1a1aa;margin:0 0 1rem;">
-                    You have <strong style="color:#a78bfa;">{{ $unreadInsights }}</strong> unread insight{{ $unreadInsights !== 1 ? 's' : '' }} waiting for you.
+                    {{ $summaryCount }} summar{{ $summaryCount === 1 ? 'y' : 'ies' }}, one a week, written from your ledger by fixed rules. Not AI.
                 </p>
-                <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;font-weight:700;color:#a78bfa;text-decoration:none;">
+                <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);font-size:0.75rem;font-weight:700;color:#34d399;text-decoration:none;">
                     <span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>
-                    View Insights
+                    View summaries
                 </a>
                 @else
                 <div style="text-align:center;padding:0.75rem 0;">
-                    <span class="material-symbols-rounded" style="font-size:28px;color:#434656;display:block;margin-bottom:0.5rem;">check_circle</span>
-                    <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No new insights</p>
-                    <p style="font-size:0.7rem;color:#434656;margin:0.3rem 0 0;">A summary is written weekly from your ledger once there is spending history.</p>
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No summaries yet</p>
+                    <p style="font-size:0.7rem;color:#434656;margin:0.3rem 0 0;">One is written each week once there is spending history.</p>
                 </div>
                 @endif
             </div>

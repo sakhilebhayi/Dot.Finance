@@ -4,8 +4,10 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\CashFlowController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\InsightController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RecurringRuleController;
@@ -45,6 +47,8 @@ Route::middleware([
     // guessing/incrementing the id (IDOR). Index/store are scoped to
     // auth()->id() directly since there's no team-scoping in this app.
     Route::get('/insights', [InsightController::class, 'index'])->name('insights.index');
+    Route::get('/reports/cash-flow', CashFlowController::class)->name('reports.cash-flow');
+    Route::get('/forecast', ForecastController::class)->name('forecast.index');
 
     // Must be registered before the transactions resource route below --
     // otherwise "import" is swallowed by {transaction}'s route-model binding.

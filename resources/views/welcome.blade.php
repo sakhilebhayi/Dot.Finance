@@ -220,10 +220,10 @@
                 <div class="grid md:grid-cols-2 border-t border-[var(--line)]">
                     @php
                         $features = [
-                            ['tag' => 'Accounts', 'title' => 'Account tracking', 'body' => 'Add checking, savings, credit, investment, or cash accounts with a currency (ZAR by default) and a balance you keep up to date yourself — no bank sync required.'],
-                            ['tag' => 'Transactions', 'title' => 'Transaction logging', 'body' => 'Record income, expenses, and transfers with a description, amount, date, and optional notes. Search and filter by description, type, category, account, or date range.'],
+                            ['tag' => 'Accounts', 'title' => 'Account tracking', 'body' => 'Add checking, savings, credit, investment, or cash accounts with one currency each (ZAR by default) and an opening balance. The balance is worked out from your ledger, so it can never disagree with your transactions — no bank sync required.'],
+                            ['tag' => 'Transactions', 'title' => 'Transaction logging', 'body' => 'Record income and expenses, move money between your own accounts with linked transfers, or import a CSV statement (re-importing the same file never double counts). Search and filter by description, type, category, account, or date range.'],
                             ['tag' => 'Categories', 'title' => 'Custom categories', 'body' => 'Build your own income and expense categories with names, icons, and colors — your taxonomy, not a one-size-fits-all list.'],
-                            ['tag' => 'Budgets', 'title' => 'Category budgets', 'body' => 'Set a monthly budget per category and watch spend-against-budget calculated live from your logged transactions — nothing to reconcile by hand.'],
+                            ['tag' => 'Budgets', 'title' => 'Category budgets', 'body' => 'Set a monthly budget per category and currency and watch spend-against-budget calculated live from your logged transactions — nothing to reconcile by hand.'],
                             ['tag' => 'Access', 'title' => 'Policy-scoped access', 'body' => 'Every account, transaction, category, and budget is scoped to your own user and checked on every request — cross-user access is rejected, by policy and by test.'],
                             ['tag' => 'Ecosystem', 'title' => 'One ecosystem login', 'body' => 'Sign in once across the Dot Ecosystem — a single-use, scoped token hands you into your dashboard without a separate OAuth dance.'],
                         ];
@@ -256,10 +256,10 @@
                     <div class="grid sm:grid-cols-2 gap-x-10">
                         @php
                             $capabilities = [
-                                ['title' => 'Manual by design', 'body' => 'No bank-sync integration today — balances are entered and maintained by you. No third-party credential sharing, no surprises from a sync that got it wrong.'],
-                                ['title' => 'Budgets computed live', 'body' => 'Every budget\'s spent-so-far figure sums directly from your logged transactions at request time — nothing stale, no separate rollup.'],
+                                ['title' => 'Exact by design', 'body' => 'Money is stored in whole cents and every total is per currency, never mixed. Nothing is hard-deleted, and every change is written to an audit log you can read. No bank-sync integration today, so no third-party credential sharing and no surprises from a sync that got it wrong.'],
+                                ['title' => 'Budgets computed live', 'body' => 'Every budget\'s spent-so-far figure sums directly from your logged transactions at request time, in one query — nothing stale, no separate rollup.'],
                                 ['title' => 'Personal data stays personal', 'body' => 'If Dot.Finance ever shares patterns with the wider Dot Ecosystem, the plan is aggregate-only — never individual account or transaction data.'],
-                                ['title' => 'Built on Laravel', 'body' => 'A Laravel 12 + Jetstream monolith with PostgreSQL underneath — server-rendered, not a heavy client bundle, so pages stay fast and predictable.'],
+                                ['title' => 'Built on Laravel', 'body' => 'A Laravel 13 + Jetstream monolith with PostgreSQL underneath — server-rendered, not a heavy client bundle, so pages stay fast and predictable.'],
                                 ['title' => 'Policy-checked, not just scoped', 'body' => 'Accounts, categories, budgets, and transactions route through dedicated authorization policies, verified by a test suite that asserts cross-user access is rejected.'],
                                 ['title' => 'Light or dark', 'body' => 'A persisted theme toggle across the app, so you can track your money in whichever mode is easier on your eyes.'],
                             ];
@@ -285,7 +285,7 @@
                             Still growing — here's what isn't built yet
                         </h2>
                         <p class="text-[var(--ink-soft)] leading-relaxed max-w-2xl">
-                            Bank and CSV transaction import, AI-assisted categorisation, anomaly detection, and profit-and-loss or cash-flow charts are all on the roadmap — not shipped today. We'd rather say that plainly than let the page overpromise.
+                            Bank-feed import, categorisation by a language model, anomaly detection and charts beyond the trend and forecast lines are not built. The weekly summary is fixed arithmetic, not AI. We'd rather say that plainly than let the page overpromise.
                         </p>
                     </div>
                     @guest

@@ -2,16 +2,17 @@
 
 namespace App\Console\Commands;
 
-use App\Models\AiInsight;
+use App\Models\Insight;
 use App\Models\User;
 use App\Services\ReserveRunwayCalculator;
 use App\Support\Money;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 #[Signature('finance:generate-insights')]
-#[Description('Generate a weekly rule-based summary per user from their ledger reserve-runway figures')]
+#[Description('Write each user\'s weekly rule-based summary (plain arithmetic on their ledger, not AI); at most one per user per ISO week')]
 class GenerateInsights extends Command
 {
     private const CRITICAL_MONTHS_THRESHOLD = 3;
@@ -19,8 +20,15 @@ class GenerateInsights extends Command
     public function handle(): int
     {
         $calculator = new ReserveRunwayCalculator;
+        $week = now()->format('o-\\WW');
 
         foreach (User::all() as $user) {
+            // One summary per user per ISO week: a second run, a retry or a
+            // manual run in the same week leaves the existing one alone.
+            if (Insight::withoutGlobalScope('user')->where('user_id', $user->id)->where('iso_week', $week)->exists()) {
+                continue;
+            }
+
             $sentences = [];
             $warning = false;
 
@@ -43,11 +51,16 @@ class GenerateInsights extends Command
                 continue;
             }
 
-            AiInsight::create([
-                'user_id' => $user->id,
-                'type' => $warning ? 'reserve_runway_warning' : 'reserve_runway_healthy',
-                'insight' => implode(' ', $sentences),
-            ]);
+            try {
+                Insight::create([
+                    'user_id' => $user->id,
+                    'type' => $warning ? 'reserve_runway_warning' : 'reserve_runway_healthy',
+                    'insight' => implode(' ', $sentences),
+                    'iso_week' => $week,
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                // another run wrote this week's summary between the check and the insert
+            }
         }
 
         return self::SUCCESS;

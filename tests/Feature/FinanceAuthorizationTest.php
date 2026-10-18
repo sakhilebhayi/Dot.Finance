@@ -18,7 +18,7 @@ use Tests\TestCase;
  * a route-model-bound id.
  *
  * As of the HasUserScope global scope (Account/Budget/Category/
- * Transaction/AiInsight, mirroring Dot.Mines' HasTeamFilters pattern),
+ * Transaction/Insight, mirroring Dot.Mines' HasTeamFilters pattern),
  * cross-user access now 404s rather than 403ing: implicit route-model
  * binding queries through the scope too, so another user's row is
  * invisible before the Policy ever runs. This is intentionally a

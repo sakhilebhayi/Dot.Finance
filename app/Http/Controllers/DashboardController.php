@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AiInsight;
 use App\Models\Budget;
+use App\Models\Insight;
 use App\Models\Transaction;
 use App\Services\BudgetSpendCalculator;
 use App\Services\LedgerSummary;
@@ -36,7 +36,7 @@ class DashboardController extends Controller
                 ->get()
         );
 
-        $unreadInsights = AiInsight::where('user_id', $userId)->count();
+        $summaryCount = Insight::where('user_id', $userId)->count();
 
         $cushions = (new ReserveRunwayCalculator)->calculateAll($userId);
 
@@ -50,7 +50,7 @@ class DashboardController extends Controller
         $spendingTrend = $trendCurrency ? (new SpendingTrendCalculator)->calculate($userId, $trendCurrency) : null;
 
         return view('dashboard', compact(
-            'position', 'accounts', 'recentTransactions', 'budgets', 'unreadInsights',
+            'position', 'accounts', 'recentTransactions', 'budgets', 'summaryCount',
             'cushions', 'spendingTrend', 'currencies', 'trendCurrency'
         ));
     }

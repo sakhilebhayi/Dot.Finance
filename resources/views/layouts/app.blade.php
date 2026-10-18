@@ -116,7 +116,7 @@
                 <div class="brand-name">Dot.Finance</div>
                 <div class="brand-status">
                     <div class="live-dot"></div>
-                    <span class="brand-subtitle">Financial Intelligence</span>
+                    <span class="brand-subtitle">Personal Ledger</span>
                 </div>
             </div>
         </div>
@@ -151,6 +151,19 @@
             <a href="{{ route('categories.index') }}" class="nav-item {{ request()->routeIs('categories.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">sell</span>
                 Categories
+            </a>
+            <div class="nav-section-label">Reports</div>
+            <a href="{{ route('reports.cash-flow') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">bar_chart</span>
+                Cash flow
+            </a>
+            <a href="{{ route('forecast.index') }}" class="nav-item {{ request()->routeIs('forecast.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">timeline</span>
+                Forecast
+            </a>
+            <a href="{{ route('insights.index') }}" class="nav-item {{ request()->routeIs('insights.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">summarize</span>
+                Weekly summaries
             </a>
             <div class="nav-section-label">Control</div>
             <a href="{{ route('audit.index') }}" class="nav-item {{ request()->routeIs('audit.*') ? 'active' : '' }}">
