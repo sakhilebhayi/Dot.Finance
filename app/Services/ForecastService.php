@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\RecurringRule;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Carbon;
 
 /**
@@ -30,12 +31,12 @@ class ForecastService
      *     currencies: array<string, array<string, mixed>>
      * }
      */
-    public function project(int $userId, ?Carbon $from = null, int $days = self::HORIZON_DAYS): array
+    public function project(LedgerContext $context, ?Carbon $from = null, int $days = self::HORIZON_DAYS): array
     {
         $from = ($from ?? now())->copy()->startOfDay();
         $to = $from->copy()->addDays($days);
 
-        $accounts = Account::withoutGlobalScope('user')->withBalance()->where('user_id', $userId)->orderBy('name')->get();
+        $accounts = Account::query()->forContext($context)->withBalance()->orderBy('name')->get();
 
         $currencies = [];
         foreach ($accounts as $account) {
@@ -50,9 +51,8 @@ class ForecastService
             ];
         }
 
-        $rules = RecurringRule::withoutGlobalScope('user')
-            ->where('user_id', $userId)
-            ->whereHas('account', fn ($q) => $q->withoutGlobalScope('user')->whereNull('accounts.deleted_at'))
+        $rules = RecurringRule::query()->forContext($context)
+            ->whereHas('account', fn ($q) => $q->forContext($context)->whereNull('accounts.deleted_at'))
             ->with(['account', 'category'])
             ->get();
 

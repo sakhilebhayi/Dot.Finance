@@ -7,11 +7,11 @@ use App\Models\Insight;
 class InsightController extends Controller
 {
     /**
-     * Display the authenticated user's weekly rule-based summaries, newest first.
+     * Display the active ledger's weekly rule-based summaries, newest first.
      *
-     * No explicit user_id filter needed: Insight's HasUserScope trait
-     * applies it automatically to every query against the model, the
-     * same convention TransactionController's index() already documents.
+     * No explicit owner filter needed: Insight's shared ledger scope
+     * confines every query to the active context, the same convention
+     * TransactionController's index() already documents.
      */
     public function index()
     {

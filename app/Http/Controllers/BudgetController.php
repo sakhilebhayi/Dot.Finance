@@ -7,6 +7,8 @@ use App\Models\Budget;
 use App\Models\Category;
 use App\Rules\MoneyAmount;
 use App\Services\BudgetSpendCalculator;
+use App\Support\Ledger\LedgerContext;
+use App\Support\Ledger\LedgerRule;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,11 +16,11 @@ use Illuminate\Validation\Rule;
 class BudgetController extends Controller
 {
     /**
-     * List the authenticated user's budgets, most recent period first, with
+     * List the active ledger's budgets, most recent period first, with
      * spend for ALL of them from a single grouped query.
      *
-     * No explicit user_id filter needed: Budget's and Category's
-     * HasUserScope trait applies it automatically to every query.
+     * No explicit owner filter needed: Budget's and Category's shared ledger
+     * scope confines every query to the active context.
      */
     public function index(Request $request, BudgetSpendCalculator $spend)
     {
@@ -37,21 +39,22 @@ class BudgetController extends Controller
     }
 
     /**
-     * Persist a new budget for the authenticated user. A budget is per
+     * Persist a new budget in the active ledger. A budget is per
      * currency: it only ever counts spending in that currency.
      */
     public function store(Request $request)
     {
-        $userId = $request->user()->id;
+        $this->authorize('create', Budget::class);
 
-        $validated = $this->validateBudget($request, $userId);
+        $context = $this->ledger();
 
-        if ($this->duplicateExists($userId, $validated)) {
+        $validated = $this->validateBudget($request, $context);
+
+        if ($this->duplicateExists($validated)) {
             return back()->withErrors(['category_id' => 'A budget for this category, currency and period already exists.'])->withInput();
         }
 
-        Budget::create([
-            'user_id' => $userId,
+        Budget::create($context->ownerAttributes() + [
             'category_id' => $validated['category_id'],
             'amount_cents' => Money::parse((string) $validated['amount']),
             'currency' => $validated['currency'],
@@ -77,10 +80,9 @@ class BudgetController extends Controller
     {
         $this->authorize('update', $budget);
 
-        $userId = $request->user()->id;
-        $validated = $this->validateBudget($request, $userId, $budget);
+        $validated = $this->validateBudget($request, $this->ledger(), $budget);
 
-        if ($this->duplicateExists($userId, $validated, $budget->id)) {
+        if ($this->duplicateExists($validated, $budget->id)) {
             return back()->withErrors(['category_id' => 'A budget for this category, currency and period already exists.'])->withInput();
         }
 
@@ -97,12 +99,12 @@ class BudgetController extends Controller
 
     /**
      * A budget limits spending, so its category must be an expense category
-     * and its currency one the user actually holds an account in.
+     * and its currency one the ledger actually holds an account in.
      */
-    private function validateBudget(Request $request, int $userId, ?Budget $existing = null): array
+    private function validateBudget(Request $request, LedgerContext $context, ?Budget $existing = null): array
     {
         return $request->validate([
-            'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('user_id', $userId)->where('type', 'expense')->whereNull('deleted_at')],
+            'category_id' => ['required', 'integer', LedgerRule::exists('categories', $context)->where('type', 'expense')->whereNull('deleted_at')],
             'amount' => ['required', new MoneyAmount],
             'currency' => ['required', 'string', Rule::in($this->userCurrencies($existing?->currency))],
             'month' => ['required', 'integer', 'between:1,12'],
@@ -111,9 +113,9 @@ class BudgetController extends Controller
     }
 
     /** Uniqueness among live budgets only: a deleted budget never blocks a new one. */
-    private function duplicateExists(int $userId, array $validated, ?int $ignoreId = null): bool
+    private function duplicateExists(array $validated, ?int $ignoreId = null): bool
     {
-        return Budget::where('user_id', $userId)
+        return Budget::query()
             ->where('category_id', $validated['category_id'])
             ->where('currency', $validated['currency'])
             ->where('month', $validated['month'])
@@ -123,7 +125,7 @@ class BudgetController extends Controller
     }
 
     /**
-     * Delete a budget owned by the authenticated user.
+     * Delete a budget in the active ledger.
      */
     public function destroy(Budget $budget)
     {
@@ -134,7 +136,7 @@ class BudgetController extends Controller
         return redirect()->route('budgets.index')->with('status', 'Budget deleted.');
     }
 
-    /** @return list<string> currencies the user actually holds an account in (plus $keep, so an existing budget stays editable) */
+    /** @return list<string> currencies the ledger actually holds an account in (plus $keep, so an existing budget stays editable) */
     private function userCurrencies(?string $keep = null): array
     {
         $currencies = Account::query()->distinct()->orderBy('currency')->pluck('currency')->all();

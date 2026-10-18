@@ -13,17 +13,19 @@
                 {{ now()->format('l, F j, Y') }}
             </p>
         </div>
+        @can('create', \App\Models\Transaction::class)
         <a href="{{ route('transactions.create') }}" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.65rem 1.4rem;border-radius:9999px;background:linear-gradient(135deg,#059669,#047857);font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700;color:#fff;text-decoration:none;box-shadow:0 6px 18px rgba(5,150,105,0.3);">
             <span class="material-symbols-rounded" style="font-size:18px;">add_circle</span>
             Add Transaction
         </a>
+        @endcan
     </div>
 
     {{-- ─── Position: one ruled row per currency, never a mixed total ──────── --}}
     <div class="dot-card" style="margin-bottom:2rem;overflow:hidden;">
         <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--divider);display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
             <h2 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0;">Position by currency</h2>
-            <span style="font-size:0.7rem;color:var(--text-muted);">Balances are derived from your ledger. {{ now()->format('F Y') }} income and spending exclude transfers.</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);">Balances are derived from {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger. {{ now()->format('F Y') }} income and spending exclude transfers.</span>
         </div>
         @if(count($position) > 0)
         <div style="overflow-x:auto;">
@@ -55,7 +57,17 @@
         </div>
         @else
         <div style="padding:2rem 1.5rem;text-align:center;">
+            @if($activeLedger?->isCompany())
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;"><strong style="color:var(--text-secondary);">{{ $activeLedger->label() }} has no accounts yet.</strong>
+                @can('create', \App\Models\Account::class)
+                <a href="{{ route('accounts.index') }}" style="color:#059669;font-weight:600;">Create the first company account</a> with an opening balance and the company ledger takes it from there.
+                @else
+                A company owner or admin needs to create the first company account.
+                @endcan
+            </p>
+            @else
             <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No accounts yet. <a href="{{ route('accounts.index') }}" style="color:#059669;font-weight:600;">Add an account</a> with an opening balance and the ledger takes it from there.</p>
+            @endif
         </div>
         @endif
     </div>
@@ -66,7 +78,7 @@
         <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.6rem 1.75rem;margin-bottom:2rem;">
             <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;">
                 <span class="material-symbols-rounded" style="font-size:20px;color:#34d399;">shield</span>
-                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">Your {{ $code }} cushion</span>
+                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">{{ $activeLedger?->isCompany() ? $activeLedger->label()."'s" : 'Your' }} {{ $code }} cushion</span>
             </div>
 
             @if($cushion['is_growing'])
@@ -75,7 +87,7 @@
                 </div>
             @else
                 <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#6ee7b7;margin-bottom:0.4rem;">
-                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at your current pace.
+                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $activeLedger?->isCompany() ? 'its' : 'your' }} current pace.
                 </div>
             @endif
 
@@ -85,7 +97,7 @@
 
             @if($cushion['what_if'])
                 <div style="font-size:0.78rem;color:var(--text-secondary,var(--text-muted));">
-                    If your <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.
+                    If {{ $activeLedger?->isCompany() ? 'its' : 'your' }} <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.
                 </div>
             @endif
         </div>
@@ -283,7 +295,7 @@
 
                 @if($summaryCount > 0)
                 <p style="font-size:0.8rem;color:#a1a1aa;margin:0 0 1rem;">
-                    {{ $summaryCount }} summar{{ $summaryCount === 1 ? 'y' : 'ies' }}, one a week, written from your ledger by fixed rules. Not AI.
+                    {{ $summaryCount }} summar{{ $summaryCount === 1 ? 'y' : 'ies' }}, one a week, written from {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger by fixed rules. Not AI.
                 </p>
                 <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);font-size:0.75rem;font-weight:700;color:#34d399;text-decoration:none;">
                     <span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>
@@ -332,7 +344,9 @@
                 <div style="text-align:center;padding:1rem 0;">
                     <span class="material-symbols-rounded" style="font-size:28px;color:#434656;display:block;margin-bottom:0.5rem;">savings</span>
                     <p style="font-size:0.78rem;color:var(--text-muted);margin:0;">No budgets set up yet.</p>
+                    @can('create', \App\Models\Budget::class)
                     <a href="{{ route('budgets.index') }}" style="font-size:0.72rem;color:#059669;text-decoration:none;font-weight:600;">Create a budget</a>
+                    @endcan
                 </div>
                 @endif
             </div>

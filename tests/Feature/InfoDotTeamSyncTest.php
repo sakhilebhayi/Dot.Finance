@@ -4,14 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\Team;
 use App\Models\User;
+use App\Support\Ledger\LedgerAccess;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
+use Laravel\Jetstream\Jetstream;
 use Tests\TestCase;
 
 /**
- * Signing in through InfoDot applies the companies InfoDot lists for the person (this app
-scopes its data per user, so teams are kept for ecosystem consistency only):
+ * Signing in through InfoDot applies the companies InfoDot lists for the person (each one is a
+ * company ledger here, and the role decides what they may do in it):
  * creation by owners and admins only, membership and role following InfoDot,
  * revocation of companies InfoDot no longer lists, and the active company.
  */
@@ -193,7 +196,7 @@ class InfoDotTeamSyncTest extends TestCase
         $this->assertSame($owner->currentTeam->id, $owner->fresh()->current_team_id);
     }
 
-    public function test_a_role_this_app_does_not_have_falls_back_to_editor(): void
+    public function test_an_infodot_viewer_becomes_a_local_viewer_not_an_editor(): void
     {
         $this->signIn('ann@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'owner')], self::ACME);
         $this->signIn('vera@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'viewer')], self::ACME);
@@ -201,7 +204,72 @@ class InfoDotTeamSyncTest extends TestCase
         $team = Team::where('infodot_team_uuid', self::ACME)->firstOrFail();
         $vera = User::where('email', 'vera@acme.test')->firstOrFail();
 
-        $this->assertSame('editor', $vera->teamRole($team)->key);
+        $this->assertSame('viewer', $vera->teamRole($team)->key);
+        $this->assertFalse(LedgerAccess::for($vera, LedgerContext::company($team))->canRecordEntries(), 'a viewer must not be able to write');
+        $this->assertTrue(LedgerAccess::for($vera, LedgerContext::company($team))->canRead());
+    }
+
+    public function test_a_role_infodot_sends_that_this_app_does_not_know_is_a_viewer_never_an_editor(): void
+    {
+        $this->signIn('ann@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'owner')], self::ACME);
+        $team = Team::where('infodot_team_uuid', self::ACME)->firstOrFail();
+
+        foreach (['auditor' => 'una@acme.test', 'member' => 'mel@acme.test', '' => 'eve@acme.test', 'EDITOR' => 'ed@acme.test', 'superuser' => 'sue@acme.test'] as $role => $email) {
+            $this->signIn($email, [$this->company(self::ACME, 'Acme Ltd', $role)], self::ACME);
+            $person = User::where('email', $email)->firstOrFail();
+            $team = $team->fresh();
+
+            $this->assertSame('viewer', $person->teamRole($team)->key, "InfoDot role '{$role}' must map to viewer");
+            $this->assertFalse(LedgerAccess::for($person, LedgerContext::company($team))->canRecordEntries());
+        }
+    }
+
+    public function test_an_infodot_role_with_no_role_key_at_all_is_a_viewer(): void
+    {
+        $this->signIn('ann@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'owner')], self::ACME);
+        $company = $this->company(self::ACME, 'Acme Ltd', 'x');
+        unset($company['role']);
+        $this->signIn('noel@acme.test', [$company], self::ACME);
+
+        $team = Team::where('infodot_team_uuid', self::ACME)->firstOrFail();
+        $this->assertSame('viewer', User::where('email', 'noel@acme.test')->firstOrFail()->teamRole($team)->key);
+    }
+
+    public function test_an_editor_who_becomes_a_viewer_in_infodot_loses_write_access_at_next_sign_in(): void
+    {
+        $this->signIn('ann@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'owner')], self::ACME);
+        $this->signIn('ed@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'editor')], self::ACME);
+        $team = Team::where('infodot_team_uuid', self::ACME)->firstOrFail();
+        $ed = User::where('email', 'ed@acme.test')->firstOrFail();
+        $this->assertTrue(LedgerAccess::for($ed, LedgerContext::company($team))->canRecordEntries());
+
+        $this->signIn('ed@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'viewer')], self::ACME);
+
+        $ed = $ed->fresh();
+        $this->assertSame('viewer', $ed->teamRole($team->fresh())->key);
+        $this->assertFalse(LedgerAccess::for($ed, LedgerContext::company($team))->canRecordEntries());
+    }
+
+    public function test_an_admin_who_becomes_a_viewer_in_infodot_loses_even_the_audit_log(): void
+    {
+        $this->signIn('ann@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'owner')], self::ACME);
+        $this->signIn('al@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'admin')], self::ACME);
+        $team = Team::where('infodot_team_uuid', self::ACME)->firstOrFail();
+        $al = User::where('email', 'al@acme.test')->firstOrFail();
+        $this->assertTrue(LedgerAccess::for($al, LedgerContext::company($team))->canViewAudit());
+
+        $this->signIn('al@acme.test', [$this->company(self::ACME, 'Acme Ltd', 'viewer')], self::ACME);
+
+        $this->assertFalse(LedgerAccess::for($al->fresh(), LedgerContext::company($team))->canViewAudit());
+    }
+
+    public function test_the_viewer_role_exists_with_only_the_read_permission(): void
+    {
+        $viewer = Jetstream::findRole('viewer');
+
+        $this->assertNotNull($viewer);
+        $this->assertSame(['read'], $viewer->permissions);
+        $this->assertSame(['create', 'read', 'update', 'delete'], Jetstream::findRole('admin')->permissions);
     }
 
     public function test_the_local_owner_is_never_detached_when_infodot_stops_listing_the_company(): void

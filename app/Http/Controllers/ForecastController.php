@@ -9,6 +9,6 @@ class ForecastController extends Controller
 {
     public function __invoke(Request $request, ForecastService $forecast)
     {
-        return view('forecast.index', ['forecast' => $forecast->project($request->user()->id)]);
+        return view('forecast.index', ['forecast' => $forecast->project($this->ledger())]);
     }
 }

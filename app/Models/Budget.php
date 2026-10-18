@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\HasLedgerContext;
 use App\Services\BudgetSpendCalculator;
 use App\Support\Money;
 use Database\Factories\BudgetFactory;
@@ -15,9 +15,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Budget extends Model
 {
     /** @use HasFactory<BudgetFactory> */
-    use HasFactory, HasUserScope, SoftDeletes;
+    use HasFactory, HasLedgerContext, SoftDeletes;
 
-    protected $fillable = ['user_id', 'category_id', 'amount', 'amount_cents', 'currency', 'month', 'year'];
+    protected $fillable = ['user_id', 'team_id', 'category_id', 'amount', 'amount_cents', 'currency', 'month', 'year'];
 
     protected $casts = ['amount_cents' => 'integer', 'month' => 'integer', 'year' => 'integer'];
 
@@ -39,6 +39,11 @@ class Budget extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function ledgerReferences(): array
+    {
+        return ['category_id' => Category::class];
     }
 
     public function category(): BelongsTo

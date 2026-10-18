@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\CashFlowReport;
 use App\Services\TransferService;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class CashFlowReportTest extends TestCase
         Transaction::factory()->for($zar)->income()->cents(400_000)->on('2026-07-01')->create();
         Transaction::factory()->for($usd)->income()->cents(7_000)->on('2026-08-02')->create();
 
-        $report = (new CashFlowReport)->monthly($user->id, 3);
+        $report = (new CashFlowReport)->monthly(LedgerContext::personal($user), 3);
 
         $this->assertSame(['USD', 'ZAR'], array_keys($report['currencies']));
         $zarRows = collect($report['currencies']['ZAR'])->keyBy('month');
@@ -59,7 +60,7 @@ class CashFlowReportTest extends TestCase
         Transaction::factory()->for($a)->expense()->cents(77_700)->on('2026-08-11')->create()->delete();
         Transaction::factory()->for($a)->expense()->cents(1_000)->on('2026-08-12')->create();
 
-        $month = collect((new CashFlowReport)->monthly($user->id, 1)['currencies']['ZAR'])->sole();
+        $month = collect((new CashFlowReport)->monthly(LedgerContext::personal($user), 1)['currencies']['ZAR'])->sole();
 
         $this->assertSame(0, $month['income_cents']);
         $this->assertSame(1_000, $month['expense_cents']);
@@ -72,7 +73,7 @@ class CashFlowReportTest extends TestCase
         $other = User::factory()->create();
         Transaction::factory()->for(Account::factory()->for($other)->create())->income()->cents(555_000)->on('2026-08-01')->create();
 
-        $this->assertSame([], (new CashFlowReport)->monthly($user->id, 3)['currencies']);
+        $this->assertSame([], (new CashFlowReport)->monthly(LedgerContext::personal($user), 3)['currencies']);
     }
 
     public function test_the_report_is_one_grouped_query(): void
@@ -83,7 +84,7 @@ class CashFlowReportTest extends TestCase
         Transaction::factory()->for($account)->count(5)->create();
 
         DB::enableQueryLog();
-        (new CashFlowReport)->monthly($user->id, 12);
+        (new CashFlowReport)->monthly(LedgerContext::personal($user), 12);
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 

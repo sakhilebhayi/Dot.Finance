@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\FinanceAudit;
 use App\Support\ImportDates;
 use App\Support\ImportFingerprint;
+use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,10 @@ use InvalidArgumentException;
  *
  * Duplicates are caught by a per-row fingerprint stored on the transaction with a
  * unique index, so re-importing the same or an overlapping statement is safe.
+ *
+ * A staged file belongs to the ledger it was staged in (a person's or one company's):
+ * it can be previewed and imported only from that ledger, and only into an account that
+ * ledger owns.
  */
 class TransactionImporter
 {
@@ -39,22 +44,27 @@ class TransactionImporter
 
     // ── step 1 ────────────────────────────────────────────────────────────
 
-    public function stage(User $user, Account $account, UploadedFile $file): string
+    public function stage(User $user, LedgerContext $context, Account $account, UploadedFile $file): string
     {
+        if (! $account->ledgerContext()->equals($context)) {
+            throw new InvalidArgumentException('That account is not in the ledger you are importing into.');
+        }
+
         $token = (string) Str::uuid();
         $dir = "finance-imports/{$user->id}";
 
         Storage::disk(self::DISK)->putFileAs($dir, $file, "{$token}.csv");
         Storage::disk(self::DISK)->put("{$dir}/{$token}.json", json_encode([
             'account_id' => $account->id,
+            'context' => $context->key(),
             'filename' => mb_substr(basename($file->getClientOriginalName()), 0, 150),
         ]));
 
         return $token;
     }
 
-    /** @return array{account_id: int, filename: string, path: string}|null  null when the token is not this user's */
-    public function load(User $user, string $token): ?array
+    /** @return array{account_id: int, filename: string, path: string}|null  null when the token is not this person's, or was staged in another ledger */
+    public function load(User $user, LedgerContext $context, string $token): ?array
     {
         if (preg_match('/^[0-9a-f-]{36}$/', $token) !== 1) {
             return null;
@@ -68,6 +78,10 @@ class TransactionImporter
         }
 
         $meta = json_decode((string) $disk->get("{$dir}/{$token}.json"), true) ?: [];
+
+        if (($meta['context'] ?? null) !== $context->key()) {
+            return null;
+        }
 
         return [
             'account_id' => (int) ($meta['account_id'] ?? 0),
@@ -103,10 +117,10 @@ class TransactionImporter
     /**
      * @return array<string, mixed>
      */
-    public function analyse(User $user, string $token, ?string $dateFormat = null, ?string $amountLocale = null, ?int $defaultCategoryId = null): array
+    public function analyse(User $user, LedgerContext $context, string $token, ?string $dateFormat = null, ?string $amountLocale = null, ?int $defaultCategoryId = null): array
     {
-        $staged = $this->load($user, $token) ?? throw new InvalidArgumentException('Unknown import.');
-        $account = Account::findOrFail($staged['account_id']);
+        $staged = $this->load($user, $context, $token) ?? throw new InvalidArgumentException('Unknown import.');
+        $account = Account::query()->forContext($context)->findOrFail($staged['account_id']);
 
         $file = $this->parser->read($staged['path']);
 
@@ -116,8 +130,8 @@ class TransactionImporter
         $dateFormat = in_array($dateFormat, ImportDates::FORMATS, true) ? $dateFormat : $detectedDate['format'];
         $amountLocale = in_array($amountLocale, ['en', 'eu'], true) ? $amountLocale : $detectedAmount['locale'];
 
-        $categories = Category::where('user_id', $user->id)->get()->keyBy(fn (Category $c) => mb_strtolower($c->name));
-        $defaultCategory = $defaultCategoryId ? Category::where('user_id', $user->id)->find($defaultCategoryId) : null;
+        $categories = Category::query()->forContext($context)->get()->keyBy(fn (Category $c) => mb_strtolower($c->name));
+        $defaultCategory = $defaultCategoryId ? Category::query()->forContext($context)->find($defaultCategoryId) : null;
 
         $rows = [];
         foreach ($file['rows'] as $raw) {
@@ -255,7 +269,7 @@ class TransactionImporter
 
         $existing = [];
         foreach (array_chunk($fingerprints, 500) as $chunk) {
-            foreach (Transaction::withoutGlobalScope('user')->where('user_id', $account->user_id)->whereIn('import_fingerprint', $chunk)->pluck('import_fingerprint') as $found) {
+            foreach (Transaction::query()->forContext($account->ledgerContext())->whereIn('import_fingerprint', $chunk)->pluck('import_fingerprint') as $found) {
                 $existing[$found] = true;
             }
         }
@@ -272,9 +286,9 @@ class TransactionImporter
      * @param  list<int>  $skipLines  file line numbers the user unticked
      * @return array{imported: int, skipped_duplicates: int, skipped_invalid: int, skipped_by_user: int}
      */
-    public function commit(User $user, string $token, string $dateFormat, string $amountLocale, ?int $defaultCategoryId, array $skipLines): array
+    public function commit(User $user, LedgerContext $context, string $token, string $dateFormat, string $amountLocale, ?int $defaultCategoryId, array $skipLines): array
     {
-        $preview = $this->analyse($user, $token, $dateFormat, $amountLocale, $defaultCategoryId);
+        $preview = $this->analyse($user, $context, $token, $dateFormat, $amountLocale, $defaultCategoryId);
         $account = $preview['account'];
         $batch = (string) Str::uuid();
         $skip = array_flip($skipLines);
@@ -283,8 +297,8 @@ class TransactionImporter
         $income = 0;
         $expense = 0;
 
-        DB::transaction(function () use ($preview, $account, $user, $batch, $skip, $dateFormat, $amountLocale, &$result, &$income, &$expense) {
-            FinanceAudit::withoutRowLogging(function () use ($preview, $account, $user, $batch, $skip, &$result, &$income, &$expense) {
+        DB::transaction(function () use ($preview, $account, $batch, $skip, $dateFormat, $amountLocale, &$result, &$income, &$expense) {
+            FinanceAudit::withoutRowLogging(function () use ($preview, $account, $batch, $skip, &$result, &$income, &$expense) {
                 foreach ($preview['rows'] as $row) {
                     if ($row['error'] !== null || $row['date'] === null || $row['cents'] === null) {
                         $result['skipped_invalid']++;
@@ -304,10 +318,9 @@ class TransactionImporter
                         continue;
                     }
 
-                    Transaction::create([
+                    Transaction::create($account->ledgerOwner() + [
                         'account_id' => $account->id,
                         'category_id' => $row['category_id'],
-                        'user_id' => $user->id,
                         'description' => $row['description'],
                         'amount_cents' => abs($row['cents']),
                         'currency' => $account->currency,
@@ -322,7 +335,7 @@ class TransactionImporter
                 }
             });
 
-            FinanceAudit::record($user->id, 'imported', 'import', null, $preview['filename'], [
+            FinanceAudit::record($account->ledgerOwner(), 'imported', 'import', null, $preview['filename'], [
                 'file' => $preview['filename'],
                 'account_id' => $account->id,
                 'date_format' => $dateFormat,

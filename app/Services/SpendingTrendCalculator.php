@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 
 /**
- * Buckets a user's income/expense transactions, in ONE currency, into trailing
+ * Buckets a ledger's income/expense transactions, in ONE currency, into trailing
  * calendar months for the dashboard trend chart. Every month in the window is
  * represented even if empty (the chart never silently skips a gap month), which
  * is why this walks a generated month range rather than grouping only the months
@@ -19,14 +20,13 @@ class SpendingTrendCalculator
     /**
      * @return array{currency: string, months: list<array{label: string, income_cents: int, expense_cents: int, net_cents: int}>, peak_cents: int}
      */
-    public function calculate(int $userId, string $currency): array
+    public function calculate(LedgerContext $context, string $currency): array
     {
         $windowStart = now()->subMonths(self::TRAILING_MONTHS - 1)->startOfMonth();
 
         // One grouped query; bucketed into months in PHP because the SQL
         // date-format function differs per driver (strftime / to_char).
-        $rows = Transaction::withoutGlobalScope('user')
-            ->where('user_id', $userId)
+        $rows = Transaction::query()->forContext($context)
             ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])
             ->whereDate('date', '>=', $windowStart->toDateString())

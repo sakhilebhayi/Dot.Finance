@@ -10,8 +10,8 @@ use Illuminate\Support\Collection;
 /**
  * Spend per budget for a whole list of budgets in ONE grouped query.
  *
- * A budget is (user, category, currency, month, year); its spend is the sum of
- * that user's expense transactions in that category, in that currency, dated in
+ * A budget is (ledger, category, currency, month, year); its spend is the sum of
+ * that ledger's expense transactions in that category, in that currency, dated in
  * that month. Different currencies never meet: a USD expense is invisible to a
  * ZAR budget even when the category is the same. Transfers and income are never
  * spend.
@@ -35,25 +35,30 @@ class BudgetSpendCalculator
         $min = $budgets->map(fn (Budget $b) => Carbon::create($b->year, $b->month, 1)->startOfDay())->min();
         $max = $budgets->map(fn (Budget $b) => Carbon::create($b->year, $b->month, 1)->endOfMonth())->max();
 
-        $rows = Transaction::withoutGlobalScope('user')
-            ->where('type', 'expense')
-            ->whereIn('user_id', $budgets->pluck('user_id')->unique()->all())
-            ->whereIn('category_id', $budgets->pluck('category_id')->unique()->all())
-            ->whereDate('date', '>=', $min->toDateString())
-            ->whereDate('date', '<=', $max->toDateString())
-            ->selectRaw('user_id, category_id, currency, date, SUM(amount_cents) AS spent')
-            ->groupBy('user_id', 'category_id', 'currency', 'date')
-            ->get();
-
+        // A list of budgets is one ledger in practice, so this is one grouped query; a
+        // mixed list is read one ledger at a time, never merged.
         $totals = [];
-        foreach ($rows as $row) {
-            $key = $row->user_id.'|'.$row->category_id.'|'.$row->currency.'|'.substr((string) $row->getRawOriginal('date'), 0, 7);
-            $totals[$key] = ($totals[$key] ?? 0) + (int) $row->spent;
+        foreach ($budgets->groupBy(fn (Budget $b) => $b->ledgerContext()->key()) as $group) {
+            $context = $group->first()->ledgerContext();
+
+            $rows = Transaction::query()->forContext($context)
+                ->where('type', 'expense')
+                ->whereIn('category_id', $group->pluck('category_id')->unique()->all())
+                ->whereDate('date', '>=', $min->toDateString())
+                ->whereDate('date', '<=', $max->toDateString())
+                ->selectRaw('category_id, currency, date, SUM(amount_cents) AS spent')
+                ->groupBy('category_id', 'currency', 'date')
+                ->get();
+
+            foreach ($rows as $row) {
+                $key = $context->key().'|'.$row->category_id.'|'.$row->currency.'|'.substr((string) $row->getRawOriginal('date'), 0, 7);
+                $totals[$key] = ($totals[$key] ?? 0) + (int) $row->spent;
+            }
         }
 
         $result = [];
         foreach ($budgets as $budget) {
-            $key = $budget->user_id.'|'.$budget->category_id.'|'.$budget->currency.'|'.sprintf('%04d-%02d', $budget->year, $budget->month);
+            $key = $budget->ledgerContext()->key().'|'.$budget->category_id.'|'.$budget->currency.'|'.sprintf('%04d-%02d', $budget->year, $budget->month);
             $result[$budget->id] = $totals[$key] ?? 0;
         }
 

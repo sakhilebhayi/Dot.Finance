@@ -96,15 +96,22 @@ class FinanceAudit
 
     /**
      * Append one row. $changes is already shaped {field: {...}}.
+     *
+     * $owner is the context the change happened in ({user_id, team_id}, exactly one set); the
+     * acting person is recorded separately, because a company's log holds many people's actions.
+     *
+     * @param  array{user_id: ?int, team_id: ?int}  $owner
      */
-    public static function record(int $userId, string $action, string $subjectType, ?int $subjectId, ?string $label, ?array $changes = null, ?string $context = null, ?string $currency = null): FinanceAuditLog
+    public static function record(array $owner, string $action, string $subjectType, ?int $subjectId, ?string $label, ?array $changes = null, ?string $context = null, ?string $currency = null): FinanceAuditLog
     {
         $context ??= self::$contextOverride;
 
         return FinanceAuditLog::create([
-            'user_id' => $userId,
+            'user_id' => $owner['user_id'],
+            'team_id' => $owner['team_id'],
             'action' => $action,
             'actor' => Auth::check() ? 'user' : 'system',
+            'actor_user_id' => Auth::id(),
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
             'subject_label' => $label !== null ? mb_substr($label, 0, 255) : null,

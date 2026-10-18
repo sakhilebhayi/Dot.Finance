@@ -115,7 +115,7 @@ class TransferTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $out = Transaction::where('transfer_direction', 'out')->firstOrFail();
-        $in = Transaction::where('transfer_direction', 'in')->firstOrFail();
+        $in = Transaction::withoutGlobalScopes()->where('transfer_direction', 'in')->firstOrFail();
 
         $this->assertSame(185_000, $out->amount_cents);
         $this->assertSame('ZAR', $out->currency);
@@ -156,7 +156,7 @@ class TransferTest extends TestCase
         $to = Account::factory()->for($user)->opening(0, null)->create();
         app(TransferService::class)->create($user, $from, $to, 40_000, null, Carbon::today(), 'Reversible', null);
 
-        $in = Transaction::where('transfer_direction', 'in')->firstOrFail();
+        $in = Transaction::withoutGlobalScopes()->where('transfer_direction', 'in')->firstOrFail();
 
         $this->actingAs($user)->delete(route('transactions.destroy', $in))->assertRedirect(route('transactions.index'));
 
@@ -195,7 +195,7 @@ class TransferTest extends TestCase
         $a = Account::factory()->for($user)->create();
         $b = Account::factory()->for($user)->create();
         app(TransferService::class)->create($user, $a, $b, 1_000, null, Carbon::today(), 'Locked pair', null);
-        $leg = Transaction::where('transfer_direction', 'out')->firstOrFail();
+        $leg = Transaction::withoutGlobalScopes()->where('transfer_direction', 'out')->firstOrFail();
 
         $this->actingAs($user)->get(route('transactions.edit', $leg))->assertRedirect(route('transactions.index'));
         $this->actingAs($user)->put(route('transactions.update', $leg), [

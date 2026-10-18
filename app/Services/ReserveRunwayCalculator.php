@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Carbon\Carbon;
 
@@ -24,17 +25,17 @@ class ReserveRunwayCalculator
     private const TRAILING_MONTHS = 3;
 
     /**
-     * One result per currency the user holds an account in, keyed by code.
+     * One result per currency the ledger holds an account in, keyed by code.
      *
      * @return array<string, array<string, mixed>>
      */
-    public function calculateAll(int $userId): array
+    public function calculateAll(LedgerContext $context): array
     {
-        $currencies = Account::withoutGlobalScope('user')->where('user_id', $userId)->distinct()->orderBy('currency')->pluck('currency');
+        $currencies = Account::query()->forContext($context)->distinct()->orderBy('currency')->pluck('currency');
 
         $results = [];
         foreach ($currencies as $currency) {
-            $results[$currency] = $this->calculate($userId, $currency);
+            $results[$currency] = $this->calculate($context, $currency);
         }
 
         return $results;
@@ -43,10 +44,9 @@ class ReserveRunwayCalculator
     /**
      * @return array<string, mixed>
      */
-    public function calculate(int $userId, string $currency): array
+    public function calculate(LedgerContext $context, string $currency): array
     {
-        $liquidReserves = (int) Account::withoutGlobalScope('user')->withBalance()
-            ->where('user_id', $userId)
+        $liquidReserves = (int) Account::query()->forContext($context)->withBalance()
             ->where('currency', $currency)
             ->whereIn('type', self::LIQUID_ACCOUNT_TYPES)
             ->get()
@@ -54,8 +54,7 @@ class ReserveRunwayCalculator
 
         $windowStart = now()->subMonths(self::TRAILING_MONTHS)->startOfMonth();
 
-        $rows = Transaction::withoutGlobalScope('user')
-            ->where('user_id', $userId)
+        $rows = Transaction::query()->forContext($context)
             ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])
             ->whereDate('date', '>=', $windowStart->toDateString())
@@ -105,14 +104,13 @@ class ReserveRunwayCalculator
             'months' => $months,
             'is_growing' => $isGrowing,
             'basis' => $basis,
-            'what_if' => $this->computeWhatIf($userId, $currency, $windowStart, $avgMonthlyBurn, $liquidReserves, $monthsSpanned),
+            'what_if' => $this->computeWhatIf($context, $currency, $windowStart, $avgMonthlyBurn, $liquidReserves, $monthsSpanned),
         ];
     }
 
-    private function computeWhatIf(int $userId, string $currency, Carbon $windowStart, int $avgMonthlyBurn, int $liquidReserves, int $monthsSpanned): ?array
+    private function computeWhatIf(LedgerContext $context, string $currency, Carbon $windowStart, int $avgMonthlyBurn, int $liquidReserves, int $monthsSpanned): ?array
     {
-        $topCategory = Transaction::withoutGlobalScope('user')
-            ->where('user_id', $userId)
+        $topCategory = Transaction::query()->forContext($context)
             ->where('currency', $currency)
             ->where('type', 'expense')
             ->whereDate('date', '>=', $windowStart->toDateString())
@@ -126,7 +124,7 @@ class ReserveRunwayCalculator
             return null;
         }
 
-        $category = Category::withoutGlobalScopes()->find($topCategory->category_id);
+        $category = Category::query()->forContext($context)->withTrashed()->find($topCategory->category_id);
         if (! $category) {
             return null;
         }

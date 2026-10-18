@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\ReserveRunwayCalculator;
+use App\Support\Ledger\LedgerContext;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -52,7 +53,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         // Need at least one expense transaction for the calculator to have data to work with.
         $this->createTransaction($user, $checking, 'expense', 200, now());
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         // Derived balances: checking 1000 - 200 expense, savings 500, cash 100. Credit/investment excluded.
         $this->assertSame(140_000, $result['liquid_reserves_cents']);
@@ -68,7 +69,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'expense', 200, now()->subMonths(1)->startOfMonth()->addDays(2));
         $this->createTransaction($user, $account, 'expense', 300, now()->startOfMonth()->addDays(2));
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertSame(20_000, $result['avg_monthly_burn_cents']);
         // The ledger balance already includes those expenses: 3000 - 600 = 2400, and 2400 / 200 = 12.
@@ -83,7 +84,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'expense', 100, now());
         $this->createTransaction($user, $account, 'transfer', 9999, now()); // must not affect burn
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertSame(10_000, $result['avg_monthly_burn_cents']);
     }
@@ -96,7 +97,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'income', 500, now());
         $this->createTransaction($user, $account, 'expense', 200, now());
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertTrue($result['available']);
         $this->assertTrue($result['is_growing']);
@@ -114,7 +115,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $zar, 'expense', 100, now());
         $this->createTransaction($user, $usd, 'expense', 50, now());
 
-        $all = (new ReserveRunwayCalculator)->calculateAll($user->id);
+        $all = (new ReserveRunwayCalculator)->calculateAll(LedgerContext::personal($user));
 
         $this->assertSame(['USD', 'ZAR'], array_keys($all));
         $this->assertSame(90_000, $all['ZAR']['liquid_reserves_cents']);
@@ -129,9 +130,9 @@ class ReserveRunwayCalculatorTest extends TestCase
         $account = $this->createAccount($user, 'checking', 1000);
         $this->createTransaction($user, $account, 'expense', 100, now());
 
-        $before = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $before = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
         $this->createTransaction($user, $account, 'income', 400, now());
-        $after = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $after = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertSame(90_000, $before['liquid_reserves_cents']);
         $this->assertSame(130_000, $after['liquid_reserves_cents']);
@@ -143,7 +144,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createAccount($user, 'checking', 1000);
         // No transactions at all.
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertFalse($result['available']);
         $this->assertSame('insufficient_data', $result['reason']);
@@ -156,7 +157,7 @@ class ReserveRunwayCalculatorTest extends TestCase
 
         $this->createTransaction($user, $account, 'expense', 100, now());
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertTrue($result['available']);
         $this->assertSame(10_000, $result['avg_monthly_burn_cents']);
@@ -172,7 +173,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $this->createTransaction($user, $account, 'expense', 800, now(), $rent);
         $this->createTransaction($user, $account, 'expense', 200, now(), $food);
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertNotNull($result['what_if']);
         $this->assertSame('Rent', $result['what_if']['category']);
@@ -184,7 +185,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $account = $this->createAccount($user, 'checking', 1000);
         $this->createTransaction($user, $account, 'income', 500, now());
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertNull($result['what_if']);
     }
@@ -195,7 +196,7 @@ class ReserveRunwayCalculatorTest extends TestCase
         $account = $this->createAccount($user, 'checking', 1000);
         $this->createTransaction($user, $account, 'expense', 100, now());
 
-        $result = (new ReserveRunwayCalculator)->calculate($user->id, 'ZAR');
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertNotEmpty($result['basis']);
     }

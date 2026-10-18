@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Casts\DateOnly;
-use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\HasLedgerContext;
 use App\Support\Money;
 use Database\Factories\RecurringRuleFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A repeating income or expense: the template the scheduler copies into the
@@ -22,10 +23,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class RecurringRule extends Model
 {
     /** @use HasFactory<RecurringRuleFactory> */
-    use HasFactory, HasUserScope, SoftDeletes;
+    use HasFactory, HasLedgerContext, SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'account_id', 'category_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'notes',
+        'user_id', 'team_id', 'account_id', 'category_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'notes',
         'recurrence_type', 'recurrence_interval', 'start_date', 'next_occurrence_date', 'end_date', 'paused_at', 'ended_at',
     ];
 
@@ -51,9 +52,19 @@ class RecurringRule extends Model
     {
         static::creating(function (RecurringRule $rule): void {
             if ($rule->currency === null && $rule->account_id !== null) {
-                $rule->currency = Account::withoutGlobalScopes()->whereKey($rule->account_id)->value('currency');
+                $rule->currency = DB::table('accounts')->where('id', $rule->account_id)->value('currency');
             }
         });
+    }
+
+    public function ledgerInheritsFrom(): ?string
+    {
+        return 'account_id';
+    }
+
+    public function ledgerReferences(): array
+    {
+        return ['account_id' => Account::class, 'category_id' => Category::class];
     }
 
     public function user(): BelongsTo

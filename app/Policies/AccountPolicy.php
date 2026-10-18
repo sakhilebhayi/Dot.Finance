@@ -4,52 +4,47 @@ namespace App\Policies;
 
 use App\Models\Account;
 use App\Models\User;
+use App\Support\Ledger\LedgerAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
+/**
+ * What a person may do with a account: decided by LedgerAccess from the ledger the
+ * account belongs to (their own personal ledger, or a company they belong to) and
+ * their role in it. Another ledger's account never reaches here: the shared ledger
+ * scope already 404s it.
+ */
 class AccountPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     *
-     * Dot.Finance is single-user, not team-scoped: ownership is always
-     * checked against user_id, never team_id.
-     */
     public function view(User $user, Account $account): bool
     {
-        return $user->id === $account->user_id;
+        return LedgerAccess::forRow($user, $account)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canEditStructure() ?? false;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Account $account): bool
     {
-        return $user->id === $account->user_id;
+        return LedgerAccess::forRow($user, $account)?->canEditStructure() ?? false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Account $account): bool
     {
-        return $user->id === $account->user_id;
+        return LedgerAccess::forRow($user, $account)?->canDestroyStructure() ?? false;
+    }
+
+    /** Changing the opening balance moves every balance, so it is a separate, stricter ability. */
+    public function adjustOpeningBalance(User $user, Account $account): bool
+    {
+        return LedgerAccess::forRow($user, $account)?->canAdjustOpeningBalance() ?? false;
     }
 }

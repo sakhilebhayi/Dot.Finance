@@ -11,15 +11,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Dot.Finance is single-user, not team-scoped: every finance record is
- * owned by user_id. These tests guard against IDOR (insecure direct
+ * Every finance record belongs to one ledger: a person's personal ledger (user_id)
+ * or a company's (team_id). These tests cover the personal ledger and guard against IDOR (insecure direct
  * object reference) — one authenticated user reading, editing, or
  * deleting another user's financial data simply by guessing/incrementing
  * a route-model-bound id.
  *
- * As of the HasUserScope global scope (Account/Budget/Category/
- * Transaction/Insight, mirroring Dot.Mines' HasTeamFilters pattern),
- * cross-user access now 404s rather than 403ing: implicit route-model
+ * As of the shared ledger scope (LedgerContextScope, on every ledger model),
+ * cross-user access 404s rather than 403ing: implicit route-model
  * binding queries through the scope too, so another user's row is
  * invisible before the Policy ever runs. This is intentionally a
  * stronger posture than the old assertForbidden() behavior — it's

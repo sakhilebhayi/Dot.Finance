@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\SpendingTrendCalculator;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -37,7 +38,7 @@ class SpendingTrendTest extends TestCase
             'description' => 'Salary', 'amount' => 5000, 'type' => 'income', 'date' => '2026-08-01',
         ]);
 
-        $result = (new SpendingTrendCalculator)->calculate($user->id, 'ZAR');
+        $result = (new SpendingTrendCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         $this->assertCount(6, $result['months']);
         $this->assertSame('Mar 2026', $result['months'][0]['label']);
@@ -67,7 +68,7 @@ class SpendingTrendTest extends TestCase
             'description' => 'Groceries', 'amount' => 300, 'type' => 'expense', 'date' => '2026-08-06',
         ]);
 
-        $result = (new SpendingTrendCalculator)->calculate($user->id, 'ZAR');
+        $result = (new SpendingTrendCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
         $august = $result['months'][5];
 
         $this->assertSame('Aug 2026', $august['label']);
@@ -91,7 +92,7 @@ class SpendingTrendTest extends TestCase
             'description' => 'Old expense', 'amount' => 999, 'type' => 'expense', 'date' => '2025-01-01',
         ]);
 
-        $result = (new SpendingTrendCalculator)->calculate($user->id, 'ZAR');
+        $result = (new SpendingTrendCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         foreach ($result['months'] as $month) {
             $this->assertSame(0, $month['income_cents']);
@@ -113,7 +114,7 @@ class SpendingTrendTest extends TestCase
             'description' => 'Not mine', 'amount' => 99999, 'type' => 'income', 'date' => '2026-08-01',
         ]);
 
-        $result = (new SpendingTrendCalculator)->calculate($user->id, 'ZAR');
+        $result = (new SpendingTrendCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
 
         foreach ($result['months'] as $month) {
             $this->assertSame(0, $month['income_cents']);
@@ -133,8 +134,8 @@ class SpendingTrendTest extends TestCase
         Transaction::create(['account_id' => $zar->id, 'user_id' => $user->id, 'description' => 'Rand salary', 'amount' => 5000, 'type' => 'income', 'date' => '2026-08-01']);
         Transaction::create(['account_id' => $usd->id, 'user_id' => $user->id, 'description' => 'Dollar gig', 'amount' => 70, 'type' => 'income', 'date' => '2026-08-02']);
 
-        $this->assertSame(500_000, (new SpendingTrendCalculator)->calculate($user->id, 'ZAR')['months'][5]['income_cents']);
-        $this->assertSame(7_000, (new SpendingTrendCalculator)->calculate($user->id, 'USD')['months'][5]['income_cents']);
+        $this->assertSame(500_000, (new SpendingTrendCalculator)->calculate(LedgerContext::personal($user), 'ZAR')['months'][5]['income_cents']);
+        $this->assertSame(7_000, (new SpendingTrendCalculator)->calculate(LedgerContext::personal($user), 'USD')['months'][5]['income_cents']);
 
         Carbon::setTestNow();
     }

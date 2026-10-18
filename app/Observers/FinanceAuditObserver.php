@@ -72,7 +72,7 @@ class FinanceAuditObserver
         }
 
         FinanceAudit::record(
-            (int) $model->user_id,
+            $model->ledgerOwner(),
             $action,
             FinanceAudit::subjectType($model),
             (int) $model->getKey(),

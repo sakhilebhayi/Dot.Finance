@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Ledger\LedgerContextViolation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,13 +16,18 @@ use InvalidArgumentException;
  * a shared transfer_group: an 'out' leg on the source account and an 'in' leg on
  * the destination. The legs are excluded from income and spending everywhere;
  * they only move balances. Deleting either leg deletes both (see Transaction).
+ *
+ * Both accounts must belong to the same ledger (a person's or one company's): a transfer
+ * never crosses from personal into a company, between companies, or between people.
  */
 class TransferService
 {
     /**
+     * @param  User  $user  the person recording the transfer (the audit log takes the acting person from the session)
      * @return array{out: Transaction, in: Transaction}
      *
      * @throws InvalidArgumentException when the request would not produce a coherent pair
+     * @throws LedgerContextViolation when the accounts belong to different ledgers
      */
     public function create(User $user, Account $from, Account $to, int $cents, ?int $convertedCents, Carbon $date, string $description, ?string $notes): array
     {
@@ -29,8 +35,8 @@ class TransferService
             throw new InvalidArgumentException('A transfer needs two different accounts.');
         }
 
-        if ($from->user_id !== $user->id || $to->user_id !== $user->id) {
-            throw new InvalidArgumentException('Both accounts must belong to the same user.');
+        if (! $from->ledgerContext()->equals($to->ledgerContext())) {
+            throw new LedgerContextViolation('A transfer must stay inside one ledger: both accounts must belong to the same person or the same company.');
         }
 
         if ($cents <= 0) {
@@ -49,11 +55,11 @@ class TransferService
 
         $inCents = $sameCurrency ? $cents : $convertedCents;
         $group = (string) Str::uuid();
+        $owner = $from->ledgerOwner();
 
-        return DB::transaction(function () use ($user, $from, $to, $cents, $inCents, $date, $description, $notes, $group) {
-            $out = Transaction::create([
+        return DB::transaction(function () use ($owner, $from, $to, $cents, $inCents, $date, $description, $notes, $group) {
+            $out = Transaction::create($owner + [
                 'account_id' => $from->id,
-                'user_id' => $user->id,
                 'description' => $description,
                 'amount_cents' => $cents,
                 'currency' => $from->currency,
@@ -64,9 +70,8 @@ class TransferService
                 'notes' => $notes,
             ]);
 
-            $in = Transaction::create([
+            $in = Transaction::create($owner + [
                 'account_id' => $to->id,
-                'user_id' => $user->id,
                 'description' => $description,
                 'amount_cents' => $inCents,
                 'currency' => $to->currency,

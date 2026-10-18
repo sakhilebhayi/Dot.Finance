@@ -14,10 +14,10 @@ use Illuminate\View\View;
 class CategoryController extends Controller
 {
     /**
-     * List the authenticated user's categories.
+     * List the active ledger's categories.
      *
-     * No explicit user_id filter needed: Category's HasUserScope trait
-     * applies it automatically to every query against this model.
+     * No explicit owner filter needed: Category's shared ledger scope confines every
+     * query to the active context (personal or company).
      */
     public function index(Request $request)
     {
@@ -29,10 +29,12 @@ class CategoryController extends Controller
     }
 
     /**
-     * Persist a new category for the authenticated user.
+     * Persist a new category in the active ledger.
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Category::class);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'icon' => ['nullable', 'string', 'max:10'],
@@ -40,10 +42,9 @@ class CategoryController extends Controller
             'type' => ['required', Rule::in(['income', 'expense'])],
         ]);
 
-        $validated['user_id'] = $request->user()->id;
         $validated['color'] = $validated['color'] ?? '#6366f1';
 
-        Category::create($validated);
+        Category::create($this->ledger()->ownerAttributes() + $validated);
 
         return redirect()->route('categories.index')->with('status', 'Category added.');
     }
