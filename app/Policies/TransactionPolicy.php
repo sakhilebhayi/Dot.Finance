@@ -4,54 +4,41 @@ namespace App\Policies;
 
 use App\Models\Transaction;
 use App\Models\User;
+use App\Support\Ledger\LedgerAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
+/**
+ * What a person may do with a transaction: decided by LedgerAccess from the ledger it
+ * belongs to and their role in it. This is also the guard that stops one person from
+ * reaching another's transactions by guessing the route-model-bound {transaction} id
+ * (the shared ledger scope 404s it first; this is the second line).
+ */
 class TransactionPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     *
-     * Dot.Finance is single-user, not team-scoped: ownership is always
-     * checked against user_id, never team_id. This is the guard that
-     * prevents one user from viewing another user's transactions by
-     * guessing/incrementing the route-model-bound {transaction} id.
-     */
     public function view(User $user, Transaction $transaction): bool
     {
-        return $user->id === $transaction->user_id;
+        return LedgerAccess::forRow($user, $transaction)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canRecordEntries() ?? false;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Transaction $transaction): bool
     {
-        return $user->id === $transaction->user_id;
+        return LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Transaction $transaction): bool
     {
-        return $user->id === $transaction->user_id;
+        return LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false;
     }
 }

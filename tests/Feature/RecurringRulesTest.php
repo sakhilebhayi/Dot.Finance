@@ -84,7 +84,7 @@ class RecurringRulesTest extends TestCase
 
         $this->assertSame(1, $this->runScheduler());
 
-        $tx = Transaction::where('recurring_rule_id', $rule->id)->sole();
+        $tx = Transaction::withoutGlobalScopes()->where('recurring_rule_id', $rule->id)->sole();
         $this->assertSame('2026-09-01', $tx->date->toDateString());
         $this->assertSame(120_000, $tx->amount_cents);
         $this->assertSame('expense', $tx->type);
@@ -116,7 +116,7 @@ class RecurringRulesTest extends TestCase
 
         $this->assertSame(1, $this->runScheduler());
         $this->assertSame(0, $this->runScheduler());
-        $this->assertSame(1, Transaction::count());
+        $this->assertSame(1, Transaction::withoutGlobalScopes()->count());
     }
 
     public function test_monthly_dates_do_not_drift_after_a_short_month(): void
@@ -126,7 +126,7 @@ class RecurringRulesTest extends TestCase
 
         $this->assertSame(3, $this->runScheduler());
 
-        $dates = Transaction::where('recurring_rule_id', $rule->id)->orderBy('date')->get()->map(fn ($t) => $t->date->toDateString())->all();
+        $dates = Transaction::withoutGlobalScopes()->where('recurring_rule_id', $rule->id)->orderBy('date')->get()->map(fn ($t) => $t->date->toDateString())->all();
         $this->assertSame(['2026-02-28', '2026-03-31', '2026-04-30'], $dates);
         $this->assertSame('2026-05-31', $rule->fresh()->next_occurrence_date->toDateString());
     }
@@ -217,7 +217,7 @@ class RecurringRulesTest extends TestCase
         $user = User::factory()->withPersonalTeam()->create();
         $rule = $this->rule($user, ['amount_cents' => 100_000, 'start_date' => '2026-08-01', 'next_occurrence_date' => '2026-09-01']);
         $this->runScheduler();
-        $first = Transaction::where('recurring_rule_id', $rule->id)->sole();
+        $first = Transaction::withoutGlobalScopes()->where('recurring_rule_id', $rule->id)->sole();
 
         $this->actingAs($user)->get(route('recurring.edit', $rule))->assertOk();
         $this->actingAs($user)->put(route('recurring.update', $rule), [
@@ -228,7 +228,7 @@ class RecurringRulesTest extends TestCase
         $this->runScheduler();
 
         $this->assertSame(100_000, $first->fresh()->amount_cents);
-        $second = Transaction::where('recurring_rule_id', $rule->id)->orderByDesc('date')->first();
+        $second = Transaction::withoutGlobalScopes()->where('recurring_rule_id', $rule->id)->orderByDesc('date')->first();
         $this->assertSame('2026-10-01', $second->date->toDateString());
         $this->assertSame(150_000, $second->amount_cents);
         $this->assertSame('Rent (new lease)', $second->description);
@@ -240,7 +240,7 @@ class RecurringRulesTest extends TestCase
         $user = User::factory()->withPersonalTeam()->create();
         $rule = $this->rule($user, ['start_date' => '2026-08-01', 'next_occurrence_date' => '2026-10-01']);
         // the September entry was generated on the 1st
-        Transaction::factory()->for($rule->account)->create(['recurring_rule_id' => $rule->id, 'date' => '2026-09-01']);
+        Transaction::factory()->create(['account_id' => $rule->account_id, 'recurring_rule_id' => $rule->id, 'date' => '2026-09-01']);
 
         $this->actingAs($user)->put(route('recurring.update', $rule), [
             'description' => $rule->description, 'amount' => '1200.00', 'recurrence_type' => 'weekly', 'recurrence_interval' => 1,
@@ -312,7 +312,7 @@ class RecurringRulesTest extends TestCase
         $report = (new LegacyRecurrenceBackfill)->run();
 
         $this->assertSame(1, $report['rules']);
-        $rule = RecurringRule::firstOrFail();
+        $rule = RecurringRule::withoutGlobalScopes()->firstOrFail();
         $this->assertSame('Legacy rent', $rule->description);
         $this->assertSame(120_000, $rule->amount_cents);
         $this->assertSame('2026-08-01', $rule->start_date->toDateString());
@@ -323,7 +323,7 @@ class RecurringRulesTest extends TestCase
 
         // idempotent
         $this->assertSame(0, (new LegacyRecurrenceBackfill)->run()['rules']);
-        $this->assertSame(1, RecurringRule::count());
+        $this->assertSame(1, RecurringRule::withoutGlobalScopes()->count());
     }
 
     public function test_the_new_schedule_never_reads_the_old_anchor_columns(): void

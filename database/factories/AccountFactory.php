@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Account;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,6 +18,7 @@ class AccountFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
+            'team_id' => null,
             'name' => 'Account '.fake()->unique()->bothify('??-####'),
             'type' => 'checking',
             'currency' => 'ZAR',
@@ -26,6 +28,12 @@ class AccountFactory extends Factory
             // care about the cut-off set it explicitly.
             'opening_balance_date' => null,
         ];
+    }
+
+    /** An account that belongs to a company's ledger (no personal owner). */
+    public function forCompany(Team|int $team): static
+    {
+        return $this->state(['user_id' => null, 'team_id' => $team instanceof Team ? $team->id : $team]);
     }
 
     public function currency(string $currency): static

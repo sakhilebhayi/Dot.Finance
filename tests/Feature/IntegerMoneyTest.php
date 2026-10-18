@@ -136,7 +136,10 @@ class IntegerMoneyTest extends TestCase
         $migration = require database_path('migrations/2026_10_18_200000_add_integer_money_and_ledger_columns.php');
         $laterMigration = require database_path('migrations/2026_10_18_210000_add_soft_deletes_audit_log_recurring_rules_and_import_fingerprints.php');
 
+        $companyMigration = require database_path('migrations/2026_10_18_300000_add_company_context_to_ledger_tables.php');
+
         // Roll the schema back to the pre-ledger shape (newest migration first), then write rows exactly as the old code did.
+        $companyMigration->down();
         $laterMigration->down();
         $migration->down();
 
@@ -159,6 +162,8 @@ class IntegerMoneyTest extends TestCase
 
         $migration->up();
         $laterMigration->up();
+        // (the company migration is not re-applied here: this test runs inside RefreshDatabase's transaction,
+        // and re-running it over rows is covered, outside a transaction, by Company/LegacyDataMigrationTest)
 
         $account = DB::table('accounts')->where('id', $accountId)->first();
         $this->assertSame(150_075, (int) $account->opening_balance_cents);

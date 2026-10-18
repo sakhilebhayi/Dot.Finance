@@ -45,17 +45,25 @@ class JetstreamServiceProvider extends ServiceProvider
     {
         Jetstream::defaultApiTokenPermissions(['read']);
 
+        // How these map to the finance ledger is defined once, in App\Support\Ledger\LedgerAccess.
+        // The company owner has every ability without a role. InfoDot decides each person's role
+        // (see SyncTeamsFromInfoDot): owner and admin become admin, editor stays editor, anything
+        // else (viewer, or a role this app has never heard of) becomes viewer.
         Jetstream::role('admin', 'Administrator', [
             'create',
             'read',
             'update',
             'delete',
-        ])->description('Administrator users can perform any action.');
+        ])->description('Everything in the company ledger: accounts, categories and budgets including deleting them, opening-balance adjustments, entries, imports, and the audit log.');
 
         Jetstream::role('editor', 'Editor', [
             'read',
             'create',
             'update',
-        ])->description('Editor users have the ability to read, create, and update.');
+        ])->description('Records, edits and deletes transactions and recurring items, makes transfers, runs imports, and creates and edits accounts, categories and budgets. Cannot delete accounts, categories or budgets, adjust opening balances, or read the audit log.');
+
+        Jetstream::role('viewer', 'Viewer', [
+            'read',
+        ])->description('Reads everything, including reports and the forecast. Cannot change anything.');
     }
 }

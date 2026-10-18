@@ -15,7 +15,9 @@
     </div>
     @endif
 
-    <div class="r-stack" style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
+    @php $canAdd = auth()->user()->can('create', \App\Models\Category::class); @endphp
+
+    <div class="r-stack" style="display:grid;grid-template-columns:{{ $canAdd ? '1fr 340px' : '1fr' }};gap:1.5rem;align-items:start;">
 
         <div class="dot-card" style="overflow:hidden;">
             @if($categories->count() > 0)
@@ -26,7 +28,7 @@
                             <th style="padding:0.75rem 1.5rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Name</th>
                             <th style="padding:0.75rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Type</th>
                             <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Transactions</th>
-                            <th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>
+                            @if($canAdd)<th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>@endif
                         </tr>
                     </thead>
                     <tbody>
@@ -38,14 +40,20 @@
                             </td>
                             <td style="padding:0.875rem 1rem;font-size:0.78rem;color:var(--text-secondary);text-transform:capitalize;">{{ $category->type }}</td>
                             <td style="padding:0.875rem 1rem;text-align:right;font-size:0.78rem;color:var(--text-muted);">{{ $category->transactions_count }}</td>
+                            @if($canAdd)
                             <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
+                                @can('update', $category)
                                 <a href="{{ route('categories.edit', $category) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
+                                @endcan
+                                @can('delete', $category)
                                 <form method="POST" action="{{ route('categories.destroy', $category) }}" style="display:inline;" onsubmit="return confirm('Delete this category? Its budgets are deleted too; transactions keep it in their history.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" style="font-size:0.75rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
                                 </form>
+                                @endcan
                             </td>
+                            @endif
                         </tr>
                         @endforeach
                     </tbody>
@@ -59,6 +67,7 @@
             @endif
         </div>
 
+        @if($canAdd)
         <div class="dot-card" style="padding:1.4rem 1.5rem;">
             <h3 style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-primary);margin:0 0 1rem;">Add Category</h3>
 
@@ -92,6 +101,7 @@
                 <button type="submit" class="dot-btn dot-btn-primary" style="justify-content:center;margin-top:0.25rem;">Add Category</button>
             </form>
         </div>
+        @endif
 
     </div>
 

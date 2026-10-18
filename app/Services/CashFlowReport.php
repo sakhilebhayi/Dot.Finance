@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 
 /**
@@ -18,14 +19,13 @@ class CashFlowReport
     /**
      * @return array{from: string, to: string, currencies: array<string, list<array{month: string, label: string, income_cents: int, expense_cents: int, net_cents: int}>>}
      */
-    public function monthly(int $userId, int $months = 12): array
+    public function monthly(LedgerContext $context, int $months = 12): array
     {
         $months = max(1, $months);
         $start = CarbonImmutable::now()->startOfMonth()->subMonths($months - 1);
         $end = CarbonImmutable::now()->endOfMonth();
 
-        $rows = Transaction::withoutGlobalScope('user')
-            ->where('user_id', $userId)
+        $rows = Transaction::query()->forContext($context)
             ->whereIn('type', ['income', 'expense'])
             ->whereDate('date', '>=', $start->toDateString())
             ->whereDate('date', '<=', $end->toDateString())

@@ -4,52 +4,41 @@ namespace App\Policies;
 
 use App\Models\Budget;
 use App\Models\User;
+use App\Support\Ledger\LedgerAccess;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
+/**
+ * What a person may do with a budget: decided by LedgerAccess from the ledger the
+ * budget belongs to (their own personal ledger, or a company they belong to) and
+ * their role in it. Another ledger's budget never reaches here: the shared ledger
+ * scope already 404s it.
+ */
 class BudgetPolicy
 {
     use HandlesAuthorization;
 
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can view the model.
-     *
-     * Dot.Finance is single-user, not team-scoped: ownership is always
-     * checked against user_id, never team_id.
-     */
     public function view(User $user, Budget $budget): bool
     {
-        return $user->id === $budget->user_id;
+        return LedgerAccess::forRow($user, $budget)?->canRead() ?? false;
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true;
+        return LedgerAccess::current($user)?->canEditStructure() ?? false;
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Budget $budget): bool
     {
-        return $user->id === $budget->user_id;
+        return LedgerAccess::forRow($user, $budget)?->canEditStructure() ?? false;
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
     public function delete(User $user, Budget $budget): bool
     {
-        return $user->id === $budget->user_id;
+        return LedgerAccess::forRow($user, $budget)?->canDestroyStructure() ?? false;
     }
 }

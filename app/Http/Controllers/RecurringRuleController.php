@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\RecurringRule;
 use App\Rules\MoneyAmount;
 use App\Services\TransactionRecurrenceService;
+use App\Support\Ledger\LedgerRule;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,12 +48,10 @@ class RecurringRuleController extends Controller
     {
         $this->authorize('update', $rule);
 
-        $userId = $request->user()->id;
-
         $validated = $request->validate([
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', new MoneyAmount],
-            'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $userId)->where('type', $rule->type)->whereNull('deleted_at')],
+            'category_id' => ['nullable', 'integer', LedgerRule::exists('categories', $this->ledger())->where('type', $rule->type)->whereNull('deleted_at')],
             'notes' => ['nullable', 'string', 'max:255'],
             'recurrence_type' => ['required', Rule::in(['daily', 'weekly', 'monthly', 'yearly'])],
             'recurrence_interval' => ['required', 'integer', 'min:1', 'max:365'],

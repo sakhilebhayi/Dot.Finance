@@ -7,6 +7,7 @@ use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\ForecastService;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -44,7 +45,7 @@ class ForecastTest extends TestCase
         $this->rule($user, $account, ['amount_cents' => 10_000]);                                            // -100 monthly
         $this->rule($user, $account, ['amount_cents' => 50_000, 'type' => 'income', 'next_occurrence_date' => '2026-10-25', 'start_date' => '2026-09-25']); // +500 monthly
 
-        $forecast = (new ForecastService)->project($user->id);
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
         $zar = $forecast['currencies']['ZAR'];
 
         $this->assertSame(80_000, $zar['start_cents'], 'the starting point is the actual ledger balance');
@@ -64,7 +65,7 @@ class ForecastTest extends TestCase
         $this->rule($user, $account);
         $before = Transaction::withoutGlobalScopes()->count();
 
-        (new ForecastService)->project($user->id);
+        (new ForecastService)->project(LedgerContext::personal($user));
 
         $this->assertSame($before, Transaction::withoutGlobalScopes()->count());
     }
@@ -81,7 +82,7 @@ class ForecastTest extends TestCase
         $this->rule($user, $deletedAccount, ['description' => 'On a deleted account', 'amount_cents' => 16_000]);
         $deletedAccount->delete();
 
-        $forecast = (new ForecastService)->project($user->id);
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
 
         $this->assertSame(3 * 1_000, $forecast['currencies']['ZAR']['expense_cents']);
         $this->assertSame(['Paused item'], array_column($forecast['excluded'], 'description'));
@@ -94,7 +95,7 @@ class ForecastTest extends TestCase
         $account = Account::factory()->for($user)->create();
         $this->rule($user, $account, ['amount_cents' => 1_000, 'next_occurrence_date' => '2026-10-15', 'end_date' => '2026-11-15']);
 
-        $zar = (new ForecastService)->project($user->id)['currencies']['ZAR'];
+        $zar = (new ForecastService)->project(LedgerContext::personal($user))['currencies']['ZAR'];
 
         $this->assertSame(['2026-10-15', '2026-11-15'], array_column($zar['events'], 'date'));
     }
@@ -105,7 +106,7 @@ class ForecastTest extends TestCase
         $account = Account::factory()->for($user)->create();
         $this->rule($user, $account, ['amount_cents' => 5_000, 'start_date' => '2026-09-28', 'next_occurrence_date' => '2026-09-28']);
 
-        $events = (new ForecastService)->project($user->id)['currencies']['ZAR']['events'];
+        $events = (new ForecastService)->project(LedgerContext::personal($user))['currencies']['ZAR']['events'];
 
         $this->assertSame('2026-10-01', $events[0]['date']);
         $this->assertTrue($events[0]['overdue']);
@@ -118,7 +119,7 @@ class ForecastTest extends TestCase
         $account = Account::factory()->for($user)->create();
         $this->rule($user, $account, ['amount_cents' => 100, 'recurrence_type' => 'weekly', 'start_date' => '2026-10-02', 'next_occurrence_date' => '2026-10-02']);
 
-        $forecast = (new ForecastService)->project($user->id);
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
         $events = $forecast['currencies']['ZAR']['events'];
 
         $this->assertSame('2026-10-01', $forecast['from']);
@@ -133,7 +134,7 @@ class ForecastTest extends TestCase
         $account = Account::factory()->for($user)->create();
         $this->rule($user, $account, ['amount_cents' => 100, 'start_date' => '2026-08-31', 'next_occurrence_date' => '2026-10-31']);
 
-        $dates = array_column((new ForecastService)->project($user->id)['currencies']['ZAR']['events'], 'date');
+        $dates = array_column((new ForecastService)->project(LedgerContext::personal($user))['currencies']['ZAR']['events'], 'date');
 
         $this->assertSame(['2026-10-31', '2026-11-30'], $dates);
     }
@@ -146,7 +147,7 @@ class ForecastTest extends TestCase
         $this->rule($user, $zar, ['amount_cents' => 10_000]);
         $this->rule($user, $usd, ['amount_cents' => 1_000]);
 
-        $forecast = (new ForecastService)->project($user->id);
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
 
         $this->assertSame(['USD', 'ZAR'], array_keys($forecast['currencies']));
         $this->assertSame(5_000 - 3_000, $forecast['currencies']['USD']['end_cents']);
@@ -161,7 +162,7 @@ class ForecastTest extends TestCase
         $this->rule($user, $account, ['amount_cents' => 1_000, 'type' => 'income', 'start_date' => '2026-09-20', 'next_occurrence_date' => '2026-10-20']);
 
         // 150.00 -> Oct 10: 50.00 -> Oct 20: 60.00 -> Nov 10: -40.00 -> Nov 20: -30.00 -> Dec 10: -130.00 -> Dec 20: -120.00
-        $zar = (new ForecastService)->project($user->id)['currencies']['ZAR'];
+        $zar = (new ForecastService)->project(LedgerContext::personal($user))['currencies']['ZAR'];
 
         $this->assertSame(-13_000, $zar['lowest_cents']);
         $this->assertSame('2026-12-10', $zar['lowest_date']);
@@ -174,7 +175,7 @@ class ForecastTest extends TestCase
         $other = User::factory()->create();
         $this->rule($other, Account::factory()->for($other)->create(), ['amount_cents' => 99_900]);
 
-        $this->assertSame([], (new ForecastService)->project($user->id)['currencies']);
+        $this->assertSame([], (new ForecastService)->project(LedgerContext::personal($user))['currencies']);
     }
 
     public function test_the_page_is_labelled_as_a_projection_and_kept_apart_from_actuals(): void

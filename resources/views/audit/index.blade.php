@@ -17,7 +17,11 @@
             Audit log
         </h1>
         <p style="font-size:0.8rem;color:var(--text-muted);margin:0;max-width:60rem;">
+            @if($activeLedger?->isCompany())
+            Everyone in {{ $activeLedger->label() }}: every change anyone made to the company's accounts, transactions, categories, budgets and recurring items, with who made it, newest first. Only an owner or admin can read this. Entries can be read here but never edited or removed.
+            @else
             Every change to your accounts, transactions, categories, budgets and recurring items, newest first. Entries can be read here but never edited or removed.
+            @endif
             Amounts, dates and categories show before and after; free text such as descriptions and notes is recorded as "changed" without the words.
         </p>
     </div>
@@ -32,8 +36,20 @@
                 @endforeach
             </select>
         </div>
+        @if($actors->isNotEmpty() || $actor)
+        <div>
+            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Who</label>
+            <select name="actor" class="dot-input" style="min-width:12rem;">
+                <option value="">Everyone</option>
+                @foreach($actors as $person)
+                <option value="{{ $person->id }}" @selected($actor === $person->id)>{{ $person->name }}</option>
+                @endforeach
+                <option value="system" @selected($actor === 'system')>Automatic (scheduled)</option>
+            </select>
+        </div>
+        @endif
         <button type="submit" class="dot-btn dot-btn-primary">Filter</button>
-        @if($subject)<a href="{{ route('audit.index') }}" class="dot-btn dot-btn-ghost">Clear</a>@endif
+        @if($subject || $actor)<a href="{{ route('audit.index') }}" class="dot-btn dot-btn-ghost">Clear</a>@endif
     </form>
 
     <div class="dot-card" style="overflow:hidden;">
@@ -54,7 +70,13 @@
                     <tr style="border-bottom:1px solid var(--divider);vertical-align:top;">
                         <td style="padding:0.8rem 1rem;font-size:0.76rem;color:var(--text-muted);white-space:nowrap;" class="metric-val">
                             {{ $entry->created_at->format('Y-m-d H:i') }}
-                            <div style="font-family:inherit;font-size:0.65rem;">{{ $entry->actor === 'system' ? 'automatic' : 'you' }}</div>
+                            <div style="font-family:inherit;font-size:0.65rem;">@if($entry->actor === 'system')
+                                automatic
+                            @elseif($activeLedger?->isCompany())
+                                {{ $entry->actorUser?->name ?? 'a former member' }}
+                            @else
+                                you
+                            @endif</div>
                         </td>
                         <td style="padding:0.8rem 1rem;font-size:0.76rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:{{ in_array($entry->action, ['deleted', 'purged']) ? '#f87171' : ($entry->action === 'created' || $entry->action === 'imported' ? '#34d399' : 'var(--text-secondary)') }};white-space:nowrap;">
                             {{ str_replace('_', ' ', $entry->action) }}

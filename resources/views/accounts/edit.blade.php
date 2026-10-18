@@ -70,6 +70,7 @@
         </div>
     </form>
 
+    @can('adjustOpeningBalance', $account)
     <form method="POST" action="{{ route('accounts.opening-balance', $account) }}" class="dot-card" style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
         @csrf
         <div>
@@ -98,6 +99,7 @@
             <button type="submit" class="dot-btn dot-btn-ghost">Adjust opening balance</button>
         </div>
     </form>
+    @endcan
 
 </div>
 

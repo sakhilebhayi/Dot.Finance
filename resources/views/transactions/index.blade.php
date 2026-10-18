@@ -11,6 +11,7 @@
                 {{ $transactions->total() }} transaction{{ $transactions->total() !== 1 ? 's' : '' }}
             </p>
         </div>
+        @can('create', \App\Models\Transaction::class)
         <div style="display:flex;gap:0.6rem;">
             <a href="{{ route('transactions.import.create') }}" class="dot-btn dot-btn-ghost">
                 <span class="material-symbols-rounded" style="font-size:16px;">upload_file</span>
@@ -25,6 +26,7 @@
                 Add Transaction
             </a>
         </div>
+        @endcan
     </div>
 
     @if (session('status'))
@@ -75,6 +77,7 @@
 
     {{-- ─── Results ─────────────────────────────────────────────────────── --}}
     <div class="dot-card" style="overflow:hidden;">
+        @php $canRecord = auth()->user()->can('create', \App\Models\Transaction::class); @endphp
         @if($transactions->count() > 0)
         <div class="table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
@@ -85,7 +88,7 @@
                         <th style="padding:0.75rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Account</th>
                         <th style="padding:0.75rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Category</th>
                         <th style="padding:0.75rem 1rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Amount</th>
-                        <th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>
+                        @if($canRecord)<th style="padding:0.75rem 1.5rem;text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Actions</th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -123,16 +126,22 @@
                         <td style="padding:0.875rem 1rem;text-align:right;font-size:0.85rem;">
                             <x-money :cents="$tx->signedCents() !== 0 ? $tx->signedCents() : $tx->amount_cents" :currency="$tx->currency" :signed="$tx->signedCents() !== 0" style="color:{{ $tx->type === 'income' ? '#34d399' : ($tx->type === 'expense' ? '#f87171' : 'var(--text-secondary)') }};" />
                         </td>
+                        @if($canRecord)
                         <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
                             @unless($tx->isTransfer())
+                            @can('update', $tx)
                             <a href="{{ route('transactions.edit', $tx) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
+                            @endcan
                             @endunless
+                            @can('delete', $tx)
                             <form method="POST" action="{{ route('transactions.destroy', $tx) }}" style="display:inline;" onsubmit="return confirm('{{ $tx->isLinkedTransferLeg() ? 'Delete this transfer? Both legs will be deleted.' : 'Delete this transaction?' }}');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" style="font-size:0.75rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
                             </form>
+                            @endcan
                         </td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>

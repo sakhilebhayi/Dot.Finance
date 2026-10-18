@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Builders\AppendOnlyBuilder;
-use App\Models\Concerns\HasUserScope;
+use App\Models\Concerns\HasLedgerContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
@@ -18,7 +18,7 @@ use LogicException;
  */
 class FinanceAuditLog extends Model
 {
-    use HasUserScope;
+    use HasLedgerContext;
 
     public const UPDATED_AT = null;
 
@@ -42,5 +42,11 @@ class FinanceAuditLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** The person who made the change (null for a scheduled or system change). */
+    public function actorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'actor_user_id');
     }
 }

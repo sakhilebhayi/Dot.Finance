@@ -60,6 +60,16 @@
         .brand-subtitle { font-size:10px; font-weight:500; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.09em; }
 
         .sidebar-divider { height:1px; background:var(--divider); margin:4px 14px 8px; }
+        .ledger-switch { padding:0 10px 4px; flex-shrink:0; }
+        .ledger-switch .nav-section-label { padding-top:6px; }
+        .ledger-opt { display:flex; align-items:center; gap:9px; width:100%; padding:6.5px 10px; border-radius:8px; border:none; background:transparent; font-family:'Inter',sans-serif; font-size:12.5px; font-weight:500; color:var(--text-muted); text-align:left; cursor:pointer; margin-bottom:1px; transition:background .13s,color .13s; }
+        .ledger-opt:hover { background:var(--btn-ghost-bg); color:var(--text-secondary); }
+        .ledger-opt[aria-current="true"] { background:rgba(74,222,128,0.1); color:#22c55e; font-weight:600; cursor:default; }
+        .ledger-opt .material-symbols-rounded { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+        .ledger-opt-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+        .ledger-role { padding:2px 10px 6px 39px; font-size:10.5px; color:var(--text-muted); }
+        .ledger-current { display:flex; align-items:center; gap:9px; padding:6.5px 10px; font-size:12.5px; font-weight:600; color:var(--text-secondary); }
+        .ledger-current .material-symbols-rounded { font-size:16px; width:20px; text-align:center; color:var(--text-muted); }
         .sidebar-nav { padding:0 10px; flex:1; overflow-y:auto; scrollbar-width:none; }
         .sidebar-nav::-webkit-scrollbar { display:none; }
         .nav-section-label { font-size:10px; font-weight:600; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.1em; padding:14px 8px 5px; }
@@ -139,6 +149,11 @@
     @livewireStyles
     <script defer src="https://unpkg.com/alpinejs@3.10.2/dist/cdn.min.js"></script>
 </head>
+@php
+    // $activeLedger (the person's own ledger or one of their companies) comes from the view composer in AppServiceProvider.
+    $ledgerLabel = $activeLedger?->isCompany() ? $activeLedger->label() : 'Personal';
+    $ledgerAccess = Auth::check() ? \App\Support\Ledger\LedgerAccess::current(Auth::user()) : null;
+@endphp
 <body>
     <x-banner />
 
@@ -151,7 +166,7 @@
                 <div class="brand-name">Dot.Finance</div>
                 <div class="brand-status">
                     <div class="live-dot"></div>
-                    <span class="brand-subtitle">Personal Ledger</span>
+                    <span class="brand-subtitle">{{ $activeLedger?->isCompany() ? 'Company ledger' : 'Personal ledger' }}</span>
                 </div>
             </div>
             <button type="button" class="shell-close" data-shell-close aria-label="Close menu">
@@ -160,6 +175,8 @@
         </div>
 
         <div class="sidebar-divider"></div>
+
+        <x-ledger-switcher />
 
         <nav class="sidebar-nav">
             <a href="{{ route('dashboard') }}" class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -170,10 +187,12 @@
                 <span class="material-symbols-rounded nav-icon">receipt_long</span>
                 Transactions
             </a>
+            @can('record-entries')
             <a href="{{ route('transfers.create') }}" class="nav-item {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">swap_horiz</span>
                 Transfers
             </a>
+            @endcan
             <a href="{{ route('accounts.index') }}" class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">account_balance_wallet</span>
                 Accounts
@@ -204,10 +223,12 @@
                 Weekly summaries
             </a>
             <div class="nav-section-label">Control</div>
+            @can('view-audit')
             <a href="{{ route('audit.index') }}" class="nav-item {{ request()->routeIs('audit.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">history</span>
                 Audit log
             </a>
+            @endcan
             <a href="{{ route('reconciliation.index') }}" class="nav-item {{ request()->routeIs('reconciliation.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">fact_check</span>
                 Reconciliation
@@ -225,7 +246,7 @@
                 <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
                 <div style="min-width:0;flex:1;">
                     <div class="user-name">{{ Auth::user()->name }}</div>
-                    <div class="user-team">{{ Auth::user()->currentTeam->name ?? 'Personal' }}</div>
+                    <div class="user-team">{{ $ledgerLabel }}</div>
                 </div>
             </div>
         </div>
@@ -244,7 +265,7 @@
             @endisset
         </div>
         @auth
-        <span class="topbar-team">{{ Auth::user()->currentTeam->name ?? 'Personal' }}</span>
+        <span class="topbar-team" title="The ledger you are working in">{{ $ledgerLabel }}</span>
         @endauth
         <button type="button" class="topbar-btn" title="Toggle dark / light mode" aria-label="Toggle dark or light mode"
             onclick="(function(){
@@ -263,6 +284,11 @@
     @livewire('navigation-menu')
 
     <div class="content-wrap">
+        @if ($activeLedger?->isCompany() && $ledgerAccess && ! $ledgerAccess->canRecordEntries())
+        <div role="note" style="margin:1.25rem 2.5rem 0;padding:0.7rem 1rem;border-radius:0.6rem;background:var(--btn-ghost-bg);border:1px solid var(--card-border);color:var(--text-secondary);font-size:0.8rem;">
+            You have read-only access to {{ $activeLedger->label() }}: everything here, reports and the forecast included, can be read but not changed. A company owner or admin can change your role in InfoDot.
+        </div>
+        @endif
         <main>{{ $slot }}</main>
     </div>
 

@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Services\TransactionImporter;
 use App\Support\ImportDates;
+use App\Support\Ledger\LedgerRule;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ class TransactionImportController extends Controller
      */
     public function create(): View
     {
+        $this->authorize('record-entries');
+
         $accounts = Account::orderBy('name')->get();
 
         return view('transactions.import.create', compact('accounts'));
@@ -34,23 +37,29 @@ class TransactionImportController extends Controller
      */
     public function upload(Request $request): RedirectResponse
     {
+        $this->authorize('record-entries');
+
         $user = $request->user();
+        $context = $this->ledger();
 
         $validated = $request->validate([
-            'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $user->id)->whereNull('deleted_at')],
+            'account_id' => ['required', 'integer', LedgerRule::exists('accounts', $context)->whereNull('deleted_at')],
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $token = $this->importer->stage($user, Account::findOrFail($validated['account_id']), $validated['file']);
+        $token = $this->importer->stage($user, $context, Account::findOrFail($validated['account_id']), $validated['file']);
 
         return redirect()->route('transactions.import.preview', ['token' => $token]);
     }
 
     public function preview(Request $request, string $token): View|RedirectResponse
     {
-        $user = $request->user();
+        $this->authorize('record-entries');
 
-        if ($this->importer->load($user, $token) === null) {
+        $user = $request->user();
+        $context = $this->ledger();
+
+        if ($this->importer->load($user, $context, $token) === null) {
             return redirect()->route('transactions.import.create')->with('status', 'That import is no longer available. Upload the file again.');
         }
 
@@ -62,6 +71,7 @@ class TransactionImportController extends Controller
 
         $preview = $this->importer->analyse(
             $user,
+            $context,
             $token,
             $query['date_format'] ?? null,
             $query['amount_locale'] ?? null,
@@ -83,17 +93,20 @@ class TransactionImportController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $this->authorize('record-entries');
+
         $user = $request->user();
+        $context = $this->ledger();
 
         $validated = $request->validate([
-            'token' => ['required', 'string', function (string $attribute, mixed $value, \Closure $fail) use ($user) {
-                if ($this->importer->load($user, (string) $value) === null) {
+            'token' => ['required', 'string', function (string $attribute, mixed $value, \Closure $fail) use ($user, $context) {
+                if ($this->importer->load($user, $context, (string) $value) === null) {
                     $fail('That import is no longer available. Upload the file again.');
                 }
             }],
             'date_format' => ['required', Rule::in(ImportDates::FORMATS)],
             'amount_locale' => ['required', Rule::in(['en', 'eu'])],
-            'default_category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $user->id)->whereNull('deleted_at')],
+            'default_category_id' => ['nullable', 'integer', LedgerRule::exists('categories', $context)->whereNull('deleted_at')],
             'skip' => ['nullable', 'array'],
             'skip.*' => ['integer'],
         ]);
@@ -101,6 +114,7 @@ class TransactionImportController extends Controller
         try {
             $result = $this->importer->commit(
                 $user,
+                $context,
                 $validated['token'],
                 $validated['date_format'],
                 $validated['amount_locale'],

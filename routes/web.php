@@ -9,11 +9,13 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\InsightController;
+use App\Http\Controllers\LedgerContextController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RecurringRuleController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\TransferController;
+use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -37,15 +39,21 @@ Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    ResolveLedgerContext::class,
 ])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // Which ledger is active: the person's own, or one of their companies. Validated against
+    // what they belong to (see LedgerContextManager); the active one is kept in the session.
+    Route::post('/ledger/context', [LedgerContextController::class, 'update'])->name('ledger.context.switch');
 
     // Finance domain: every route below is bound to a model by id (route
     // model binding) and, for the show/edit/update/destroy actions, gated
     // through the matching Policy so one user can never load, edit, or
-    // delete another user's accounts/transactions/categories/budgets by
-    // guessing/incrementing the id (IDOR). Index/store are scoped to
-    // auth()->id() directly since there's no team-scoping in this app.
+    // delete another ledger's accounts/transactions/categories/budgets by
+    // guessing/incrementing the id (IDOR). Every model carries the shared
+    // ledger scope (personal or company, see LedgerContextScope), so index,
+    // store and route-model binding are all confined to the active ledger.
     Route::get('/insights', [InsightController::class, 'index'])->name('insights.index');
     Route::get('/reports/cash-flow', CashFlowController::class)->name('reports.cash-flow');
     Route::get('/forecast', ForecastController::class)->name('forecast.index');

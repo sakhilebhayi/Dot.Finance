@@ -12,7 +12,9 @@
                 Recurring
             </h1>
             <p style="font-size:0.8rem;color:var(--text-muted);margin:0;max-width:60rem;">
-                Income and expenses that repeat. Each period the scheduler adds a normal entry to your ledger. Editing one only changes what is added from then on; entries already in the ledger stay as they are. Add one by ticking "Repeat" when you <a href="{{ route('transactions.create') }}" style="color:#059669;font-weight:600;">add a transaction</a>.
+                Income and expenses that repeat. Each period the scheduler adds a normal entry to your ledger. Editing one only changes what is added from then on; entries already in the ledger stay as they are. @can('create', \App\Models\Transaction::class)
+                Add one by ticking "Repeat" when you <a href="{{ route('transactions.create') }}" style="color:#059669;font-weight:600;">add a transaction</a>.
+                @endcan
             </p>
         </div>
     </div>
@@ -57,7 +59,9 @@
                         <td style="padding:0.85rem 1rem;font-size:0.78rem;color:var(--text-secondary);" class="metric-val">{{ $rule->next_occurrence_date?->format('Y-m-d') ?? '—' }}</td>
                         <td style="padding:0.85rem 1rem;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:{{ $statusColor[$status] }};">{{ ucfirst($status) }}</td>
                         <td style="padding:0.85rem 1rem;text-align:right;white-space:nowrap;">
-                            @if($status !== 'ended')
+                            @cannot('update', $rule)
+                            <span style="font-size:0.72rem;color:var(--text-muted);">read-only</span>
+                            @elseif($status !== 'ended')
                             <a href="{{ route('recurring.edit', $rule) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
                             @if($status === 'paused')
                             <form method="POST" action="{{ route('recurring.resume', $rule) }}" style="display:inline;">@csrf

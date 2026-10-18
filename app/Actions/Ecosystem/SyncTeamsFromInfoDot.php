@@ -6,7 +6,6 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Laravel\Jetstream\Jetstream;
 
 /**
  * Applies the companies InfoDot says a person belongs to, on every sign-in.
@@ -16,14 +15,15 @@ use Laravel\Jetstream\Jetstream;
  *   an ordinary member is attached once it exists, so a member can never become
  *   the local owner of someone else's company.
  * - Membership and role follow InfoDot (owner and admin become admin, editor stays
- *   editor, anything else the least powerful role this app has).
+ *   editor, viewer and anything unknown or empty become viewer: read-only).
  * - Companies InfoDot no longer lists for the person are detached, so removing
  *   someone in InfoDot removes their access here at their next sign-in.
  * - The company InfoDot says is active becomes the person's current team.
  * - Personal teams are never linked or removed.
  *
- * Team membership here is for ecosystem consistency only: this app scopes its data per
- * user, so nothing about a person's data access depends on which team they are in.
+ * A company created here is a company ledger in Dot.Finance: the person's role in it decides
+ * what they may do with the books (see LedgerAccess), and removing them in InfoDot removes
+ * their access at their next sign-in.
  */
 class SyncTeamsFromInfoDot
 {
@@ -121,8 +121,8 @@ class SyncTeamsFromInfoDot
 
     private function localRole(string $infodotRole): string
     {
-        $wanted = in_array($infodotRole, ['owner', 'admin'], true) ? 'admin' : ($infodotRole === 'editor' ? 'editor' : 'viewer');
-
-        return Jetstream::findRole($wanted) ? $wanted : 'editor';
+        // Anything that is not clearly owner, admin or editor is a viewer: a role this app
+        // has never heard of must not arrive with write access.
+        return in_array($infodotRole, ['owner', 'admin'], true) ? 'admin' : ($infodotRole === 'editor' ? 'editor' : 'viewer');
     }
 }

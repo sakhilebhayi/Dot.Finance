@@ -72,6 +72,10 @@ class InsightListTest extends TestCase
     {
         $user = User::factory()->create();
         $migration = require database_path('migrations/2026_10_18_220000_add_iso_week_and_indexes_for_reports.php');
+        $companyMigration = require database_path('migrations/2026_10_18_300000_add_company_context_to_ledger_tables.php');
+
+        // Migrations stack: roll the newest back first, and forward again in the opposite order.
+        $companyMigration->down();
         $migration->down();
 
         $now = now();
@@ -83,6 +87,7 @@ class InsightListTest extends TestCase
         $third = $insert('Next week', '2026-10-20 08:00:00');    // ISO week 43
 
         $migration->up();
+        // (the company migration is not re-applied here: see Company/LegacyDataMigrationTest)
 
         $weeks = DB::table('ai_insights')->pluck('iso_week', 'id');
         $this->assertNull($weeks[$first], 'the older duplicate keeps its row but gives up the unique week');

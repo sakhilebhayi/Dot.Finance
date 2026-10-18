@@ -18,10 +18,10 @@ class AccountController extends Controller
     private const TYPES = ['checking', 'savings', 'credit', 'investment', 'cash'];
 
     /**
-     * List the authenticated user's accounts with their ledger-derived balance.
+     * List the active ledger's accounts with their ledger-derived balance.
      *
-     * No explicit user_id filter needed: Account's HasUserScope trait
-     * applies it automatically to every query against this model.
+     * No explicit owner filter needed: Account's shared ledger scope confines every
+     * query to the active context (personal or company).
      */
     public function index(Request $request)
     {
@@ -34,12 +34,13 @@ class AccountController extends Controller
     }
 
     /**
-     * Persist a new account for the authenticated user. What the user types is
-     * an OPENING balance with an effective date; the running balance is always
-     * derived from the ledger afterwards.
+     * Persist a new account in the active ledger. What is typed is an OPENING balance
+     * with an effective date; the running balance is always derived from the ledger afterwards.
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Account::class);
+
         $request->merge(['currency' => strtoupper((string) $request->input('currency'))]);
 
         $validated = $request->validate([
@@ -51,8 +52,7 @@ class AccountController extends Controller
             'institution' => ['nullable', 'string', 'max:255'],
         ]);
 
-        Account::create([
-            'user_id' => $request->user()->id,
+        Account::create($this->ledger()->ownerAttributes() + [
             'name' => $validated['name'],
             'type' => $validated['type'],
             'currency' => $validated['currency'],
@@ -117,7 +117,7 @@ class AccountController extends Controller
      */
     public function openingBalance(Request $request, Account $account): RedirectResponse
     {
-        $this->authorize('update', $account);
+        $this->authorize('adjustOpeningBalance', $account);
 
         $validated = $request->validate([
             'opening_balance' => ['required', new MoneyAmount(allowZero: true, allowNegative: true)],
