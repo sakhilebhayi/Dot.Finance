@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Laravel\Jetstream\Http\Livewire\DeleteTeamForm;
+use Laravel\Jetstream\Http\Livewire\DeleteUserForm;
+use Livewire\Livewire;
 use Tests\Concerns\BuildsCompanyLedgers;
 use Tests\TestCase;
 
@@ -235,6 +238,36 @@ class CompanyOperationsTest extends TestCase
 
         $this->assertNotNull(Team::find($company->id));
         $this->assertSame(1, Account::withoutGlobalScopes()->where('team_id', $company->id)->count());
+    }
+
+    public function test_the_delete_team_screen_shows_why_a_company_with_a_ledger_stays(): void
+    {
+        $owner = $this->user();
+        $company = $this->company($owner, 'Acme Mining');
+        $this->companyAccount($company);
+        $this->actingAs($owner);
+
+        Livewire::test(DeleteTeamForm::class, ['team' => $company->fresh()])
+            ->call('deleteTeam')
+            ->assertHasErrors(['team'])
+            ->assertSee('Acme Mining has a company ledger');
+
+        $this->assertNotNull(Team::find($company->id));
+    }
+
+    public function test_the_delete_account_screen_shows_why_an_owner_of_a_company_ledger_stays(): void
+    {
+        $owner = $this->user();
+        $company = $this->company($owner, 'Acme Mining');
+        $this->companyAccount($company);
+        $this->actingAs($owner);
+
+        Livewire::test(DeleteUserForm::class)
+            ->set('password', 'password')
+            ->call('deleteUser')
+            ->assertHasErrors(['password']);
+
+        $this->assertNotNull($owner->fresh());
     }
 
     public function test_a_company_with_no_ledger_can_still_be_deleted(): void
