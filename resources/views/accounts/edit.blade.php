@@ -1,6 +1,6 @@
 <x-app-layout>
 
-<div style="padding:2rem 2.5rem 3rem;max-width:760px;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;max-width:760px;">
 
     <div style="margin-bottom:1.5rem;">
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
@@ -37,7 +37,7 @@
             <input type="text" name="name" value="{{ old('name', $account->name) }}" required maxlength="255" class="dot-input" />
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
                 <select name="type" required class="dot-input">
@@ -80,7 +80,7 @@
             </p>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Opening balance ({{ $account->currency }})</label>
                 <input type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', \App\Support\Money::toDecimalString($account->opening_balance_cents)) }}" required class="dot-input" />

@@ -1,6 +1,6 @@
 <x-app-layout>
 
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     <div style="margin-bottom:1.5rem;">
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
@@ -15,7 +15,7 @@
     </div>
     @endif
 
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
+    <div class="r-stack" style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;align-items:start;">
 
         <div class="dot-card" style="overflow:hidden;">
             @if($budgets->count() > 0)
@@ -103,7 +103,7 @@
                     </select>
                     <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">A budget only counts spending in its own currency.</p>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+                <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                     <div>
                         <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Month</label>
                         <select name="month" required class="dot-input">

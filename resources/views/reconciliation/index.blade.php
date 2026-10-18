@@ -1,6 +1,6 @@
 <x-app-layout>
 
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     <div style="margin-bottom:1.5rem;">
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
@@ -24,7 +24,7 @@
 
     <div class="dot-card" style="overflow:hidden;margin-bottom:1.5rem;">
         @if(count($accounts) > 0)
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--divider);">

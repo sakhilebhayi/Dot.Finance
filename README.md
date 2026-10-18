@@ -65,6 +65,14 @@ No bank feeds, no AI categorisation, no anomaly detection, no invoice reconcilia
 - **FinanceAuditLog**: append-only record of changes
 - **Insight**: a weekly rule-based summary
 
+## Responsive shell
+
+The app shell in `resources/views/layouts/app.blade.php` works on phones. At 860px and wider the 260px sidebar and top bar are unchanged. Below 860px the sidebar becomes an off-canvas drawer opened by the labelled **Menu** button in the top bar (`aria-controls="app-sidebar"`, `aria-expanded` kept in sync). Focus moves into the drawer, Tab stays inside it, Escape or a tap on the backdrop closes it and returns focus to the button, and the page behind does not scroll while it is open. The drawer transition is switched off under `prefers-reduced-motion`.
+
+Page markup opts in through a few classes defined in the layout: `page-pad` (page padding), `r-stack` (a grid that becomes one column on phones), `table-scroll` (wrapper that lets a wide table scroll sideways instead of widening the page) and `page-head` (a page header that wraps). Use them on new pages. The drawer script is plain JavaScript rather than Alpine, because the layout loads two Alpine instances (the CDN build and Livewire's bundle).
+
+`tests/Feature/ResponsiveShellTest.php` asserts the hooks above so a regression is caught; it does not test pixels.
+
 ## Tech Stack
 
 | Layer | Technology |

@@ -1,6 +1,6 @@
 <x-app-layout>
 
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
         <div>
@@ -34,7 +34,7 @@
     @endif
 
     {{-- ─── Search / Filter Bar ────────────────────────────────────────── --}}
-    <form method="GET" action="{{ route('transactions.index') }}" class="dot-card" style="padding:1rem 1.25rem;margin-bottom:1.5rem;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;">
+    <form method="GET" action="{{ route('transactions.index') }}" class="dot-card r-stack" style="padding:1rem 1.25rem;margin-bottom:1.5rem;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;">
         <div>
             <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Search</label>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Description contains..." class="dot-input" />
@@ -76,7 +76,7 @@
     {{-- ─── Results ─────────────────────────────────────────────────────── --}}
     <div class="dot-card" style="overflow:hidden;">
         @if($transactions->count() > 0)
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--divider);">
