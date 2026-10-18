@@ -1,6 +1,6 @@
 <x-app-layout>
 
-<div style="padding:2rem 2.5rem 3rem;max-width:640px;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;max-width:640px;">
 
     <div style="margin-bottom:1.5rem;">
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
@@ -27,7 +27,7 @@
             <input type="text" name="description" value="{{ old('description') }}" required maxlength="255" class="dot-input" placeholder="e.g. Groceries at Woolworths" />
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount</label>
                 <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Account</label>
                 <select name="account_id" required class="dot-input">
@@ -78,7 +78,7 @@
             <input type="text" name="notes" value="{{ old('notes') }}" maxlength="255" class="dot-input" />
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding-top:0.5rem;border-top:1px solid var(--input-border);">
+        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding-top:0.5rem;border-top:1px solid var(--input-border);">
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Repeat (optional)</label>
                 <select name="recurrence_type" class="dot-input">

@@ -8,7 +8,7 @@
     $canImport = $p['ready'] && $counts['importable'] > 0;
 @endphp
 
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     <div style="margin-bottom:1.5rem;">
         <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
@@ -40,7 +40,7 @@
     @endif
 
     {{-- ─── How to read this file ─────────────────────────────────────── --}}
-    <form method="GET" action="{{ route('transactions.import.preview', ['token' => $p['token']]) }}" class="dot-card" style="padding:1.1rem 1.25rem;margin-bottom:1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.9rem;align-items:end;">
+    <form method="GET" action="{{ route('transactions.import.preview', ['token' => $p['token']]) }}" class="dot-card r-stack" style="padding:1.1rem 1.25rem;margin-bottom:1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.9rem;align-items:end;">
         <div>
             <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Dates are written as</label>
             <select name="date_format" class="dot-input">
@@ -101,7 +101,7 @@
         <input type="hidden" name="amount_locale" value="{{ $p['amount_locale'] }}">
         <input type="hidden" name="default_category_id" value="{{ $p['default_category_id'] }}">
 
-        <div class="dot-card" style="overflow-x:auto;">
+        <div class="dot-card table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--divider);">

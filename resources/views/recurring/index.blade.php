@@ -4,7 +4,7 @@
     $statusColor = ['active' => '#34d399', 'paused' => '#fbbf24', 'ended' => 'var(--text-muted)'];
 @endphp
 
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
         <div>
@@ -27,7 +27,7 @@
 
     <div class="dot-card" style="overflow:hidden;">
         @if($rules->count() > 0)
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--divider);">

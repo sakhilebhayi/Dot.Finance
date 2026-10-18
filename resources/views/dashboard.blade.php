@@ -1,10 +1,10 @@
 <x-app-layout>
 
 {{-- ─── Page Content ─────────────────────────────────────────────────────── --}}
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     {{-- ─── Page Header ──────────────────────────────────────────────────── --}}
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
+    <div class="page-head" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;">
         <div>
             <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
                 Financial Dashboard
@@ -28,7 +28,7 @@
             <span style="font-size:0.7rem;color:var(--text-muted);">Balances are derived from {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger. {{ now()->format('F Y') }} income and spending exclude transfers.</span>
         </div>
         @if(count($position) > 0)
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--divider);">
@@ -210,7 +210,7 @@
     @endif
 
     {{-- ─── Main Two-Column Grid ───────────────────────────────────────────── --}}
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;">
+    <div class="r-stack" style="display:grid;grid-template-columns:1fr 340px;gap:1.5rem;">
 
         {{-- ─── Recent Transactions ─────────────────────────────────────── --}}
         <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;overflow:hidden;">
@@ -220,7 +220,7 @@
             </div>
 
             @if($recentTransactions->count() > 0)
-            <div style="overflow-x:auto;">
+            <div class="table-scroll" style="overflow-x:auto;">
                 <table style="width:100%;border-collapse:collapse;">
                     <thead>
                         <tr style="border-bottom:1px solid var(--divider);">

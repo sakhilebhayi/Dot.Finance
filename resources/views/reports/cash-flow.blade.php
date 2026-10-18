@@ -3,7 +3,7 @@
     $th = 'padding:0.7rem 1rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);';
 @endphp
 
-<div style="padding:2rem 2.5rem 3rem;">
+<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
 
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
         <div>
@@ -36,7 +36,7 @@
         <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--divider);">
             <h2 style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text-primary);margin:0;">{{ $currency }}</h2>
         </div>
-        <div style="overflow-x:auto;">
+        <div class="table-scroll" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--divider);">
