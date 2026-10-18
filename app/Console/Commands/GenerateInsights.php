@@ -44,6 +44,8 @@ class GenerateInsights extends Command
 
         $sentences = [];
         $warning = false;
+        // A company's summary talks about the company; a person's talks to the person, worded exactly as it always was.
+        $company = $context->isCompany() ? $context->label() : null;
 
         foreach ($calculator->calculateAll($context) as $result) {
             if (! $result['available']) {
@@ -51,13 +53,13 @@ class GenerateInsights extends Command
             }
 
             if ($result['is_growing'] || $result['months'] >= self::CRITICAL_MONTHS_THRESHOLD) {
-                $sentences[] = $this->healthyInsightText($result);
+                $sentences[] = $this->healthyInsightText($result, $company);
 
                 continue;
             }
 
             $warning = true;
-            $sentences[] = $this->warningInsightText($result);
+            $sentences[] = $this->warningInsightText($result, $company);
         }
 
         if ($sentences === []) {
@@ -78,16 +80,36 @@ class GenerateInsights extends Command
     /**
      * @param  array{currency: string, liquid_reserves_cents: int, avg_monthly_burn_cents: int, months: int|null, is_growing: bool}  $result
      */
-    private function healthyInsightText(array $result): string
+    private function healthyInsightText(array $result, ?string $company = null): string
     {
         $currency = $result['currency'];
 
         if ($result['is_growing']) {
+            if ($company !== null) {
+                return sprintf(
+                    "%s's liquid %s reserves are growing rather than shrinking: its net position added to its reserves by an average of %s per month over its recent transaction history, on top of %s currently held.",
+                    $company,
+                    $currency,
+                    Money::format(abs($result['avg_monthly_burn_cents']), $currency),
+                    Money::format($result['liquid_reserves_cents'], $currency)
+                );
+            }
+
             return sprintf(
                 'Your liquid %s reserves are growing rather than shrinking: your net position added to your reserves by an average of %s per month over your recent transaction history, on top of %s currently held.',
                 $currency,
                 Money::format(abs($result['avg_monthly_burn_cents']), $currency),
                 Money::format($result['liquid_reserves_cents'], $currency)
+            );
+        }
+
+        if ($company !== null) {
+            return sprintf(
+                "%s's liquid %s reserves would last about %d month%s at its current spending pace -- a comfortable runway.",
+                $company,
+                $currency,
+                $result['months'],
+                $result['months'] === 1 ? '' : 's'
             );
         }
 
@@ -102,22 +124,32 @@ class GenerateInsights extends Command
     /**
      * @param  array{currency: string, liquid_reserves_cents: int, avg_monthly_burn_cents: int, months: int|null, what_if: array{category: string, months_without_category: int}|null}  $result
      */
-    private function warningInsightText(array $result): string
+    private function warningInsightText(array $result, ?string $company = null): string
     {
         $currency = $result['currency'];
 
-        $text = sprintf(
-            'At your current %s spending pace of %s/month, your liquid reserves of %s would run out in about %d month%s.',
-            $currency,
-            Money::format($result['avg_monthly_burn_cents'], $currency),
-            Money::format($result['liquid_reserves_cents'], $currency),
-            $result['months'],
-            $result['months'] === 1 ? '' : 's'
-        );
+        $text = $company !== null
+            ? sprintf(
+                "At %s's current %s spending pace of %s/month, its liquid reserves of %s would run out in about %d month%s.",
+                $company,
+                $currency,
+                Money::format($result['avg_monthly_burn_cents'], $currency),
+                Money::format($result['liquid_reserves_cents'], $currency),
+                $result['months'],
+                $result['months'] === 1 ? '' : 's'
+            )
+            : sprintf(
+                'At your current %s spending pace of %s/month, your liquid reserves of %s would run out in about %d month%s.',
+                $currency,
+                Money::format($result['avg_monthly_burn_cents'], $currency),
+                Money::format($result['liquid_reserves_cents'], $currency),
+                $result['months'],
+                $result['months'] === 1 ? '' : 's'
+            );
 
         if ($result['what_if'] !== null) {
             $text .= sprintf(
-                ' Cutting your %s spending would extend that to about %d month%s.',
+                $company !== null ? ' Cutting its %s spending would extend that to about %d month%s.' : ' Cutting your %s spending would extend that to about %d month%s.',
                 $result['what_if']['category'],
                 $result['what_if']['months_without_category'],
                 $result['what_if']['months_without_category'] === 1 ? '' : 's'

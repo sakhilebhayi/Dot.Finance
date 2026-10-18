@@ -78,7 +78,7 @@
         <div style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:1rem;padding:1.6rem 1.75rem;margin-bottom:2rem;">
             <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem;">
                 <span class="material-symbols-rounded" style="font-size:20px;color:#34d399;">shield</span>
-                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">Your {{ $code }} cushion</span>
+                <span style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text-primary);">{{ $activeLedger?->isCompany() ? $activeLedger->label()."'s" : 'Your' }} {{ $code }} cushion</span>
             </div>
 
             @if($cushion['is_growing'])
@@ -87,7 +87,7 @@
                 </div>
             @else
                 <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#6ee7b7;margin-bottom:0.4rem;">
-                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at your current pace.
+                    Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $activeLedger?->isCompany() ? 'its' : 'your' }} current pace.
                 </div>
             @endif
 
@@ -97,7 +97,7 @@
 
             @if($cushion['what_if'])
                 <div style="font-size:0.78rem;color:var(--text-secondary,var(--text-muted));">
-                    If your <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.
+                    If {{ $activeLedger?->isCompany() ? 'its' : 'your' }} <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.
                 </div>
             @endif
         </div>
@@ -295,7 +295,7 @@
 
                 @if($summaryCount > 0)
                 <p style="font-size:0.8rem;color:#a1a1aa;margin:0 0 1rem;">
-                    {{ $summaryCount }} summar{{ $summaryCount === 1 ? 'y' : 'ies' }}, one a week, written from your ledger by fixed rules. Not AI.
+                    {{ $summaryCount }} summar{{ $summaryCount === 1 ? 'y' : 'ies' }}, one a week, written from {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger by fixed rules. Not AI.
                 </p>
                 <a href="{{ route('insights.index') }}" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1.1rem;border-radius:9999px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);font-size:0.75rem;font-weight:700;color:#34d399;text-decoration:none;">
                     <span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>

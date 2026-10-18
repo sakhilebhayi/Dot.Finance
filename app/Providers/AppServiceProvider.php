@@ -40,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
 
         // The shell and the pages that word themselves by ledger get the active one as $activeLedger
         // (a LedgerContext, or null when none can be established).
-        View::composer(['layouts.app', 'dashboard', 'accounts.*'], fn ($view) => $view->with('activeLedger', LedgerContext::current()));
+        View::composer(['layouts.app', 'dashboard', 'accounts.*', 'insights.*', 'audit.*'], fn ($view) => $view->with('activeLedger', LedgerContext::current()));
 
         // Abilities that act on the active ledger rather than on one record. The model
         // policies cover everything that has a record to point at.

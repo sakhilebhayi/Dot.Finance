@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinanceAuditLog;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
@@ -23,8 +24,16 @@ class AuditController extends Controller
 
         $subject = in_array($request->query('subject'), self::SUBJECTS, true) ? $request->query('subject') : null;
 
+        $context = $this->ledger();
+
+        // In a company's log: narrow to one member ("who did this?") or to the scheduler.
+        $actor = $context->isCompany() ? $this->actorFilter($request->query('actor')) : null;
+
         $entries = FinanceAuditLog::query()
+            ->with('actorUser:id,name')
             ->when($subject, fn ($q) => $q->where('subject_type', $subject))
+            ->when($actor === 'system', fn ($q) => $q->where('actor', 'system'))
+            ->when(is_int($actor), fn ($q) => $q->where('actor_user_id', $actor))
             ->latest('id')
             ->paginate(40)
             ->withQueryString();
@@ -47,6 +56,24 @@ class AuditController extends Controller
             'category_id' => Category::withTrashed()->whereIn('id', array_unique($ids['category_id']))->pluck('name', 'id')->all(),
         ];
 
-        return view('audit.index', ['entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names]);
+        // Only people who actually appear in THIS ledger's log are offered, so the filter never lists anyone else.
+        $actors = $context->isCompany()
+            ? User::query()->whereIn('id', FinanceAuditLog::query()->whereNotNull('actor_user_id')->distinct()->pluck('actor_user_id'))->orderBy('name')->get(['id', 'name'])
+            : collect();
+
+        return view('audit.index', [
+            'entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names,
+            'actors' => $actors, 'actor' => $actor,
+        ]);
+    }
+
+    /** @return int|'system'|null */
+    private function actorFilter(mixed $value): int|string|null
+    {
+        if ($value === 'system') {
+            return 'system';
+        }
+
+        return is_string($value) && ctype_digit($value) ? (int) $value : null;
     }
 }

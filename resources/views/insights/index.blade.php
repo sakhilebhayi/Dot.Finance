@@ -8,7 +8,11 @@
         </h1>
         <p style="font-size:0.8rem;color:var(--text-muted);margin:0;max-width:60rem;">
             {{ $insights->total() }} summar{{ $insights->total() === 1 ? 'y' : 'ies' }}.
+            @if($activeLedger?->isCompany())
+            Each one is a rule-based summary: plain arithmetic on the company's ledger, worded by fixed rules, one per currency it holds. It is not AI, and it is not financial advice.
+            @else
             Each one is a rule-based summary: plain arithmetic on your own ledger, worded by fixed rules, one per currency you hold. It is not AI, and it is not financial advice.
+            @endif
             One is written per week.
         </p>
     </div>
@@ -38,7 +42,7 @@
         @else
         <div style="padding:3rem 1.5rem;text-align:center;">
             <span class="material-symbols-rounded" style="font-size:36px;color:var(--text-faint);display:block;margin-bottom:0.75rem;">summarize</span>
-            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No summaries yet. One is written each week once your ledger has some spending history.</p>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No summaries yet. One is written each week once {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger has some spending history.</p>
         </div>
         @endif
     </div>
