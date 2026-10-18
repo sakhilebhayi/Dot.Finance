@@ -49,8 +49,10 @@
                 <option value="{{ $value }}" @selected($p['date_format'] === $value)>{{ $label }}</option>
                 @endforeach
             </select>
-            @if($p['date_ambiguous'])
+            @if($p['date_ambiguous'] && $p['date_format'] === null)
             <p style="font-size:0.68rem;color:#c98a1f;margin:0.3rem 0 0;">Dates like these can be read two ways, so no format was assumed. Pick the one your bank uses.</p>
+            @elseif($p['date_ambiguous'])
+            <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">These dates can be read two ways; you chose {{ $dateLabels[$p['date_format']] }}.</p>
             @elseif($p['detected_date_format'] !== null)
             <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Detected from the file: {{ $dateLabels[$p['detected_date_format']] }}.</p>
             @endif
@@ -62,7 +64,7 @@
                 <option value="en" @selected($p['amount_locale'] === 'en')>1,234.56 (comma groups, dot decimal)</option>
                 <option value="eu" @selected($p['amount_locale'] === 'eu')>1 234,56 or 1.234,56 (comma decimal)</option>
             </select>
-            @if($p['amount_ambiguous'])
+            @if($p['amount_ambiguous'] && $p['amount_locale'] === null)
             <p style="font-size:0.68rem;color:#c98a1f;margin:0.3rem 0 0;">An amount such as 1,234 could be one thousand or 1.234, so no format was assumed.</p>
             @endif
         </div>

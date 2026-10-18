@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
+use App\Models\Category;
 use App\Models\FinanceAuditLog;
 use Illuminate\Http\Request;
 
@@ -23,6 +25,24 @@ class AuditController extends Controller
             ->paginate(40)
             ->withQueryString();
 
-        return view('audit.index', ['entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS]);
+        // account_id / category_id are shown by name (deleted ones included).
+        $ids = ['account_id' => [], 'category_id' => []];
+        foreach ($entries as $entry) {
+            foreach (['account_id', 'category_id'] as $field) {
+                foreach (['before', 'after'] as $side) {
+                    $value = $entry->changes[$field][$side] ?? null;
+                    if ($value !== null) {
+                        $ids[$field][] = (int) $value;
+                    }
+                }
+            }
+        }
+
+        $names = [
+            'account_id' => Account::withTrashed()->whereIn('id', array_unique($ids['account_id']))->pluck('name', 'id')->all(),
+            'category_id' => Category::withTrashed()->whereIn('id', array_unique($ids['category_id']))->pluck('name', 'id')->all(),
+        ];
+
+        return view('audit.index', ['entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names]);
     }
 }

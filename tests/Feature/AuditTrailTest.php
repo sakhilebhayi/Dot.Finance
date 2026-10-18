@@ -178,14 +178,17 @@ class AuditTrailTest extends TestCase
     {
         $user = User::factory()->withPersonalTeam()->create();
         $usd = Account::factory()->for($user)->currency('USD')->create(['name' => 'Audit filter dollar account']);
+        Account::factory()->for($user)->create(['name' => 'Audit filter bystander account']);
         Transaction::factory()->for($usd)->cents(98_765_43)->create();
 
         $this->actingAs($user)->get(route('audit.index', ['subject' => 'transaction']))->assertOk()
             ->assertSee('USD 98,765.43')
-            ->assertDontSee('Audit filter dollar account');
+            ->assertSee('Audit filter dollar account') // the transaction row names its account
+            ->assertDontSee('Audit filter bystander account');
 
         $this->actingAs($user)->get(route('audit.index', ['subject' => 'account']))->assertOk()
-            ->assertSee('Audit filter dollar account');
+            ->assertSee('Audit filter bystander account')
+            ->assertDontSee('USD 98,765.43');
     }
 
     public function test_transfer_legs_are_audited_with_a_shared_context(): void

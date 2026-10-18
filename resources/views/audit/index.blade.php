@@ -82,8 +82,9 @@
                                         changed
                                     @else
                                         @php
-                                            $fmt = function ($v) use ($field, $entry) {
+                                            $fmt = function ($v) use ($field, $entry, $names) {
                                                 if ($v === null) return '—';
+                                                if (isset($names[$field])) return $names[$field][(int) $v] ?? '#'.$v;
                                                 if (str_ends_with($field, '_cents')) return \App\Support\Money::format((int) $v, $entry->currency);
                                                 return is_scalar($v) ? (string) $v : json_encode($v);
                                             };
