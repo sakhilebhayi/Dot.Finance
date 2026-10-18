@@ -49,11 +49,8 @@
                                 <x-money :cents="$account->balanceCents()" :currency="$account->currency" :tone="true" />
                             </td>
                             <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
-                                <form method="POST" action="{{ route('accounts.destroy', $account) }}" style="display:inline;" onsubmit="return confirm('Delete this account? Its transactions will also be deleted.');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" style="font-size:0.75rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>
-                                </form>
+                                <a href="{{ route('accounts.edit', $account) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
+                                <a href="{{ route('accounts.confirm-delete', $account) }}" style="font-size:0.75rem;font-weight:600;color:#f87171;text-decoration:none;">Delete</a>
                             </td>
                         </tr>
                         @endforeach

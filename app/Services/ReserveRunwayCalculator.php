@@ -30,7 +30,7 @@ class ReserveRunwayCalculator
      */
     public function calculateAll(int $userId): array
     {
-        $currencies = Account::withoutGlobalScopes()->where('user_id', $userId)->distinct()->orderBy('currency')->pluck('currency');
+        $currencies = Account::withoutGlobalScope('user')->where('user_id', $userId)->distinct()->orderBy('currency')->pluck('currency');
 
         $results = [];
         foreach ($currencies as $currency) {
@@ -45,7 +45,7 @@ class ReserveRunwayCalculator
      */
     public function calculate(int $userId, string $currency): array
     {
-        $liquidReserves = (int) Account::withoutGlobalScopes()->withBalance()
+        $liquidReserves = (int) Account::withoutGlobalScope('user')->withBalance()
             ->where('user_id', $userId)
             ->where('currency', $currency)
             ->whereIn('type', self::LIQUID_ACCOUNT_TYPES)
@@ -54,7 +54,7 @@ class ReserveRunwayCalculator
 
         $windowStart = now()->subMonths(self::TRAILING_MONTHS)->startOfMonth();
 
-        $rows = Transaction::withoutGlobalScopes()
+        $rows = Transaction::withoutGlobalScope('user')
             ->where('user_id', $userId)
             ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])
@@ -111,7 +111,7 @@ class ReserveRunwayCalculator
 
     private function computeWhatIf(int $userId, string $currency, Carbon $windowStart, int $avgMonthlyBurn, int $liquidReserves, int $monthsSpanned): ?array
     {
-        $topCategory = Transaction::withoutGlobalScopes()
+        $topCategory = Transaction::withoutGlobalScope('user')
             ->where('user_id', $userId)
             ->where('currency', $currency)
             ->where('type', 'expense')

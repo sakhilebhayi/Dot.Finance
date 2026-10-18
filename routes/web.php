@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InsightController;
 use App\Http\Controllers\ReconciliationController;
+use App\Http\Controllers\RecurringRuleController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\TransferController;
@@ -46,8 +48,11 @@ Route::middleware([
 
     // Must be registered before the transactions resource route below --
     // otherwise "import" is swallowed by {transaction}'s route-model binding.
+    // The upload is staged on the server and identified by a token, so the
+    // preview and the final import never trust (or have to re-post) the rows.
     Route::get('/transactions/import', [TransactionImportController::class, 'create'])->name('transactions.import.create');
-    Route::post('/transactions/import/preview', [TransactionImportController::class, 'preview'])->name('transactions.import.preview');
+    Route::post('/transactions/import/upload', [TransactionImportController::class, 'upload'])->name('transactions.import.upload');
+    Route::get('/transactions/import/{token}', [TransactionImportController::class, 'preview'])->where('token', '[0-9a-f-]{36}')->name('transactions.import.preview');
     Route::post('/transactions/import', [TransactionImportController::class, 'store'])->name('transactions.import.store');
 
     Route::get('/transfers/create', [TransferController::class, 'create'])->name('transfers.create');
@@ -55,7 +60,19 @@ Route::middleware([
     Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
 
     Route::resource('transactions', TransactionController::class)->except(['show']);
-    Route::resource('accounts', AccountController::class)->only(['index', 'store', 'destroy']);
-    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'destroy']);
-    Route::resource('budgets', BudgetController::class)->only(['index', 'store', 'destroy']);
+    Route::get('/accounts/{account}/delete', [AccountController::class, 'confirmDelete'])->name('accounts.confirm-delete');
+    Route::post('/accounts/{account}/opening-balance', [AccountController::class, 'openingBalance'])->name('accounts.opening-balance');
+    Route::resource('accounts', AccountController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+    Route::resource('categories', CategoryController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+    Route::resource('budgets', BudgetController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+
+    Route::get('/recurring', [RecurringRuleController::class, 'index'])->name('recurring.index');
+    Route::get('/recurring/{rule}/edit', [RecurringRuleController::class, 'edit'])->name('recurring.edit');
+    Route::put('/recurring/{rule}', [RecurringRuleController::class, 'update'])->name('recurring.update');
+    Route::post('/recurring/{rule}/pause', [RecurringRuleController::class, 'pause'])->name('recurring.pause');
+    Route::post('/recurring/{rule}/resume', [RecurringRuleController::class, 'resume'])->name('recurring.resume');
+    Route::post('/recurring/{rule}/stop', [RecurringRuleController::class, 'stop'])->name('recurring.stop');
+
+    // Read-only on purpose: the audit log has no create, update or delete route.
+    Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 });

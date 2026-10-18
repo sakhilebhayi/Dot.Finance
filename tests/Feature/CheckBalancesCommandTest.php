@@ -81,6 +81,36 @@ class CheckBalancesCommandTest extends TestCase
         $this->assertContains('orphan_transfer_leg', $this->codes($report));
     }
 
+    public function test_deleted_transactions_are_ignored_by_both_the_sql_and_the_recompute(): void
+    {
+        $user = User::factory()->create();
+        $account = Account::factory()->for($user)->opening(10_000, null)->create();
+        Transaction::factory()->for($account)->expense()->cents(2_500)->create();
+        Transaction::factory()->for($account)->expense()->cents(9_999)->create()->delete();
+
+        $report = (new LedgerReconciler)->run($user->id);
+
+        $this->assertSame([], $report['findings']);
+        $this->assertSame(7_500, $report['accounts'][0]['derived_cents']);
+        $this->assertSame(7_500, $report['accounts'][0]['recomputed_cents']);
+        $this->assertSame(1, $report['accounts'][0]['transactions_counted']);
+    }
+
+    public function test_a_transfer_leg_whose_peer_went_with_a_deleted_account_is_history_not_damage(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $closing = Account::factory()->for($user)->create();
+        $keeping = Account::factory()->for($user)->create();
+        app(TransferService::class)->create($user, $closing, $keeping, 1_000, null, Carbon::today(), 'Before closing', null);
+
+        $this->actingAs($user)->delete(route('accounts.destroy', $closing), ['confirm' => '1']);
+
+        $report = (new LedgerReconciler)->run($user->id);
+
+        $this->assertContains('transfer_peer_deleted', $this->codes($report));
+        $this->assertSame([], LedgerReconciler::problems($report));
+    }
+
     public function test_a_transfer_pair_whose_legs_disagree_on_account_currency_is_flagged(): void
     {
         $user = User::factory()->create();

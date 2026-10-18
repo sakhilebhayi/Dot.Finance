@@ -26,7 +26,7 @@ class LedgerReconciler
      */
     public function run(?int $userId = null): array
     {
-        $accountsQuery = Account::withoutGlobalScopes()->withBalance()->orderBy('user_id')->orderBy('name');
+        $accountsQuery = Account::withoutGlobalScope('user')->withBalance()->orderBy('user_id')->orderBy('name');
         if ($userId !== null) {
             $accountsQuery->where('user_id', $userId);
         }
@@ -36,7 +36,7 @@ class LedgerReconciler
         $summary = [];
 
         foreach ($accounts as $account) {
-            $rows = Transaction::withoutGlobalScopes()->where('account_id', $account->id)->get();
+            $rows = Transaction::withoutGlobalScope('user')->where('account_id', $account->id)->get();
 
             $recomputed = $account->opening_balance_cents;
             $counted = 0;
@@ -100,7 +100,7 @@ class LedgerReconciler
     /** @return list<array{severity: string, code: string, message: string}> */
     private function transferFindings(?int $userId): array
     {
-        $query = Transaction::withoutGlobalScopes()->whereNotNull('transfer_group');
+        $query = Transaction::withoutGlobalScope('user')->whereNotNull('transfer_group');
         if ($userId !== null) {
             $query->where('user_id', $userId);
         }
@@ -109,6 +109,16 @@ class LedgerReconciler
         foreach ($query->get()->groupBy('transfer_group') as $group => $legs) {
             $out = $legs->where('transfer_direction', 'out');
             $in = $legs->where('transfer_direction', 'in');
+
+            if ($legs->count() === 1 && Transaction::onlyTrashed()->withoutGlobalScope('user')->where('transfer_group', $group)->exists()) {
+                // The other leg was deleted along with its account. That money
+                // already moved, so this is history, not damage.
+                $findings[] = $this->finding('info', 'transfer_peer_deleted', sprintf(
+                    'Transfer %s: the other leg was deleted with its account; this leg still counts.', $group
+                ));
+
+                continue;
+            }
 
             if ($legs->count() !== 2 || $out->count() !== 1 || $in->count() !== 1) {
                 $findings[] = $this->finding('error', 'orphan_transfer_leg', sprintf(

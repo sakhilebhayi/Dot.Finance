@@ -140,6 +140,10 @@
                 <span class="material-symbols-rounded nav-icon">account_balance_wallet</span>
                 Accounts
             </a>
+            <a href="{{ route('recurring.index') }}" class="nav-item {{ request()->routeIs('recurring.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">event_repeat</span>
+                Recurring
+            </a>
             <a href="{{ route('budgets.index') }}" class="nav-item {{ request()->routeIs('budgets.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">savings</span>
                 Budgets
@@ -149,6 +153,10 @@
                 Categories
             </a>
             <div class="nav-section-label">Control</div>
+            <a href="{{ route('audit.index') }}" class="nav-item {{ request()->routeIs('audit.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">history</span>
+                Audit log
+            </a>
             <a href="{{ route('reconciliation.index') }}" class="nav-item {{ request()->routeIs('reconciliation.*') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">fact_check</span>
                 Reconciliation

@@ -4,20 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Account;
 use App\Models\Category;
-use App\Models\Transaction;
-use App\Services\CsvTransactionParser;
+use App\Services\TransactionImporter;
+use App\Support\ImportDates;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class TransactionImportController extends Controller
 {
+    public function __construct(private readonly TransactionImporter $importer) {}
+
     /**
-     * Upload form: pick a CSV file and the account every imported row will
-     * be attached to (this platform's CSVs have no account column of
-     * their own -- a bank export is always for one account).
+     * Upload form: pick a CSV and the account every imported row will be
+     * attached to (a bank export is always for one account).
      */
     public function create(): View
     {
@@ -27,75 +28,100 @@ class TransactionImportController extends Controller
     }
 
     /**
-     * Parse the uploaded CSV and show an editable preview before anything
-     * is written to the database -- CsvTransactionParser does the parsing,
-     * this only handles the request/response and re-renders the parsed
-     * rows as a form (hidden inputs) ready for store() to persist.
+     * Keep the file on the server and send the user to its preview. Nothing is
+     * written to the ledger yet, and the rows are never posted back from the
+     * browser: the file is re-read from here at each step.
      */
-    public function preview(Request $request, CsvTransactionParser $parser): View
+    public function upload(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         $validated = $request->validate([
-            'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $request->user()->id)],
+            'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $user->id)->whereNull('deleted_at')],
             'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $parsed = $parser->parse($validated['file'], $request->user()->id);
-        $categories = Category::orderBy('name')->get();
+        $token = $this->importer->stage($user, Account::findOrFail($validated['account_id']), $validated['file']);
+
+        return redirect()->route('transactions.import.preview', ['token' => $token]);
+    }
+
+    public function preview(Request $request, string $token): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($this->importer->load($user, $token) === null) {
+            return redirect()->route('transactions.import.create')->with('status', 'That import is no longer available. Upload the file again.');
+        }
+
+        $query = $request->validate([
+            'date_format' => ['nullable', Rule::in(ImportDates::FORMATS)],
+            'amount_locale' => ['nullable', Rule::in(['en', 'eu'])],
+            'default_category_id' => ['nullable', 'integer'],
+        ]);
+
+        $preview = $this->importer->analyse(
+            $user,
+            $token,
+            $query['date_format'] ?? null,
+            $query['amount_locale'] ?? null,
+            isset($query['default_category_id']) ? (int) $query['default_category_id'] : null,
+        );
 
         return view('transactions.import.preview', [
-            'accountId' => $validated['account_id'],
-            'rows' => $parsed['rows'],
-            'columnsFound' => $parsed['columns_found'],
-            'categories' => $categories,
-            'validCount' => collect($parsed['rows'])->whereNull('error')->count(),
+            'preview' => $preview,
+            'categories' => Category::orderBy('name')->get(),
+            'dateLabels' => ImportDates::LABELS,
+            'shownRows' => TransactionImporter::PREVIEW_ROWS,
         ]);
     }
 
     /**
-     * Persist the rows the user confirmed on the preview screen. Rows are
-     * submitted as parallel arrays (one entry per row) built from the
-     * preview form's hidden inputs, re-validated here rather than trusted
-     * from the client.
+     * Import. The date format and number format must be stated explicitly: a
+     * detected format is only a default for the preview, never an assumption
+     * made on the user's behalf.
      */
     public function store(Request $request): RedirectResponse
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
 
         $validated = $request->validate([
-            'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $userId)],
-            'rows' => ['required', 'array'],
-            'rows.*.include' => ['nullable', 'boolean'],
-            'rows.*.description' => ['required_with:rows.*.include', 'nullable', 'string', 'max:255'],
-            'rows.*.amount' => ['required_with:rows.*.include', 'nullable', 'numeric', 'min:0.01', 'max:999999999999.99'],
-            'rows.*.type' => ['required_with:rows.*.include', 'nullable', Rule::in(['income', 'expense', 'transfer'])],
-            'rows.*.date' => ['required_with:rows.*.include', 'nullable', 'date'],
-            'rows.*.category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $userId)],
+            'token' => ['required', 'string', function (string $attribute, mixed $value, \Closure $fail) use ($user) {
+                if ($this->importer->load($user, (string) $value) === null) {
+                    $fail('That import is no longer available. Upload the file again.');
+                }
+            }],
+            'date_format' => ['required', Rule::in(ImportDates::FORMATS)],
+            'amount_locale' => ['required', Rule::in(['en', 'eu'])],
+            'default_category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('user_id', $user->id)->whereNull('deleted_at')],
+            'skip' => ['nullable', 'array'],
+            'skip.*' => ['integer'],
         ]);
 
-        $imported = 0;
+        try {
+            $result = $this->importer->commit(
+                $user,
+                $validated['token'],
+                $validated['date_format'],
+                $validated['amount_locale'],
+                isset($validated['default_category_id']) ? (int) $validated['default_category_id'] : null,
+                array_map('intval', $validated['skip'] ?? []),
+            );
+        } catch (UniqueConstraintViolationException) {
+            return back()->withErrors(['token' => 'Some of these rows were imported by another request while you were reviewing. Nothing was saved; review the preview again.']);
+        }
 
-        DB::transaction(function () use ($validated, $userId, &$imported) {
-            foreach ($validated['rows'] as $row) {
-                if (empty($row['include'])) {
-                    continue;
-                }
+        $parts = [$result['imported'] === 1 ? '1 transaction imported' : "{$result['imported']} transactions imported"];
+        if ($result['skipped_duplicates'] > 0) {
+            $parts[] = "{$result['skipped_duplicates']} already imported";
+        }
+        if ($result['skipped_invalid'] > 0) {
+            $parts[] = "{$result['skipped_invalid']} unreadable";
+        }
+        if ($result['skipped_by_user'] > 0) {
+            $parts[] = "{$result['skipped_by_user']} skipped by you";
+        }
 
-                Transaction::create([
-                    'account_id' => $validated['account_id'],
-                    'category_id' => $row['category_id'] ?? null,
-                    'user_id' => $userId,
-                    'description' => $row['description'],
-                    'amount' => $row['amount'],
-                    'type' => $row['type'],
-                    'date' => $row['date'],
-                ]);
-
-                $imported++;
-            }
-        });
-
-        return redirect()
-            ->route('transactions.index')
-            ->with('status', $imported === 1 ? '1 transaction imported.' : "{$imported} transactions imported.");
+        return redirect()->route('transactions.index')->with('status', implode(', ', $parts).'.');
     }
 }

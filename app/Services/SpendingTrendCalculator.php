@@ -25,7 +25,7 @@ class SpendingTrendCalculator
 
         // One grouped query; bucketed into months in PHP because the SQL
         // date-format function differs per driver (strftime / to_char).
-        $rows = Transaction::withoutGlobalScopes()
+        $rows = Transaction::withoutGlobalScope('user')
             ->where('user_id', $userId)
             ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])

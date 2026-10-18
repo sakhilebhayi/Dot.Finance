@@ -35,6 +35,7 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:0.75rem;">
                             <span style="font-size:0.75rem;color:var(--text-muted);" class="metric-val">{{ \App\Support\Money::format($spent) }} / {{ \App\Support\Money::format($limit, $budget->currency) }}</span>
+                            <a href="{{ route('budgets.edit', $budget) }}" style="font-size:0.72rem;font-weight:600;color:#059669;text-decoration:none;">Edit</a>
                             <form method="POST" action="{{ route('budgets.destroy', $budget) }}" onsubmit="return confirm('Delete this budget?');">
                                 @csrf
                                 @method('DELETE')

@@ -34,7 +34,7 @@
             </div>
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
-                <select name="type" required class="dot-input">
+                <select name="type" required class="dot-input" id="type-select">
                     @foreach(['expense', 'income'] as $type)
                     <option value="{{ $type }}" @selected(old('type', 'expense') === $type)>{{ ucfirst($type) }}</option>
                     @endforeach
@@ -59,10 +59,10 @@
             </div>
             <div>
                 <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category (optional)</label>
-                <select name="category_id" class="dot-input">
+                <select name="category_id" class="dot-input" id="category-select">
                     <option value="">Uncategorized</option>
                     @foreach($categories as $category)
-                    <option value="{{ $category->id }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                    <option value="{{ $category->id }}" data-type="{{ $category->type }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }} ({{ $category->type }})</option>
                     @endforeach
                 </select>
             </div>
@@ -102,5 +102,25 @@
     </form>
 
 </div>
+
+<script>
+    // A category can only be used on a transaction of its own type; hide the others as the type changes.
+    (function () {
+        var type = document.getElementById('type-select');
+        var category = document.getElementById('category-select');
+        if (!type || !category) return;
+        function sync() {
+            Array.prototype.forEach.call(category.options, function (o) {
+                if (!o.dataset.type) return;
+                var match = o.dataset.type === type.value;
+                o.hidden = !match;
+                o.disabled = !match;
+                if (!match && o.selected) category.value = '';
+            });
+        }
+        type.addEventListener('change', sync);
+        sync();
+    })();
+</script>
 
 </x-app-layout>

@@ -39,7 +39,8 @@
                             <td style="padding:0.875rem 1rem;font-size:0.78rem;color:var(--text-secondary);text-transform:capitalize;">{{ $category->type }}</td>
                             <td style="padding:0.875rem 1rem;text-align:right;font-size:0.78rem;color:var(--text-muted);">{{ $category->transactions_count }}</td>
                             <td style="padding:0.875rem 1.5rem;text-align:right;white-space:nowrap;">
-                                <form method="POST" action="{{ route('categories.destroy', $category) }}" style="display:inline;" onsubmit="return confirm('Delete this category? Its transactions become uncategorized.');">
+                                <a href="{{ route('categories.edit', $category) }}" style="font-size:0.75rem;font-weight:600;color:#059669;text-decoration:none;margin-right:0.75rem;">Edit</a>
+                                <form method="POST" action="{{ route('categories.destroy', $category) }}" style="display:inline;" onsubmit="return confirm('Delete this category? Its budgets are deleted too; transactions keep it in their history.');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" style="font-size:0.75rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;padding:0;">Delete</button>

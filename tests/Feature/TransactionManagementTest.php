@@ -180,6 +180,8 @@ class TransactionManagementTest extends TestCase
             ->delete(route('transactions.destroy', $transaction))
             ->assertRedirect(route('transactions.index'));
 
-        $this->assertDatabaseMissing('transactions', ['id' => $transaction->id]);
+        // Soft delete: gone from the ledger, kept for the audit trail.
+        $this->assertSoftDeleted('transactions', ['id' => $transaction->id]);
+        $this->assertSame(0, Transaction::count());
     }
 }

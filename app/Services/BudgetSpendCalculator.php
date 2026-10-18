@@ -35,7 +35,7 @@ class BudgetSpendCalculator
         $min = $budgets->map(fn (Budget $b) => Carbon::create($b->year, $b->month, 1)->startOfDay())->min();
         $max = $budgets->map(fn (Budget $b) => Carbon::create($b->year, $b->month, 1)->endOfMonth())->max();
 
-        $rows = Transaction::withoutGlobalScopes()
+        $rows = Transaction::withoutGlobalScope('user')
             ->where('type', 'expense')
             ->whereIn('user_id', $budgets->pluck('user_id')->unique()->all())
             ->whereIn('category_id', $budgets->pluck('category_id')->unique()->all())

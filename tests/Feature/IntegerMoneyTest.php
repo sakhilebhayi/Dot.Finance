@@ -134,8 +134,10 @@ class IntegerMoneyTest extends TestCase
     {
         $user = User::factory()->create();
         $migration = require database_path('migrations/2026_10_18_200000_add_integer_money_and_ledger_columns.php');
+        $laterMigration = require database_path('migrations/2026_10_18_210000_add_soft_deletes_audit_log_recurring_rules_and_import_fingerprints.php');
 
-        // Roll the schema back to the pre-ledger shape, then write rows exactly as the old code did.
+        // Roll the schema back to the pre-ledger shape (newest migration first), then write rows exactly as the old code did.
+        $laterMigration->down();
         $migration->down();
 
         $accountId = DB::table('accounts')->insertGetId([
@@ -156,6 +158,7 @@ class IntegerMoneyTest extends TestCase
         ]);
 
         $migration->up();
+        $laterMigration->up();
 
         $account = DB::table('accounts')->where('id', $accountId)->first();
         $this->assertSame(150_075, (int) $account->opening_balance_cents);

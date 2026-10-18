@@ -2,6 +2,7 @@
 
 use App\Console\Commands\GenerateInsights;
 use App\Console\Commands\GenerateRecurringTransactions;
+use App\Console\Commands\PruneImports;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -23,5 +24,10 @@ Schedule::command(GenerateInsights::class)
 // since a recurring transaction can be due at any interval (daily through
 // yearly) and this just checks "is next_occurrence_date <= today" each run.
 Schedule::command(GenerateRecurringTransactions::class)
+    ->daily()
+    ->withoutOverlapping();
+
+// Staged CSV uploads that were previewed but never imported are deleted after a day.
+Schedule::command(PruneImports::class)
     ->daily()
     ->withoutOverlapping();

@@ -24,7 +24,7 @@ class LedgerSummary
     {
         $month ??= now();
 
-        $accounts = Account::withoutGlobalScopes()->withBalance()->where('user_id', $userId)->get();
+        $accounts = Account::withoutGlobalScope('user')->withBalance()->where('user_id', $userId)->get();
 
         $position = [];
         foreach ($accounts as $account) {
@@ -33,7 +33,7 @@ class LedgerSummary
             $position[$account->currency]['balance_cents'] += $account->balanceCents();
         }
 
-        $rows = Transaction::withoutGlobalScopes()
+        $rows = Transaction::withoutGlobalScope('user')
             ->where('user_id', $userId)
             ->whereIn('type', ['income', 'expense'])
             ->whereDate('date', '>=', $month->copy()->startOfMonth()->toDateString())
@@ -61,7 +61,7 @@ class LedgerSummary
     /** @return Collection<int, Account> accounts with their derived balance loaded */
     public function accounts(int $userId): Collection
     {
-        return Account::withoutGlobalScopes()->withBalance()->where('user_id', $userId)->orderBy('name')->get();
+        return Account::withoutGlobalScope('user')->withBalance()->where('user_id', $userId)->orderBy('name')->get();
     }
 
     private function blank(string $currency): array

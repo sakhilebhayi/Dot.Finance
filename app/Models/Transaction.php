@@ -10,25 +10,34 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * One line in the ledger. Money is amount_cents (integer, always positive) in
+ * the account's currency; the sign comes from the type (and, for a transfer
+ * leg, its direction). The old recurrence_* columns are no longer read: a series
+ * lives in recurring_rules and a transaction points at it by recurring_rule_id.
+ */
 class Transaction extends Model
 {
     /** @use HasFactory<TransactionFactory> */
-    use HasFactory, HasUserScope;
+    use HasFactory, HasUserScope, SoftDeletes;
 
     protected $fillable = [
         'account_id', 'category_id', 'user_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'date', 'notes',
-        'transfer_direction', 'transfer_group',
-        'recurrence_type', 'recurrence_interval', 'next_occurrence_date', 'recurrence_parent_id',
+        'transfer_direction', 'transfer_group', 'recurring_rule_id', 'import_fingerprint', 'import_batch_id',
     ];
 
     protected $casts = [
         'amount_cents' => 'integer',
         'date' => DateOnly::class,
-        'next_occurrence_date' => DateOnly::class,
-        'recurrence_interval' => 'integer',
     ];
+
+    /** @var array<string, true> transfer groups whose legs are mid-deletion (recursion guard) */
+    protected static array $groupsBeingDeleted = [];
+
+    protected static bool $cascadeTransferDeletes = true;
 
     /**
      * The always-positive magnitude, in the account's currency, as a decimal
@@ -61,7 +70,7 @@ class Transaction extends Model
         static::deleting(function (Transaction $transaction): void {
             $group = $transaction->transfer_group;
 
-            if ($group === null || isset(static::$groupsBeingDeleted[$group])) {
+            if ($group === null || ! static::$cascadeTransferDeletes || isset(static::$groupsBeingDeleted[$group])) {
                 return;
             }
 
@@ -77,10 +86,32 @@ class Transaction extends Model
                 unset(static::$groupsBeingDeleted[$group]);
             }
         });
+
+        // A deleted import row must not keep blocking the same row from being
+        // imported again, so its fingerprint is released.
+        static::deleted(function (Transaction $transaction): void {
+            if ($transaction->import_fingerprint !== null && ! $transaction->isForceDeleting()) {
+                DB::table('transactions')->where('id', $transaction->id)->update(['import_fingerprint' => null]);
+            }
+        });
     }
 
-    /** @var array<string, true> transfer groups whose legs are mid-deletion (recursion guard) */
-    protected static array $groupsBeingDeleted = [];
+    /**
+     * Delete transactions without taking the other leg of a transfer with them.
+     * Used when a whole account is deleted: the money that already moved to
+     * another account stays there.
+     */
+    public static function withoutTransferCascade(callable $callback): mixed
+    {
+        $previous = static::$cascadeTransferDeletes;
+        static::$cascadeTransferDeletes = false;
+
+        try {
+            return $callback();
+        } finally {
+            static::$cascadeTransferDeletes = $previous;
+        }
+    }
 
     /**
      * SQL for a transaction's effect on its account, as a signed amount_cents:
@@ -110,12 +141,13 @@ class Transaction extends Model
 
     public function account(): BelongsTo
     {
-        return $this->belongsTo(Account::class);
+        return $this->belongsTo(Account::class)->withTrashed();
     }
 
+    /** Includes deleted categories so history keeps naming them. */
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class)->withTrashed();
     }
 
     public function user(): BelongsTo
@@ -123,9 +155,14 @@ class Transaction extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function recurringRule(): BelongsTo
+    {
+        return $this->belongsTo(RecurringRule::class)->withTrashed();
+    }
+
     public function isRecurring(): bool
     {
-        return $this->recurrence_type !== null;
+        return $this->recurring_rule_id !== null;
     }
 
     public function isTransfer(): bool
@@ -139,28 +176,16 @@ class Transaction extends Model
         return $this->type === 'transfer' && $this->transfer_group !== null;
     }
 
-    /** The other leg of this transfer, if any. */
+    /** The other leg of this transfer, if it is still live. */
     public function transferPeer(): ?Transaction
     {
         if ($this->transfer_group === null) {
             return null;
         }
 
-        return static::withoutGlobalScopes()
+        return static::withoutGlobalScope('user')
             ->where('transfer_group', $this->transfer_group)
             ->whereKeyNot($this->getKey())
             ->first();
-    }
-
-    /** The original transaction this one was generated from, if any. */
-    public function recurrenceParent(): BelongsTo
-    {
-        return $this->belongsTo(Transaction::class, 'recurrence_parent_id');
-    }
-
-    /** Every occurrence generated from this transaction (only populated when this is the anchor). */
-    public function recurrenceOccurrences(): HasMany
-    {
-        return $this->hasMany(Transaction::class, 'recurrence_parent_id');
     }
 }

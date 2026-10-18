@@ -10,12 +10,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 class Account extends Model
 {
     /** @use HasFactory<AccountFactory> */
-    use HasFactory, HasUserScope;
+    use HasFactory, HasUserScope, SoftDeletes;
 
     /**
      * There is deliberately no `balance` here. The legacy accounts.balance column
@@ -62,7 +63,7 @@ class Account extends Model
         return $query->addSelect([
             DB::raw(
                 "(accounts.opening_balance_cents + COALESCE((SELECT SUM({$signed}) FROM transactions t"
-                .' WHERE t.account_id = accounts.id'
+                .' WHERE t.account_id = accounts.id AND t.deleted_at IS NULL'
                 .' AND (accounts.opening_balance_date IS NULL OR t.date >= accounts.opening_balance_date)'
                 .'), 0)) AS derived_balance_cents'
             ),
@@ -84,6 +85,11 @@ class Account extends Model
         return (int) ($fresh?->attributes['derived_balance_cents'] ?? $this->opening_balance_cents);
     }
 
+    /**
+     * Whether any transaction, deleted ones included, was ever recorded against
+     * this account. Used to lock the currency: a deleted transaction still sits
+     * in the audit trail in the account's currency.
+     */
     public function hasTransactions(): bool
     {
         return Transaction::withoutGlobalScopes()->where('account_id', $this->id)->exists();

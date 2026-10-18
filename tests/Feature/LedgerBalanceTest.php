@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\TransferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class LedgerBalanceTest extends TestCase
@@ -103,15 +106,18 @@ class LedgerBalanceTest extends TestCase
 
     public function test_csv_import_moves_the_derived_balance(): void
     {
+        Storage::fake('local');
         $user = User::factory()->withPersonalTeam()->create();
         $account = Account::factory()->for($user)->opening(100_000, null)->create();
 
-        $this->actingAs($user)->post(route('transactions.import.store'), [
+        $upload = $this->actingAs($user)->post(route('transactions.import.upload'), [
             'account_id' => $account->id,
-            'rows' => [
-                ['include' => '1', 'description' => 'Imported salary', 'amount' => '500.00', 'type' => 'income', 'date' => '2026-08-01'],
-                ['include' => '1', 'description' => 'Imported rent', 'amount' => '120.25', 'type' => 'expense', 'date' => '2026-08-02'],
-            ],
+            'file' => UploadedFile::fake()->createWithContent('s.csv', "date,description,amount\n2026-08-01,Imported salary,500.00\n2026-08-02,Imported rent,-120.25\n"),
+        ]);
+        $token = basename(parse_url($upload->headers->get('Location'), PHP_URL_PATH));
+
+        $this->actingAs($user)->post(route('transactions.import.store'), [
+            'token' => $token, 'date_format' => 'ymd', 'amount_locale' => 'en',
         ])->assertRedirect();
 
         $this->assertSame(100_000 + 50_000 - 12_025, Account::withBalance()->findOrFail($account->id)->balanceCents());
@@ -122,16 +128,16 @@ class LedgerBalanceTest extends TestCase
         Carbon::setTestNow('2026-09-01');
         $user = User::factory()->create();
         $account = Account::factory()->for($user)->opening(100_000, null)->create();
-        Transaction::factory()->for($account)->expense()->cents(20_000)->on('2026-08-01')->create([
-            'recurrence_type' => 'monthly', 'recurrence_interval' => 1, 'next_occurrence_date' => '2026-09-01',
+        RecurringRule::factory()->for($user)->create([
+            'account_id' => $account->id, 'amount_cents' => 20_000, 'start_date' => '2026-08-01', 'next_occurrence_date' => '2026-09-01',
         ]);
 
         $before = Account::withoutGlobalScopes()->withBalance()->findOrFail($account->id)->balanceCents();
         $this->artisan('finance:generate-recurring-transactions')->assertSuccessful();
         $after = Account::withoutGlobalScopes()->withBalance()->findOrFail($account->id)->balanceCents();
 
-        $this->assertSame(80_000, $before);
-        $this->assertSame(60_000, $after);
+        $this->assertSame(100_000, $before);
+        $this->assertSame(80_000, $after);
 
         Carbon::setTestNow();
     }
