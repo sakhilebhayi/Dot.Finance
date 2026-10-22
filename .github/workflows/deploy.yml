@@ -198,6 +198,36 @@ jobs:
           ls -1t "$HOME"/dot-finance-*.tgz | tail -n +4 | xargs -r rm -f
           echo "== Rollback copy: $BACKUP ($(du -h "$BACKUP" | cut -f1))  [restore: stop writes, tar xzf it over $DEPLOY_PATH]"
 
+          # ---- keep the application folder from being served over HTTP
+          # 2026-10-20: platforms whose pipeline never wrote this file served their
+          # app folder (~/<host>/<key>/, next to the docroot): the live SQLite
+          # database, storage/logs/laravel.log, composer files, vendor/autoload.php.
+          # Written HERE, before any `artisan down`, so that a mistake in this block
+          # can never leave the site in maintenance mode: it is tolerant (set +e), prints
+          # one line and never fails the deploy. The file is untracked, so the
+          # `git reset --hard` below does not remove it; an existing .htaccess is kept
+          # as .htaccess.before-guard. Skipped when this folder does not look like an
+          # app folder under a docroot (then .htaccess here would be the site's own).
+          set +e
+          if [ "$DOCROOT" = "$HOME" ] || [ -e index.php ] || [ ! -f artisan ] || [ ! -f public/index.php ]; then
+            echo "== app-folder guard: skipped ($APPDIR is not an app folder under a docroot)"
+          elif [ -f .htaccess ] && grep -q 'Require all denied' .htaccess; then
+            echo "== app-folder guard: already present in $APPDIR/.htaccess"
+          elif [ -f .htaccess ]; then
+            if cp .htaccess .htaccess.before-guard && printf '\n# Dot: the application folder is never served.\nRequire all denied\n' >> .htaccess; then
+              echo "== app-folder guard: appended to $APPDIR/.htaccess (original kept as .htaccess.before-guard)"
+            else
+              echo "::warning::app-folder guard: could not append to $APPDIR/.htaccess; the deploy goes on"
+            fi
+          else
+            if printf '# Dot: the application folder is never served.\nRequire all denied\n' > .htaccess; then
+              echo "== app-folder guard: written $APPDIR/.htaccess (new file)"
+            else
+              echo "::warning::app-folder guard: could not write $APPDIR/.htaccess; the deploy goes on"
+            fi
+          fi
+          set -e
+
           # A failure leaves the site exactly as it is -- DOWN if maintenance
           # mode had started -- and says which, with the way back.
           trap 'if [ -f storage/framework/down ]; then echo "::error::The deploy failed AFTER maintenance mode started. The site was left DOWN on purpose. Rollback copy: $BACKUP. Read the log above (and storage/logs/laravel.log on the host), fix the cause and run this workflow again, or restore the copy and run: php artisan up"; else echo "::error::The deploy failed BEFORE maintenance mode started; the site is still serving the previous release. Rollback copy: $BACKUP."; fi' ERR
@@ -489,3 +519,23 @@ jobs:
           rm -rf "$WORK"
           [ "$FAILED" -eq 0 ] || { echo "::error::Smoke check failed: the deploy is NOT healthy."; exit 1; }
           echo "== Smoke check passed."
+
+      # Public probe, from the runner: does the application folder answer over HTTP?
+      # Runs after `artisan up` (and after the smoke check), so it can only turn the run
+      # red; it never touches the host. Only status codes are printed. 200 = a file is
+      # being served (301/302 is the app routing an unknown path to its login; 403/404 is fine).
+      - name: Probe the app folder from outside
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          KEY="$(basename "${APP_PATH:-}")"
+          case "$KEY" in
+            ""|"/"|*.*) echo "::warning::app-folder probe skipped: the app folder name is [$KEY], not a folder key under the docroot."; exit 0 ;;
+          esac
+          BAD=0
+          for P in .env .env.bak-secrets artisan composer.json composer.lock database/database.sqlite storage/logs/laravel.log vendor/autoload.php phpunit.xml; do
+            CODE=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$SITE_URL/$KEY/$P" || true)
+            if [ "$CODE" = "200" ]; then echo "EXPOSED 200 /$KEY/$P"; BAD=1; else echo "${CODE:-000} /$KEY/$P"; fi
+          done
+          [ "$BAD" -eq 0 ] || { echo "::error::The application folder /$KEY/ is readable over HTTP (see the 200 lines above)."; exit 1; }
+          echo "== Nothing in /$KEY/ is readable over HTTP."
