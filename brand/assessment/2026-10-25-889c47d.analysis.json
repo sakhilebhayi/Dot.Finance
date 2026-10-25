@@ -1,0 +1,3380 @@
+{
+  "analysis_version": "1.0.0",
+  "checks": [
+    {
+      "dimension": "emotional_clarity_positioning",
+      "id": "d1.copy_profile_language_lint",
+      "status": "measured",
+      "title": "Copy against the profile's banned phrases and claims policy"
+    },
+    {
+      "dimension": "reliability_error_recovery",
+      "id": "d10.error_pages",
+      "status": "measured",
+      "title": "Designed error pages with a next step"
+    },
+    {
+      "dimension": "reliability_error_recovery",
+      "id": "d10.health_endpoint",
+      "status": "measured",
+      "title": "Health endpoint exists and shows a failure path (static)"
+    },
+    {
+      "dimension": "brand_distinctiveness",
+      "id": "d2.font_palette_deny_list",
+      "status": "measured",
+      "title": "Fonts and palette against the deny-list of generic defaults"
+    },
+    {
+      "dimension": "usability_cognitive_load",
+      "id": "d3.field_counts",
+      "status": "measured",
+      "title": "Fields per form"
+    },
+    {
+      "dimension": "usability_cognitive_load",
+      "id": "d3.heading_structure",
+      "status": "measured",
+      "title": "One h1 and no skipped heading levels per screen"
+    },
+    {
+      "dimension": "usability_cognitive_load",
+      "id": "d3.nav_depth",
+      "status": "measured",
+      "title": "Navigation menu depth"
+    },
+    {
+      "dimension": "visual_interaction_craftsmanship",
+      "id": "d4.reduced_motion",
+      "status": "measured",
+      "title": "Animations and transitions respect prefers-reduced-motion (static)"
+    },
+    {
+      "dimension": "visual_interaction_craftsmanship",
+      "id": "d4.spacing_type_scale_conformance",
+      "status": "not_measured",
+      "title": "Spacing and type size on the declared scales"
+    },
+    {
+      "dimension": "functional_completeness",
+      "id": "d5.dead_links",
+      "status": "measured",
+      "title": "Internal links resolve"
+    },
+    {
+      "dimension": "functional_completeness",
+      "id": "d5.route_inventory_vs_claims",
+      "status": "measured",
+      "title": "Claimed features have a matching route"
+    },
+    {
+      "dimension": "functional_completeness",
+      "id": "d5.stubs_placeholders",
+      "status": "measured",
+      "title": "No stub or placeholder content on shipped surfaces"
+    },
+    {
+      "dimension": "trust_transparency",
+      "id": "d6.claim_lint",
+      "status": "not_measured",
+      "title": "Unsupported-claim lint over user-facing copy"
+    },
+    {
+      "dimension": "trust_transparency",
+      "id": "d6.honest_states",
+      "status": "not_measured",
+      "title": "Empty, error and unavailable state wording on list screens (presence only)"
+    },
+    {
+      "dimension": "trust_transparency",
+      "id": "d6.privacy_terms_present",
+      "status": "measured",
+      "title": "Privacy notice and terms present, real and linked"
+    },
+    {
+      "dimension": "accessibility_inclusion",
+      "id": "d8.focus_visible",
+      "status": "measured",
+      "title": "Focus indicators not removed; no positive tabindex (static)"
+    },
+    {
+      "dimension": "accessibility_inclusion",
+      "id": "d8.labels_alt_lang",
+      "status": "measured",
+      "title": "Labels, alternative text and language (static)"
+    },
+    {
+      "dimension": "accessibility_inclusion",
+      "id": "d8.token_pair_contrast",
+      "status": "measured",
+      "title": "Token pair contrast (WCAG 2.2) on both themes"
+    },
+    {
+      "dimension": "cross_platform_consistency",
+      "id": "d9.token_usage_vs_profile",
+      "status": "measured",
+      "title": "Values drawn from design tokens rather than hard-coded"
+    }
+  ],
+  "conflicts": [],
+  "counts": {
+    "by_severity": {
+      "blocker": 1,
+      "info": 47,
+      "major": 84,
+      "minor": 41
+    },
+    "checks": 19,
+    "evidence": 16,
+    "findings": 173,
+    "not_measured": 21,
+    "redactions": 0
+  },
+  "coverage": {
+    "skipped": [
+      {
+        "path": ".git",
+        "reason": "vendored_or_generated_directory"
+      },
+      {
+        "path": ".npmrc",
+        "reason": "sensitive_name"
+      },
+      {
+        "path": "bootstrap/cache",
+        "reason": "vendored_or_generated_directory"
+      },
+      {
+        "path": "resources/views/vendor",
+        "reason": "vendored_or_generated_directory"
+      },
+      {
+        "path": "storage/framework",
+        "reason": "vendored_or_generated_directory"
+      }
+    ],
+    "skipped_total": 5
+  },
+  "engine_problems": [],
+  "engine_version": "0.3.0",
+  "evidence": [
+    {
+      "artifact_ref": "static-scan/d1.copy_profile_language_lint",
+      "check_id": "d1.copy_profile_language_lint",
+      "detail": "623 user-facing string(s) scanned against 6 banned phrase(s) of profile dot-ecosystem; 0 string(s) trip a banned phrase or an unsupported-claim pattern (claim hits are listed under d6.claim_lint).",
+      "origin": "check:d1.copy_profile_language_lint",
+      "result": "pass",
+      "source_class": "automated_check",
+      "value": 1
+    },
+    {
+      "artifact_ref": "static-scan/d10.error_pages",
+      "check_id": "d10.error_pages",
+      "detail": "5 of 5 error statuses (403, 404, 419, 500, 503) have a custom page with a link or button. Laravel layout: resources/views/errors. Rendering with the right status needs a running app and is not measured.",
+      "origin": "check:d10.error_pages",
+      "result": "pass",
+      "source_class": "automated_check",
+      "value": 1
+    },
+    {
+      "artifact_ref": "bootstrap/app.php",
+      "check_id": "d10.health_endpoint",
+      "detail": "exists: yes (framework health route /up with no DiagnosingHealth listener (it answers 200 whenever the app boots)); answers: not measured (needs a running app); reports failure honestly: not seen. The share is out of three, so it cannot exceed 2/3 statically.",
+      "origin": "check:d10.health_endpoint",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.3333
+    },
+    {
+      "artifact_ref": "resources/views/layouts/app.blade.php",
+      "check_id": "d2.font_palette_deny_list",
+      "detail": "7 of 8 fonts/palette values are off the deny-list. Fonts found: Work Sans, Fraunces, IBM Plex Mono, Inter, Syne, 12px/1.3 'Inter, JetBrains Mono, Material Symbols Rounded; the profile writes no hex colour in its prohibited list, so the palette was not evaluated. Matching is by name only.",
+      "origin": "check:d2.font_palette_deny_list",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.875
+    },
+    {
+      "artifact_ref": "resources/views/transactions/create.blade.php",
+      "check_id": "d3.field_counts",
+      "detail": "24 of 25 forms have at most 8 fields (engine default bound; the profile declares none). Whether each field is needed is not measured.",
+      "origin": "check:d3.field_counts",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.96
+    },
+    {
+      "artifact_ref": "resources/views/accounts/index.blade.php",
+      "check_id": "d3.heading_structure",
+      "detail": "28 of 32 screens have exactly one <h1> and no skipped level; 15 layout(s) and page(s) that rely on a layout were left out because the outline is split between files. Headings rendered by components or inserted by scripts are not seen.",
+      "origin": "check:d3.heading_structure",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.875
+    },
+    {
+      "artifact_ref": "static-scan/d3.nav_depth",
+      "check_id": "d3.nav_depth",
+      "detail": "24 of 24 navigation links are within 3 level(s) (engine default bound; the profile declares none) across 4 <nav> landmark(s). Click paths through pages are not measured.",
+      "origin": "check:d3.nav_depth",
+      "result": "pass",
+      "source_class": "automated_check",
+      "value": 1
+    },
+    {
+      "artifact_ref": "resources/views/components/banner.blade.php",
+      "check_id": "d4.reduced_motion",
+      "detail": "5 of 32 motion declarations are covered by prefers-reduced-motion (no global override); utility classes counted per element. Motion from JavaScript is not scanned.",
+      "origin": "check:d4.reduced_motion",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.1563
+    },
+    {
+      "artifact_ref": "static-scan/d5.dead_links",
+      "check_id": "d5.dead_links",
+      "detail": "104 of 104 checkable internal links resolve; 23 link(s) could not be judged statically and are not counted; 7 link(s) sit inside a Route::has() guard for the route they name and are not counted either. 48 route(s) read from 3 file(s) in routes/ plus 2 page(s) the framework registers (Jetstream terms and privacy); package-provided routes (login, register, ...) are treated as unverifiable.",
+      "origin": "check:d5.dead_links",
+      "result": "pass",
+      "source_class": "automated_check",
+      "value": 1
+    },
+    {
+      "artifact_ref": "README.md",
+      "check_id": "d5.route_inventory_vs_claims",
+      "detail": "14 of 15 claimed features share a keyword with 47 route, page or view name word(s). This is a keyword match against names, not a test that the feature works.",
+      "origin": "check:d5.route_inventory_vs_claims",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.9333
+    },
+    {
+      "artifact_ref": "static-scan/d5.stubs_placeholders",
+      "check_id": "d5.stubs_placeholders",
+      "detail": "48 of 48 surfaces with static text are free of visible stub content. Surfaces whose text is all dynamic, and text produced by scripts, are not seen.",
+      "origin": "check:d5.stubs_placeholders",
+      "result": "pass",
+      "source_class": "automated_check",
+      "value": 1
+    },
+    {
+      "artifact_ref": "static-scan/d6.privacy_terms_present",
+      "check_id": "d6.privacy_terms_present",
+      "detail": "6 of 6 conditions hold (privacy and terms: present, not a placeholder, linked from shared markup). \"Reachable from every public page\" is approximated by a link in a layout, footer or partial; content served from a database or a CMS is not seen.",
+      "origin": "check:d6.privacy_terms_present",
+      "result": "pass",
+      "source_class": "automated_check",
+      "value": 1
+    },
+    {
+      "artifact_ref": "resources/views/components/banner.blade.php",
+      "check_id": "d8.focus_visible",
+      "detail": "12 of 14 outline removals or positive tabindex uses are safe (replaced by a visible indicator); the rest are listed. Rendered focus order and indicator visibility are not measured.",
+      "origin": "check:d8.focus_visible",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.8571
+    },
+    {
+      "artifact_ref": "resources/views/accounts/edit.blade.php",
+      "check_id": "d8.labels_alt_lang",
+      "detail": "3/78 form fields labelled (reusable component files are skipped: their consumer supplies the label), 11/11 images with alt, 4/4 documents with lang; 18 element(s) with dynamic attributes and all components were skipped. Title, name, iframe, viewport and ARIA findings do not change this share.",
+      "origin": "check:d8.labels_alt_lang",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.1935
+    },
+    {
+      "artifact_ref": "resources/views/errors/_ecosystem-layout.blade.php",
+      "check_id": "d8.token_pair_contrast",
+      "detail": "16 of 20 pair/theme combinations meet their threshold (4.5:1 text; 3:1 large text and focus indicators); themes evaluated: light, dark; pair sources: ground 8, usage 12; 28 combination(s) undetermined and not counted; 2 focus ring(s) of particular elements not measured because no background is declared behind them (the page ground is not assumed); translucent backgrounds are undetermined; panel backgrounds are tokens named bg/panel/surface/card/sunken.",
+      "origin": "check:d8.token_pair_contrast",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.8
+    },
+    {
+      "artifact_ref": "resources/views/accounts/confirm-delete.blade.php",
+      "check_id": "d9.token_usage_vs_profile",
+      "detail": "579 of 2254 values come from tokens: colour 578 token / 198 literal / 230 framework-default utility; spacing and type size 1 token / 1247 literal; 82 font-family declaration(s) not counted. The profile cites no token source, so any declared custom property counts.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "result": "partial",
+      "source_class": "automated_check",
+      "value": 0.2569
+    }
+  ],
+  "findings": [
+    {
+      "check_id": "d8.token_pair_contrast",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "8e6a9dd3745b",
+      "fix_hint": "Adjust one of the two tokens until the pair reaches 4.5:1 on the light theme, or stop using them together.",
+      "id": "d8.token_pair_contrast.8e6a9dd3745b",
+      "kind": "wcag_failure",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 112
+      },
+      "message": "Contrast 4.40:1 on the light theme is below 4.5:1 for --text-muted (#6b7280) on --input-bg (#f4f4f6); source: usage, .topbar-btn.",
+      "origin": "check:d8.token_pair_contrast",
+      "severity": "blocker",
+      "source_id": "d8.token_pair_contrast.low-contrast.004",
+      "wcag_criterion": "1.4.3",
+      "wcag_level": "AA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "254f151f1e70",
+      "fix_hint": "Add @media (prefers-reduced-motion: reduce) { ... animation: none } for it, or a global override.",
+      "id": "d4.reduced_motion.254f151f1e70",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 59
+      },
+      "message": "An infinite animation on \".live-dot\" has no prefers-reduced-motion override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "major",
+      "source_id": "d4.reduced_motion.motion-no-reduced-variant.003",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d8.focus_visible",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "a5d68c8e90eb",
+      "fix_hint": "Add focus-visible:ring-2 (or an outline) beside outline-none, or drop outline-none.",
+      "id": "d8.focus_visible.a5d68c8e90eb",
+      "location": {
+        "file": "resources/views/teams/team-member-manager.blade.php",
+        "line": 102
+      },
+      "message": "A <button> removes the outline (outline-none) and its class list has no focus ring, shadow or border to replace it (WCAG 2.4.7).",
+      "origin": "check:d8.focus_visible",
+      "severity": "major",
+      "source_id": "d8.focus_visible.focus-outline-removed.002",
+      "wcag_criterion": "2.4.7",
+      "wcag_level": "AA"
+    },
+    {
+      "check_id": "d8.focus_visible",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f5925864f449",
+      "fix_hint": "Add focus-visible:ring-2 (or an outline) beside outline-none, or drop outline-none.",
+      "id": "d8.focus_visible.f5925864f449",
+      "location": {
+        "file": "resources/views/components/banner.blade.php",
+        "line": 35
+      },
+      "message": "A <button> removes the outline (outline-none) and its class list has no focus ring, shadow or border to replace it (WCAG 2.4.7).",
+      "origin": "check:d8.focus_visible",
+      "severity": "major",
+      "source_id": "d8.focus_visible.focus-outline-removed.001",
+      "wcag_criterion": "2.4.7",
+      "wcag_level": "AA"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "14cc6fd15a94",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.14cc6fd15a94",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 56
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.071",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "14cc6fd15a94.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.14cc6fd15a94.1",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 60
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.072",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "14cc6fd15a94.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.14cc6fd15a94.2",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 74
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.074",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "1b1cee774683",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.1b1cee774683",
+      "location": {
+        "file": "resources/views/transactions/import/create.blade.php",
+        "line": 35
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.059",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "1d9c884aadf7",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.1d9c884aadf7",
+      "location": {
+        "file": "resources/views/transactions/import/create.blade.php",
+        "line": 46
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.060",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "2d645e06a787",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.2d645e06a787",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 105
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.009",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "302d37512e2b",
+      "fix_hint": "Use a <button> or <a href>.",
+      "id": "d8.labels_alt_lang.302d37512e2b",
+      "location": {
+        "file": "resources/views/components/dropdown.blade.php",
+        "line": 19
+      },
+      "message": "A click handler is attached to a <div> that is not focusable and has no role (WCAG 2.1.1).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.click-not-keyboard.001",
+      "wcag_criterion": "2.1.1",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "302d37512e2b.1",
+      "fix_hint": "Use a <button> or <a href>.",
+      "id": "d8.labels_alt_lang.302d37512e2b.1",
+      "location": {
+        "file": "resources/views/components/dropdown.blade.php",
+        "line": 23
+      },
+      "message": "A click handler is attached to a <div> that is not focusable and has no role (WCAG 2.1.1).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.click-not-keyboard.002",
+      "wcag_criterion": "2.1.1",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "3fa5c01dd388",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.3fa5c01dd388",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 37
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.045",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "3fa5c01dd388.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.3fa5c01dd388.1",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 48
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.046",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "3fa5c01dd388.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.3fa5c01dd388.2",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 62
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.047",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "3fa5c01dd388.3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.3fa5c01dd388.3",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 84
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.050",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "4461225449f6",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.4461225449f6",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 109
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.010",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "4e258fd4304c",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.4e258fd4304c",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 28
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.017",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "4e258fd4304c.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.4e258fd4304c.1",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 42
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.019",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "4e258fd4304c.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.4e258fd4304c.2",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 53
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.020",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "636807893418",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.636807893418",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 42
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.064",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "66a84428fa56",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.66a84428fa56",
+      "location": {
+        "file": "resources/views/reports/cash-flow.blade.php",
+        "line": 20
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.042",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6a184446b851",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6a184446b851",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 40
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.037",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6a184446b851.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6a184446b851.1",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 52
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.038",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d197bfad419",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d197bfad419",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 28
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.027",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d197bfad419.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d197bfad419.1",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 35
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.028",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d197bfad419.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d197bfad419.2",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 47
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.030",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d197bfad419.3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d197bfad419.3",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 53
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.031",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d25aa0a1f1c",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d25aa0a1f1c",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 28
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.052",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d25aa0a1f1c.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d25aa0a1f1c.1",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 34
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.053",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d25aa0a1f1c.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d25aa0a1f1c.2",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 69
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.057",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6d25aa0a1f1c.3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.6d25aa0a1f1c.3",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 74
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.058",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "72f87aa54843",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.72f87aa54843",
+      "location": {
+        "file": "resources/views/categories/index.blade.php",
+        "line": 92
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.033",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "7ba24e4930fb",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.7ba24e4930fb",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 39
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.054",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "7ba24e4930fb.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.7ba24e4930fb.1",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 50
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.055",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "7ba24e4930fb.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.7ba24e4930fb.2",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 58
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.056",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "7dbe0aa94c4a",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.7dbe0aa94c4a",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 102
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.023",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "8055f97f3a5a",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.8055f97f3a5a",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 38
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.018",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "8055f97f3a5a.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.8055f97f3a5a.1",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 61
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.021",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "80a5834d0ab4",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.80a5834d0ab4",
+      "location": {
+        "file": "resources/views/audit/index.blade.php",
+        "line": 32
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.015",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "80a5834d0ab4.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.80a5834d0ab4.1",
+      "location": {
+        "file": "resources/views/audit/index.blade.php",
+        "line": 42
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.016",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "85178edd724f",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.85178edd724f",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 39
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.029",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "89288e2e869e",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.89288e2e869e",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 70
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.073",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "89288e2e869e.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.89288e2e869e.1",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 80
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.075",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "9e07e8ae5914",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.9e07e8ae5914",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 94
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.022",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "9e07e8ae5914.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.9e07e8ae5914.1",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 106
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.024",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "9e07e8ae5914.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.9e07e8ae5914.2",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 116
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.025",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "a8a90a33f2d3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.a8a90a33f2d3",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 64
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.067",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "a8a90a33f2d3.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.a8a90a33f2d3.1",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 68
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.068",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "abfc30bf3768",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.abfc30bf3768",
+      "location": {
+        "file": "resources/views/transactions/import/preview.blade.php",
+        "line": 46
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.061",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "abfc30bf3768.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.abfc30bf3768.1",
+      "location": {
+        "file": "resources/views/transactions/import/preview.blade.php",
+        "line": 62
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.062",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "abfc30bf3768.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.abfc30bf3768.2",
+      "location": {
+        "file": "resources/views/transactions/import/preview.blade.php",
+        "line": 73
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.063",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "bee4b0ff29e8",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.bee4b0ff29e8",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 73
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.048",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "bee4b0ff29e8.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.bee4b0ff29e8.1",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 78
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.049",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "bee4b0ff29e8.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.bee4b0ff29e8.2",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 94
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.051",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "c5509e61d4ef",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.c5509e61d4ef",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 35
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.069",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "c5509e61d4ef.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.c5509e61d4ef.1",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 44
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.070",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "cacf568bedcd",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.cacf568bedcd",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 124
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.026",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "cd956c24e797",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.cd956c24e797",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 30
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.035",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "cd956c24e797.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.cd956c24e797.1",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 36
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.036",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "cd956c24e797.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.cd956c24e797.2",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 60
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.039",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "cd956c24e797.3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.cd956c24e797.3",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 69
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.040",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "cd956c24e797.4",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.cd956c24e797.4",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 82
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.041",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "ce2255dbcdda",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.ce2255dbcdda",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 46
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.065",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "ce2255dbcdda.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.ce2255dbcdda.1",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 55
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.066",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "d2477db663d9",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.d2477db663d9",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 96
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.008",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "da4ca51f775f",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.da4ca51f775f",
+      "location": {
+        "file": "resources/views/categories/index.blade.php",
+        "line": 99
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.034",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "eabd9116a015",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.eabd9116a015",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 118
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.011",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "eabd9116a015.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.eabd9116a015.1",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 122
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.012",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "eabd9116a015.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.eabd9116a015.2",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 127
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.013",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "eabd9116a015.3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.eabd9116a015.3",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 132
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.014",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "ecba2793988b",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.ecba2793988b",
+      "location": {
+        "file": "resources/views/categories/index.blade.php",
+        "line": 88
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.032",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f6a53e9b8dd9",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f6a53e9b8dd9",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 37
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.001",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f6a53e9b8dd9.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f6a53e9b8dd9.1",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 52
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.003",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f6a53e9b8dd9.2",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f6a53e9b8dd9.2",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 56
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.004",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f6a53e9b8dd9.3",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f6a53e9b8dd9.3",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 64
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.005",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f6a53e9b8dd9.4",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f6a53e9b8dd9.4",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 87
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.006",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f6a53e9b8dd9.5",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f6a53e9b8dd9.5",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 91
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.007",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f709925ad36b",
+      "fix_hint": "Add visible text, or aria-label for an icon-only control.",
+      "id": "d8.labels_alt_lang.f709925ad36b",
+      "location": {
+        "file": "resources/views/navigation-menu.blade.php",
+        "line": 129
+      },
+      "message": "A button has no accessible name: no text, aria-label, title, or labelled image or icon inside (WCAG 4.1.2, 2.4.4).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.name-missing.001",
+      "wcag_criterion": "4.1.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "f943fe0f2c97",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.f943fe0f2c97",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 43
+      },
+      "message": "A <select> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.002",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "fde920ac19eb",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.fde920ac19eb",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 27
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.043",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.labels_alt_lang",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "fde920ac19eb.1",
+      "fix_hint": "Add a visible <label for=\"id\"> (preferred) or an aria-label. If the label lives in another file, this finding is a false positive.",
+      "id": "d8.labels_alt_lang.fde920ac19eb.1",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 33
+      },
+      "message": "A <input> has no associated label: no <label for>, no enclosing <label>, no aria-label or aria-labelledby (a placeholder is not a label) (WCAG 1.3.1, 3.3.2, 4.1.2).",
+      "origin": "check:d8.labels_alt_lang",
+      "severity": "major",
+      "source_id": "d8.labels_alt_lang.control-no-label.044",
+      "wcag_criterion": "3.3.2",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d8.token_pair_contrast",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "6c8a02e4ce29",
+      "fix_hint": "Adjust one of the two tokens until the pair reaches 4.5:1 on the dark theme, or stop using them together.",
+      "id": "d8.token_pair_contrast.6c8a02e4ce29",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 30
+      },
+      "message": "Contrast 4.11:1 on the dark theme is below 4.5:1 for --text-muted (#71717a) on --page-bg (#09090b); source: ground.",
+      "origin": "check:d8.token_pair_contrast",
+      "severity": "major",
+      "source_id": "d8.token_pair_contrast.low-contrast.002",
+      "wcag_criterion": "1.4.3",
+      "wcag_level": "AA"
+    },
+    {
+      "check_id": "d8.token_pair_contrast",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "786b7f75a7ef",
+      "fix_hint": "Adjust one of the two tokens until the pair reaches 4.5:1 on the dark theme, or stop using them together.",
+      "id": "d8.token_pair_contrast.786b7f75a7ef",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 30
+      },
+      "message": "Contrast 3.80:1 on the dark theme is below 4.5:1 for --text-muted (#71717a) on --card-bg (#141416); source: ground.",
+      "origin": "check:d8.token_pair_contrast",
+      "severity": "major",
+      "source_id": "d8.token_pair_contrast.low-contrast.001",
+      "wcag_criterion": "1.4.3",
+      "wcag_level": "AA"
+    },
+    {
+      "check_id": "d8.token_pair_contrast",
+      "dimension": "accessibility_inclusion",
+      "fingerprint": "c1df692dfb02",
+      "fix_hint": "Adjust one of the two tokens until the pair reaches 4.5:1 on the light theme, or stop using them together.",
+      "id": "d8.token_pair_contrast.c1df692dfb02",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 30
+      },
+      "message": "Contrast 4.40:1 on the light theme is below 4.5:1 for --text-muted (#6b7280) on --page-bg (#f4f4f6); source: ground.",
+      "origin": "check:d8.token_pair_contrast",
+      "severity": "major",
+      "source_id": "d8.token_pair_contrast.low-contrast.003",
+      "wcag_criterion": "1.4.3",
+      "wcag_level": "AA"
+    },
+    {
+      "check_id": "d10.health_endpoint",
+      "dimension": "reliability_error_recovery",
+      "fingerprint": "7676022d7f13",
+      "fix_hint": "Make the endpoint return a 503 when the database or another required dependency fails, so monitoring is told the truth.",
+      "id": "d10.health_endpoint.7676022d7f13",
+      "location": {
+        "file": "bootstrap/app.php",
+        "line": 16
+      },
+      "message": "The health endpoint (framework health route /up with no DiagnosingHealth listener (it answers 200 whenever the app boots)) shows no failure path: no 5xx status, exception handling or dependency probe was found in its handler.",
+      "origin": "check:d10.health_endpoint",
+      "severity": "minor",
+      "source_id": "d10.health_endpoint.health-failure-path-not-seen.001"
+    },
+    {
+      "check_id": "d2.font_palette_deny_list",
+      "dimension": "brand_distinctiveness",
+      "fingerprint": "428ac5b07ca9",
+      "fix_hint": "Choose a typeface that the product's DESIGN.md records, or record why this one is the right choice.",
+      "id": "d2.font_palette_deny_list.428ac5b07ca9",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 46
+      },
+      "message": "The font \"Inter\" is a browser, OS or starter-kit default (font-family), not a chosen typeface.",
+      "origin": "check:d2.font_palette_deny_list",
+      "severity": "minor",
+      "source_id": "d2.font_palette_deny_list.font-on-deny-list.001"
+    },
+    {
+      "check_id": "d3.field_counts",
+      "dimension": "usability_cognitive_load",
+      "fingerprint": "f48dad028cef",
+      "fix_hint": "Ask only for what the task needs now; split the form or make fields optional.",
+      "id": "d3.field_counts.f48dad028cef",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 22
+      },
+      "message": "A form has 9 fields (bound 8).",
+      "origin": "check:d3.field_counts",
+      "severity": "minor",
+      "source_id": "d3.field_counts.form-too-many-fields.001"
+    },
+    {
+      "check_id": "d3.heading_structure",
+      "dimension": "usability_cognitive_load",
+      "fingerprint": "00fc47408138",
+      "fix_hint": "Give the screen one <h1> naming the page.",
+      "id": "d3.heading_structure.00fc47408138",
+      "location": {
+        "file": "resources/views/profile/two-factor-authentication-form.blade.php",
+        "line": 11
+      },
+      "message": "The screen has headings but no <h1>.",
+      "origin": "check:d3.heading_structure",
+      "severity": "minor",
+      "source_id": "d3.heading_structure.h1-missing.001",
+      "wcag_criterion": "1.3.1",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d3.heading_structure",
+      "dimension": "usability_cognitive_load",
+      "fingerprint": "33a67c2d36cf",
+      "fix_hint": "Use h2 here, or restructure the headings.",
+      "id": "d3.heading_structure.33a67c2d36cf",
+      "location": {
+        "file": "resources/views/categories/index.blade.php",
+        "line": 72
+      },
+      "message": "Heading level jumps from h1 to h3.",
+      "origin": "check:d3.heading_structure",
+      "severity": "minor",
+      "source_id": "d3.heading_structure.heading-skip.003",
+      "wcag_criterion": "1.3.1",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d3.heading_structure",
+      "dimension": "usability_cognitive_load",
+      "fingerprint": "8a581c5d503d",
+      "fix_hint": "Use h2 here, or restructure the headings.",
+      "id": "d3.heading_structure.8a581c5d503d",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 69
+      },
+      "message": "Heading level jumps from h1 to h3.",
+      "origin": "check:d3.heading_structure",
+      "severity": "minor",
+      "source_id": "d3.heading_structure.heading-skip.002",
+      "wcag_criterion": "1.3.1",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d3.heading_structure",
+      "dimension": "usability_cognitive_load",
+      "fingerprint": "e2ff5257632d",
+      "fix_hint": "Use h2 here, or restructure the headings.",
+      "id": "d3.heading_structure.e2ff5257632d",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 89
+      },
+      "message": "Heading level jumps from h1 to h3.",
+      "origin": "check:d3.heading_structure",
+      "severity": "minor",
+      "source_id": "d3.heading_structure.heading-skip.001",
+      "wcag_criterion": "1.3.1",
+      "wcag_level": "A"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 98
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.007",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.1",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.1",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 102
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.008",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.2",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.2",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 106
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.009",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.3",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.3",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 162
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.010",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.4",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.4",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 165
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.011",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.5",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.5",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 292
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.012",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.6",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.6",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 312
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.013",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4554e6415235.7",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4554e6415235.7",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 315
+      },
+      "message": "Utility class \"transition-colors\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.014",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "4e0bd181ca33",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.4e0bd181ca33",
+      "location": {
+        "file": "resources/views/components/banner.blade.php",
+        "line": 35
+      },
+      "message": "Utility class \"transition\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.001",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "52f3b4746357",
+      "fix_hint": "Add one global @media (prefers-reduced-motion: reduce) rule that shortens transitions and animations, or per-selector overrides.",
+      "id": "d4.reduced_motion.52f3b4746357",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 47
+      },
+      "message": "2 transition/animation declaration(s) have no prefers-reduced-motion override; first: \".press\".",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-no-reduced-variant.004",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "53e400b273e8",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.53e400b273e8",
+      "location": {
+        "file": "resources/views/navigation-menu.blade.php",
+        "line": 28
+      },
+      "message": "Utility class \"transition\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.003",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "53e400b273e8.1",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.53e400b273e8.1",
+      "location": {
+        "file": "resources/views/navigation-menu.blade.php",
+        "line": 79
+      },
+      "message": "Utility class \"transition\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.004",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "53e400b273e8.2",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.53e400b273e8.2",
+      "location": {
+        "file": "resources/views/navigation-menu.blade.php",
+        "line": 84
+      },
+      "message": "Utility class \"transition\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.005",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "53e400b273e8.3",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.53e400b273e8.3",
+      "location": {
+        "file": "resources/views/navigation-menu.blade.php",
+        "line": 129
+      },
+      "message": "Utility class \"transition\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.006",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "5c823c097b70",
+      "fix_hint": "Add motion-reduce:transition-none / motion-reduce:animate-none, or a global reduced-motion rule.",
+      "id": "d4.reduced_motion.5c823c097b70",
+      "location": {
+        "file": "resources/views/components/modal.blade.php",
+        "line": 24
+      },
+      "message": "Utility class \"transition-all\" animates with no motion-reduce: variant and no global override.",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-utility-no-variant.002",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "61a2c37cbc15",
+      "fix_hint": "Add one global @media (prefers-reduced-motion: reduce) rule that shortens transitions and animations, or per-selector overrides.",
+      "id": "d4.reduced_motion.61a2c37cbc15",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 46
+      },
+      "message": "8 transition/animation declaration(s) have no prefers-reduced-motion override; first: \"body\".",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-no-reduced-variant.002",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d4.reduced_motion",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "ffa1d3bc7ed6",
+      "fix_hint": "Add one global @media (prefers-reduced-motion: reduce) rule that shortens transitions and animations, or per-selector overrides.",
+      "id": "d4.reduced_motion.ffa1d3bc7ed6",
+      "location": {
+        "file": "resources/views/errors/_ecosystem-layout.blade.php",
+        "line": 87
+      },
+      "message": "2 transition/animation declaration(s) have no prefers-reduced-motion override; first: \".press\".",
+      "origin": "check:d4.reduced_motion",
+      "severity": "minor",
+      "source_id": "d4.reduced_motion.motion-no-reduced-variant.001",
+      "wcag_criterion": "2.3.3",
+      "wcag_level": "AAA"
+    },
+    {
+      "check_id": "d5.route_inventory_vs_claims",
+      "dimension": "functional_completeness",
+      "fingerprint": "4f1b618d30ea",
+      "fix_hint": "Check that the feature is built and reachable; if it is not, remove it from the feature list. If it is, a route or page name that does not contain the keyword is a false positive.",
+      "id": "d5.route_inventory_vs_claims.4f1b618d30ea",
+      "location": {
+        "file": "README.md",
+        "line": 65
+      },
+      "message": "The claimed feature \"Weekly summaries\" shares no keyword with any route, page or view name (weekly, summary).",
+      "origin": "check:d5.route_inventory_vs_claims",
+      "severity": "minor",
+      "source_id": "d5.route_inventory_vs_claims.claim-without-route.001"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "08642d6555b3",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.08642d6555b3",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 13
+      },
+      "message": "10 hard-coded colour literal(s) against 18 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.008"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "214202824995",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.214202824995",
+      "location": {
+        "file": "resources/views/recurring/index.blade.php",
+        "line": 16
+      },
+      "message": "7 hard-coded colour literal(s) against 14 token reference(s); first: #059669.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.024"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "34c472394c56",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.34c472394c56",
+      "location": {
+        "file": "resources/views/transactions/import/preview.blade.php",
+        "line": 23
+      },
+      "message": "13 hard-coded colour literal(s) against 24 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.029"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "3b60c57f349e",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.3b60c57f349e",
+      "location": {
+        "file": "resources/views/categories/index.blade.php",
+        "line": 13
+      },
+      "message": "8 hard-coded colour literal(s) against 19 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.010"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "5fc6e58b3a95",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.5fc6e58b3a95",
+      "location": {
+        "file": "resources/views/accounts/confirm-delete.blade.php",
+        "line": 19
+      },
+      "message": "6 hard-coded colour literal(s) against 4 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.001"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "81b1edf93da8",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.81b1edf93da8",
+      "location": {
+        "file": "resources/views/forecast/index.blade.php",
+        "line": 13
+      },
+      "message": "10 hard-coded colour literal(s) against 25 token reference(s); first: #fbbf24.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.019"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "862ab1d6baa2",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.862ab1d6baa2",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 33
+      },
+      "message": "7 hard-coded colour literal(s) against 28 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.030"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "939d320635ac",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.939d320635ac",
+      "location": {
+        "file": "resources/views/reconciliation/index.blade.php",
+        "line": 16
+      },
+      "message": "6 hard-coded colour literal(s) against 9 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.022"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "a7cd146c3c85",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.a7cd146c3c85",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 42
+      },
+      "message": "5 hard-coded colour literal(s) against 85 token reference(s); first: rgba(36,26,16,0.05).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.032"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "b9e0654d3946",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.b9e0654d3946",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 16
+      },
+      "message": "6 hard-coded colour literal(s) against 13 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.002"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "c42857cb441e",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.c42857cb441e",
+      "location": {
+        "file": "resources/views/dashboard.blade.php",
+        "line": 17
+      },
+      "message": "27 hard-coded colour literal(s) against 69 token reference(s); first: #059669.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.011"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "cccb26b8c51a",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.cccb26b8c51a",
+      "location": {
+        "file": "resources/views/layouts/app.blade.php",
+        "line": 52
+      },
+      "message": "25 hard-coded colour literal(s) against 62 token reference(s); first: rgba(74,222,128,0.1).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.020"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "d5b1dcb422de",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.d5b1dcb422de",
+      "location": {
+        "file": "resources/views/errors/_ecosystem-layout.blade.php",
+        "line": 83
+      },
+      "message": "7 hard-coded colour literal(s) against 12 token reference(s); first: #5a4a36.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.018"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "d9b40659b992",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.d9b40659b992",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 13
+      },
+      "message": "8 hard-coded colour literal(s) against 25 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.003"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "ece2e533a6be",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.ece2e533a6be",
+      "location": {
+        "file": "resources/views/transactions/import/create.blade.php",
+        "line": 15
+      },
+      "message": "6 hard-coded colour literal(s) against 6 token reference(s); first: rgba(74,222,128,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.028"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "fd6796052139",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.fd6796052139",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 9
+      },
+      "message": "5 hard-coded colour literal(s) against 14 token reference(s); first: #059669.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "minor",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.026"
+    },
+    {
+      "check_id": "d4.spacing_type_scale_conformance",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "0a2ec7d2126e",
+      "fix_hint": "Supply what is missing, or accept that this check cannot judge this repository; it counts as zero in the score, visibly.",
+      "id": "d4.spacing_type_scale_conformance.0a2ec7d2126e",
+      "message": "Not measured: no spacing or type scale is declared (no --space-*, --spacing-*, --text-*, --font-size-* custom properties and no spacing/typography in DESIGN.md front matter), so there is nothing to conform to.",
+      "origin": "check:d4.spacing_type_scale_conformance",
+      "severity": "info",
+      "source_id": "d4.spacing_type_scale_conformance.not-measured.001"
+    },
+    {
+      "check_id": "d4.spacing_type_scale_conformance",
+      "dimension": "visual_interaction_craftsmanship",
+      "fingerprint": "a922a8383bd8",
+      "fix_hint": "Declare the scales as custom properties (--space-1.., --text-sm..) or in the DESIGN.md spacing and typography tables.",
+      "id": "d4.spacing_type_scale_conformance.a922a8383bd8",
+      "location": {
+        "file": "resources/css/app.css",
+        "line": 1
+      },
+      "message": "No spacing scale and no type scale are declared as tokens, so spacing and type size cannot be checked for consistency.",
+      "origin": "check:d4.spacing_type_scale_conformance",
+      "severity": "info",
+      "source_id": "d4.spacing_type_scale_conformance.no-scale-declared.001"
+    },
+    {
+      "check_id": "d6.claim_lint",
+      "dimension": "trust_transparency",
+      "fingerprint": "c6d197b73911",
+      "fix_hint": "Supply what is missing, or accept that this check cannot judge this repository; it counts as zero in the score, visibly.",
+      "id": "d6.claim_lint.c6d197b73911",
+      "message": "Not measured: 623 user-facing string(s) were scanned and none carries a claim or figure the patterns know, so there is no share to measure (this is not proof that the copy is accurate).",
+      "origin": "check:d6.claim_lint",
+      "severity": "info",
+      "source_id": "d6.claim_lint.not-measured.001"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "080a3a98251f",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.080a3a98251f",
+      "location": {
+        "file": "resources/views/transactions/create.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.010"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "0c469a40d783",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.0c469a40d783",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.004"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "294be9157bc1",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.294be9157bc1",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.005"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "2c36e671471e",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.2c36e671471e",
+      "location": {
+        "file": "resources/views/transactions/import/create.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.013"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "2f7bc9a512cf",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.2f7bc9a512cf",
+      "location": {
+        "file": "resources/views/reconciliation/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.008"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "30dd0377bcd9",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.30dd0377bcd9",
+      "location": {
+        "file": "resources/views/dashboard.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.005"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "35536d0b75ca",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.35536d0b75ca",
+      "location": {
+        "file": "resources/views/accounts/confirm-delete.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.001"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "3a32ac80076a",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.3a32ac80076a",
+      "location": {
+        "file": "resources/views/navigation-menu.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.006"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "57931058cbf7",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.57931058cbf7",
+      "location": {
+        "file": "resources/views/welcome.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.015"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "5917f6a9d23c",
+      "fix_hint": "Supply what is missing, or accept that this check cannot judge this repository; it counts as zero in the score, visibly.",
+      "id": "d6.honest_states.5917f6a9d23c",
+      "message": "Not measured: 27 list screen(s) were inspected for empty/error wording; whether states are honest and show no invented data needs a person or a rendered page, so no share is produced.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.not-measured.001"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "62581e30e80d",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.62581e30e80d",
+      "location": {
+        "file": "resources/views/profile/logout-other-browser-sessions-form.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.007"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "7d2e5b5fa0e6",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.7d2e5b5fa0e6",
+      "location": {
+        "file": "resources/views/teams/team-member-manager.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.011"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "9144a22d3af5",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.9144a22d3af5",
+      "location": {
+        "file": "resources/views/audit/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.002"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "94ef4e008b40",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.94ef4e008b40",
+      "location": {
+        "file": "resources/views/reports/cash-flow.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.009"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "9ac467ca362e",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.9ac467ca362e",
+      "location": {
+        "file": "resources/views/transactions/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.012"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "a61dbbddcbf8",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.a61dbbddcbf8",
+      "location": {
+        "file": "resources/views/categories/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.004"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "b60c195b9798",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.b60c195b9798",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.012"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "bac312568981",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.bac312568981",
+      "location": {
+        "file": "resources/views/budgets/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.003"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "bc50a8750616",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.bc50a8750616",
+      "location": {
+        "file": "resources/views/accounts/edit.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.002"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "be95e76dd26e",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.be95e76dd26e",
+      "location": {
+        "file": "resources/views/api/api-token-manager.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.003"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "e67cf6a2c9b5",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.e67cf6a2c9b5",
+      "location": {
+        "file": "resources/views/accounts/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.001"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "ec64dd391617",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.ec64dd391617",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.009"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "ee8ea8292bba",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.ee8ea8292bba",
+      "location": {
+        "file": "resources/views/forecast/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.006"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "eff4ef35a531",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.eff4ef35a531",
+      "location": {
+        "file": "resources/views/profile/two-factor-authentication-form.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.008"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "f7fadbd8cdc9",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.f7fadbd8cdc9",
+      "location": {
+        "file": "resources/views/insights/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.007"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "fb61d71bb6ed",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.fb61d71bb6ed",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.014"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "fc2af5b10caa",
+      "fix_hint": "Say plainly what an empty, failed or unavailable list means and what to do next.",
+      "id": "d6.honest_states.fc2af5b10caa",
+      "location": {
+        "file": "resources/views/recurring/index.blade.php",
+        "line": 1
+      },
+      "message": "List screen: no wording or branch for an empty list was found, and no error/unavailable wording.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-absent.010"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "fingerprint": "fef23d010a97",
+      "fix_hint": "Check by hand that the wording says what is true and shows no invented data.",
+      "id": "d6.honest_states.fef23d010a97",
+      "location": {
+        "file": "resources/views/transactions/import/preview.blade.php",
+        "line": 1
+      },
+      "message": "List screen: wording or a branch for an empty list is present and error/unavailable wording is present. Whether it is true is not assessed.",
+      "origin": "check:d6.honest_states",
+      "severity": "info",
+      "source_id": "d6.honest_states.list-empty-state-present.011"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "0636a8f586a6",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.0636a8f586a6",
+      "location": {
+        "file": "resources/views/errors/429.blade.php",
+        "line": 4
+      },
+      "message": "2 hard-coded colour literal(s) against 1 token reference(s); first: #c98a1f.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.015"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "0675f433b52c",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.0675f433b52c",
+      "location": {
+        "file": "resources/views/errors/500.blade.php",
+        "line": 4
+      },
+      "message": "3 hard-coded colour literal(s) against 2 token reference(s); first: #dd6e29.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.016"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "4b915edf9058",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.4b915edf9058",
+      "location": {
+        "file": "resources/views/layouts/guest.blade.php",
+        "line": 50
+      },
+      "message": "4 hard-coded colour literal(s) against 3 token reference(s); first: rgba(36,26,16,0.05).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.021"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "5759fa17ce2e",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.5759fa17ce2e",
+      "location": {
+        "file": "resources/views/transfers/create.blade.php",
+        "line": 15
+      },
+      "message": "4 hard-coded colour literal(s) against 11 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.031"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "6237114c9e7e",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.6237114c9e7e",
+      "location": {
+        "file": "resources/views/auth/login.blade.php",
+        "line": 42
+      },
+      "message": "1 hard-coded colour literal(s) against 5 token reference(s); first: #e8af39.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.004"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "852627fa51dc",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.852627fa51dc",
+      "location": {
+        "file": "resources/views/auth/register.blade.php",
+        "line": 55
+      },
+      "message": "1 hard-coded colour literal(s) against 5 token reference(s); first: #e8af39.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.005"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "879e1b8402c9",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.879e1b8402c9",
+      "location": {
+        "file": "resources/views/errors/503.blade.php",
+        "line": 4
+      },
+      "message": "2 hard-coded colour literal(s) against 1 token reference(s); first: #c98a1f.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.017"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "9b709a326799",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.9b709a326799",
+      "location": {
+        "file": "resources/views/recurring/edit.blade.php",
+        "line": 15
+      },
+      "message": "4 hard-coded colour literal(s) against 11 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.023"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "cec9a9a04e53",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.cec9a9a04e53",
+      "location": {
+        "file": "resources/views/auth/verify-email.blade.php",
+        "line": 33
+      },
+      "message": "2 hard-coded colour literal(s) against 7 token reference(s); first: #e8af39.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.006"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "e40369c6b28c",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.e40369c6b28c",
+      "location": {
+        "file": "resources/views/errors/419.blade.php",
+        "line": 4
+      },
+      "message": "2 hard-coded colour literal(s) against 2 token reference(s); first: #c98a1f.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.014"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "e64aa73bae53",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.e64aa73bae53",
+      "location": {
+        "file": "resources/views/categories/edit.blade.php",
+        "line": 13
+      },
+      "message": "3 hard-coded colour literal(s) against 9 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.009"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "e688f2c153a1",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.e688f2c153a1",
+      "location": {
+        "file": "resources/views/budgets/edit.blade.php",
+        "line": 13
+      },
+      "message": "3 hard-coded colour literal(s) against 7 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.007"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "ed53c44cc4fe",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.ed53c44cc4fe",
+      "location": {
+        "file": "resources/views/errors/404.blade.php",
+        "line": 4
+      },
+      "message": "3 hard-coded colour literal(s) against 3 token reference(s); first: #e8af39.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.013"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "ef889b35879e",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.ef889b35879e",
+      "location": {
+        "file": "resources/views/errors/403.blade.php",
+        "line": 4
+      },
+      "message": "3 hard-coded colour literal(s) against 3 token reference(s); first: #dd6e29.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.012"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "f458f14b96c2",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.f458f14b96c2",
+      "location": {
+        "file": "resources/views/transactions/edit.blade.php",
+        "line": 13
+      },
+      "message": "3 hard-coded colour literal(s) against 10 token reference(s); first: rgba(248,113,113,0.12).",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.027"
+    },
+    {
+      "check_id": "d9.token_usage_vs_profile",
+      "dimension": "cross_platform_consistency",
+      "fingerprint": "f45a51774ef5",
+      "fix_hint": "Declare the colour as a design token (a custom property) and reference it with var(--name).",
+      "id": "d9.token_usage_vs_profile.f45a51774ef5",
+      "location": {
+        "file": "resources/views/reports/cash-flow.blade.php",
+        "line": 70
+      },
+      "message": "2 hard-coded colour literal(s) against 10 token reference(s); first: #059669.",
+      "origin": "check:d9.token_usage_vs_profile",
+      "severity": "info",
+      "source_id": "d9.token_usage_vs_profile.hardcoded-colours.025"
+    }
+  ],
+  "input": {
+    "commit": "889c47d09f0a7f159094323478f19abe75923cfe",
+    "commit_source": "git",
+    "repo": "sakhilebhayi/Dot.Finance"
+  },
+  "integrity": {
+    "sha256": "0e96aed1a49d527863901e6c63e333d0c55afa71cd1065af230fe5ac5758e6f5"
+  },
+  "not_measured": [
+    {
+      "check_id": "d1.product_md_consistency",
+      "dimension": "emotional_clarity_positioning",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d1.purpose_statement_present",
+      "dimension": "emotional_clarity_positioning",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d10.error_copy_lint",
+      "dimension": "reliability_error_recovery",
+      "reason": "no_check_registered"
+    },
+    {
+      "adapters": [
+        "tests"
+      ],
+      "check_id": "d10.error_path_tests",
+      "dimension": "reliability_error_recovery",
+      "reason": "no_report_supplied"
+    },
+    {
+      "adapters": [
+        "detector"
+      ],
+      "check_id": "d2.impeccable_detect_findings",
+      "dimension": "brand_distinctiveness",
+      "reason": "no_report_supplied"
+    },
+    {
+      "check_id": "d2.token_uniqueness",
+      "dimension": "brand_distinctiveness",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d3.primary_action_per_screen",
+      "dimension": "usability_cognitive_load",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d3.task_flow_step_counts",
+      "dimension": "usability_cognitive_load",
+      "reason": "no_check_registered"
+    },
+    {
+      "adapters": [
+        "detector"
+      ],
+      "check_id": "d4.detector_clean",
+      "dimension": "visual_interaction_craftsmanship",
+      "reason": "no_report_supplied"
+    },
+    {
+      "check_id": "d4.responsive_overflow",
+      "dimension": "visual_interaction_craftsmanship",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d4.spacing_type_scale_conformance",
+      "dimension": "visual_interaction_craftsmanship",
+      "reason": "check_not_measured"
+    },
+    {
+      "adapters": [
+        "tests"
+      ],
+      "check_id": "d5.test_pass_counts",
+      "dimension": "functional_completeness",
+      "reason": "no_report_supplied"
+    },
+    {
+      "check_id": "d6.claim_lint",
+      "dimension": "trust_transparency",
+      "reason": "check_not_measured"
+    },
+    {
+      "check_id": "d6.consent_handling",
+      "dimension": "trust_transparency",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d6.honest_states",
+      "dimension": "trust_transparency",
+      "reason": "check_not_measured"
+    },
+    {
+      "check_id": "d7.empty_state_guidance",
+      "dimension": "perceived_demonstrated_value",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d7.time_to_first_result",
+      "dimension": "perceived_demonstrated_value",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d7.value_above_fold",
+      "dimension": "perceived_demonstrated_value",
+      "reason": "no_check_registered"
+    },
+    {
+      "adapters": [
+        "axe",
+        "lighthouse"
+      ],
+      "check_id": "d8.axe_violations",
+      "dimension": "accessibility_inclusion",
+      "reason": "no_report_supplied"
+    },
+    {
+      "check_id": "d9.principle_diff",
+      "dimension": "cross_platform_consistency",
+      "reason": "no_check_registered"
+    },
+    {
+      "check_id": "d9.shared_components",
+      "dimension": "cross_platform_consistency",
+      "reason": "no_check_registered"
+    }
+  ],
+  "profile": {
+    "chain": [
+      "dot-ecosystem@0.1.0"
+    ],
+    "domain_overrides": [
+      {
+        "principle": "BXP-01",
+        "reason": "A calm or reassuring tone must never soften a safety, regulatory or loss-of-money alert. The alert wins.",
+        "yields_to": "domain_safety"
+      },
+      {
+        "principle": "BXP-03",
+        "reason": "Distinctive colour, type and motion yield to contrast, visible focus and reduced motion.",
+        "yields_to": "accessibility"
+      },
+      {
+        "principle": "BXP-05",
+        "reason": "Demonstrated value never overrides correctness: a polished wrong figure is worse than no figure.",
+        "yields_to": "functional_correctness"
+      },
+      {
+        "principle": "BXP-08",
+        "reason": "A faster first result must not skip identity verification, consent or security steps.",
+        "yields_to": "security"
+      }
+    ],
+    "effective_status": "draft",
+    "id": "dot-ecosystem",
+    "kind": "ecosystem",
+    "principle_refs": [
+      {
+        "non_negotiable": false,
+        "principle": "BXP-01",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": false,
+        "principle": "BXP-02",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-03",
+        "via": "behavioural_principle:own-functional-identity"
+      },
+      {
+        "non_negotiable": false,
+        "principle": "BXP-03",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-04",
+        "via": "behavioural_principle:error-recovery"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-04",
+        "via": "behavioural_principle:honest-states"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-04",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": false,
+        "principle": "BXP-05",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": false,
+        "principle": "BXP-06",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": false,
+        "principle": "BXP-07",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": false,
+        "principle": "BXP-08",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-09",
+        "via": "behavioural_principle:no-dark-patterns"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-09",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-10",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-11",
+        "via": "behavioural_principle:accessibility-baseline"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-11",
+        "via": "experience_standard"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-12",
+        "via": "behavioural_principle:consistent-naming"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-12",
+        "via": "behavioural_principle:token-interoperability"
+      },
+      {
+        "non_negotiable": true,
+        "principle": "BXP-12",
+        "via": "experience_standard"
+      }
+    ],
+    "sha256": "e21c37306843707affd13abbb1eca37c8b4102aafa79336411163dd88ca0dde0",
+    "source": "registry",
+    "version": "0.1.0"
+  },
+  "reports": {
+    "ingested": [],
+    "notes": [],
+    "skipped": [],
+    "superseded": []
+  },
+  "rubric": {
+    "id": "bxqs",
+    "sha256": "f5a4f8cb49b821bb41cb2ea3a5355089f87e60e6233cc6439a0f7ea680342bbd",
+    "version": "1.0.0"
+  },
+  "themes": [
+    "light",
+    "dark"
+  ]
+}
