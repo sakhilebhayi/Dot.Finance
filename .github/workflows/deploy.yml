@@ -209,7 +209,14 @@ jobs:
           # as .htaccess.before-guard. Skipped when this folder does not look like an
           # app folder under a docroot (then .htaccess here would be the site's own).
           set +e
-          if [ "$DOCROOT" = "$HOME" ] || [ -e index.php ] || [ ! -f artisan ] || [ ! -f public/index.php ]; then
+          # Once the subdomain's document root is <app>/public (the docroot move, InfoDot docs S-2e) the app
+          # folder is not served at all, and a deny file in it would block the whole site: do not write one.
+          # The host's own answer decides; a marker file is the fallback if the lookup fails.
+          APP_REAL="$(cd "$DEPLOY_PATH" 2>/dev/null && pwd -P)" || APP_REAL=""
+          CURRENT_DOCROOT="$(uapi --output=json DomainInfo single_domain_data domain=finance.infodot.co.za 2>/dev/null | sed -n 's/.*"documentroot" *: *"\([^"]*\)".*/\1/p' | head -1)"
+          if [ -n "$APP_REAL" ] && { [ "$CURRENT_DOCROOT" = "$APP_REAL/public" ] || [ -f "$DEPLOY_PATH/.docroot-is-public" ]; }; then
+            echo "== app-folder guard: skipped (the document root is $APP_REAL/public; the app folder is not served)"
+          elif [ "$DOCROOT" = "$HOME" ] || [ -e index.php ] || [ ! -f artisan ] || [ ! -f public/index.php ]; then
             echo "== app-folder guard: skipped ($APPDIR is not an app folder under a docroot)"
           elif [ -f .htaccess ] && grep -q 'Require all denied' .htaccess; then
             echo "== app-folder guard: already present in $APPDIR/.htaccess"
