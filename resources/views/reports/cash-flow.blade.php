@@ -16,8 +16,8 @@
             </p>
         </div>
         <form method="GET" action="{{ route('reports.cash-flow') }}" style="display:flex;gap:0.5rem;align-items:center;">
-            <label style="font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Last</label>
-            <select name="months" class="dot-input" style="width:auto;" onchange="this.form.submit()">
+            <label for="reports-cash-flow-months" style="font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Last</label>
+            <select id="reports-cash-flow-months" name="months" class="dot-input" style="width:auto;" onchange="this.form.submit()">
                 @foreach($ranges as $range)
                 <option value="{{ $range }}" @selected($months === $range)>{{ $range }} months</option>
                 @endforeach

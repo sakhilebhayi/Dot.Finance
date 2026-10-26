@@ -101,12 +101,12 @@
             <form method="POST" action="{{ route('accounts.store') }}" style="display:flex;flex-direction:column;gap:0.75rem;">
                 @csrf
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Name</label>
-                    <input type="text" name="name" value="{{ old('name') }}" required maxlength="255" class="dot-input" placeholder="e.g. Main Checking" />
+                    <label for="accounts-index-name" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Name</label>
+                    <input id="accounts-index-name" type="text" name="name" value="{{ old('name') }}" required maxlength="255" class="dot-input" placeholder="e.g. Main Checking" />
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Type</label>
-                    <select name="type" required class="dot-input">
+                    <label for="accounts-index-type" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Type</label>
+                    <select id="accounts-index-type" name="type" required class="dot-input">
                         @foreach(['checking', 'savings', 'credit', 'investment', 'cash'] as $type)
                         <option value="{{ $type }}" @selected(old('type') === $type)>{{ ucfirst($type) }}</option>
                         @endforeach
@@ -114,22 +114,22 @@
                 </div>
                 <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                     <div>
-                        <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Currency</label>
-                        <input type="text" name="currency" value="{{ old('currency', 'ZAR') }}" required maxlength="3" class="dot-input" />
+                        <label for="accounts-index-currency" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Currency</label>
+                        <input id="accounts-index-currency" type="text" name="currency" value="{{ old('currency', 'ZAR') }}" required maxlength="3" class="dot-input" />
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Opening balance</label>
-                        <input type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', '0.00') }}" required class="dot-input" />
+                        <label for="accounts-index-opening-balance" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Opening balance</label>
+                        <input id="accounts-index-opening-balance" type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', '0.00') }}" required class="dot-input" />
                     </div>
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Opening balance date</label>
-                    <input type="date" name="opening_balance_date" value="{{ old('opening_balance_date', now()->toDateString()) }}" class="dot-input" />
+                    <label for="accounts-index-opening-balance-date" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Opening balance date</label>
+                    <input id="accounts-index-opening-balance-date" type="date" name="opening_balance_date" value="{{ old('opening_balance_date', now()->toDateString()) }}" class="dot-input" />
                     <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Only transactions on or after this date change the balance.</p>
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Institution (optional)</label>
-                    <input type="text" name="institution" value="{{ old('institution') }}" maxlength="255" class="dot-input" />
+                    <label for="accounts-index-institution" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Institution (optional)</label>
+                    <input id="accounts-index-institution" type="text" name="institution" value="{{ old('institution') }}" maxlength="255" class="dot-input" />
                 </div>
                 <button type="submit" class="dot-btn dot-btn-primary" style="justify-content:center;margin-top:0.25rem;">Add Account</button>
             </form>

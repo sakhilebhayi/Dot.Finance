@@ -42,8 +42,8 @@
     {{-- ─── How to read this file ─────────────────────────────────────── --}}
     <form method="GET" action="{{ route('transactions.import.preview', ['token' => $p['token']]) }}" class="dot-card r-stack" style="padding:1.1rem 1.25rem;margin-bottom:1.25rem;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.9rem;align-items:end;">
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Dates are written as</label>
-            <select name="date_format" class="dot-input">
+            <label for="transactions-import-preview-date-format" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Dates are written as</label>
+            <select id="transactions-import-preview-date-format" name="date_format" class="dot-input">
                 @if($p['date_format'] === null)<option value="">Choose a format&hellip;</option>@endif
                 @foreach($dateLabels as $value => $label)
                 <option value="{{ $value }}" @selected($p['date_format'] === $value)>{{ $label }}</option>
@@ -58,8 +58,8 @@
             @endif
         </div>
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Amounts are written as</label>
-            <select name="amount_locale" class="dot-input">
+            <label for="transactions-import-preview-amount-locale" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Amounts are written as</label>
+            <select id="transactions-import-preview-amount-locale" name="amount_locale" class="dot-input">
                 @if($p['amount_locale'] === null)<option value="">Choose a format&hellip;</option>@endif
                 <option value="en" @selected($p['amount_locale'] === 'en')>1,234.56 (comma groups, dot decimal)</option>
                 <option value="eu" @selected($p['amount_locale'] === 'eu')>1 234,56 or 1.234,56 (comma decimal)</option>
@@ -69,8 +69,8 @@
             @endif
         </div>
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Category for rows without one</label>
-            <select name="default_category_id" class="dot-input">
+            <label for="transactions-import-preview-default-category-id" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Category for rows without one</label>
+            <select id="transactions-import-preview-default-category-id" name="default_category_id" class="dot-input">
                 <option value="">None</option>
                 @foreach($categories as $category)
                 <option value="{{ $category->id }}" @selected($p['default_category_id'] === $category->id)>{{ $category->name }} ({{ $category->type }})</option>

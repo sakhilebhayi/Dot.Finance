@@ -90,20 +90,20 @@
             <form method="POST" action="{{ route('budgets.store') }}" style="display:flex;flex-direction:column;gap:0.75rem;">
                 @csrf
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Category</label>
-                    <select name="category_id" required class="dot-input">
+                    <label for="budgets-index-category-id" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Category</label>
+                    <select id="budgets-index-category-id" name="category_id" required class="dot-input">
                         @foreach($categories as $category)
                         <option value="{{ $category->id }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Monthly limit</label>
-                    <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                    <label for="budgets-index-amount" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Monthly limit</label>
+                    <input id="budgets-index-amount" type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Currency</label>
-                    <select name="currency" required class="dot-input">
+                    <label for="budgets-index-currency" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Currency</label>
+                    <select id="budgets-index-currency" name="currency" required class="dot-input">
                         @foreach($currencies as $code)
                         <option value="{{ $code }}" @selected(old('currency') === $code)>{{ $code }}</option>
                         @endforeach
@@ -112,16 +112,16 @@
                 </div>
                 <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
                     <div>
-                        <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Month</label>
-                        <select name="month" required class="dot-input">
+                        <label for="budgets-index-month" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Month</label>
+                        <select id="budgets-index-month" name="month" required class="dot-input">
                             @foreach(range(1, 12) as $m)
                             <option value="{{ $m }}" @selected((int) old('month', now()->month) === $m)>{{ \Carbon\Carbon::create()->month($m)->format('F') }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
-                        <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Year</label>
-                        <input type="number" name="year" value="{{ old('year', now()->year) }}" required class="dot-input" />
+                        <label for="budgets-index-year" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Year</label>
+                        <input id="budgets-index-year" type="number" name="year" value="{{ old('year', now()->year) }}" required class="dot-input" />
                     </div>
                 </div>
                 <button type="submit" class="dot-btn dot-btn-primary" style="justify-content:center;margin-top:0.25rem;">Add Budget</button>

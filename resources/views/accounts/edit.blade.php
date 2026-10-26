@@ -33,35 +33,35 @@
         @method('PUT')
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Name</label>
-            <input type="text" name="name" value="{{ old('name', $account->name) }}" required maxlength="255" class="dot-input" />
+            <label for="accounts-edit-name" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Name</label>
+            <input id="accounts-edit-name" type="text" name="name" value="{{ old('name', $account->name) }}" required maxlength="255" class="dot-input" />
         </div>
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
-                <select name="type" required class="dot-input">
+                <label for="accounts-edit-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
+                <select id="accounts-edit-type" name="type" required class="dot-input">
                     @foreach($types as $type)
                     <option value="{{ $type }}" @selected(old('type', $account->type) === $type)>{{ ucfirst($type) }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Currency</label>
+                <label for="accounts-edit-currency" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Currency</label>
                 @if($currencyLocked)
                 <input type="text" value="{{ $account->currency }}" disabled class="dot-input" />
                 <input type="hidden" name="currency" value="{{ $account->currency }}">
                 <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">The currency cannot change once an account has transactions.</p>
                 @else
-                <input type="text" name="currency" value="{{ old('currency', $account->currency) }}" required maxlength="3" class="dot-input" />
+                <input id="accounts-edit-currency" type="text" name="currency" value="{{ old('currency', $account->currency) }}" required maxlength="3" class="dot-input" />
                 <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Can be changed until the first transaction is recorded.</p>
                 @endif
             </div>
         </div>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Institution (optional)</label>
-            <input type="text" name="institution" value="{{ old('institution', $account->institution) }}" maxlength="255" class="dot-input" />
+            <label for="accounts-edit-institution" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Institution (optional)</label>
+            <input id="accounts-edit-institution" type="text" name="institution" value="{{ old('institution', $account->institution) }}" maxlength="255" class="dot-input" />
         </div>
 
         <div style="display:flex;gap:0.75rem;">
@@ -83,17 +83,17 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Opening balance ({{ $account->currency }})</label>
-                <input type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', \App\Support\Money::toDecimalString($account->opening_balance_cents)) }}" required class="dot-input" />
+                <label for="accounts-edit-opening-balance" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Opening balance ({{ $account->currency }})</label>
+                <input id="accounts-edit-opening-balance" type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', \App\Support\Money::toDecimalString($account->opening_balance_cents)) }}" required class="dot-input" />
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Effective from</label>
-                <input type="date" name="opening_balance_date" value="{{ old('opening_balance_date', $account->opening_balance_date?->toDateString() ?? now()->toDateString()) }}" required class="dot-input" />
+                <label for="accounts-edit-opening-balance-date" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Effective from</label>
+                <input id="accounts-edit-opening-balance-date" type="date" name="opening_balance_date" value="{{ old('opening_balance_date', $account->opening_balance_date?->toDateString() ?? now()->toDateString()) }}" required class="dot-input" />
             </div>
         </div>
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Reason (optional)</label>
-            <input type="text" name="reason" value="{{ old('reason') }}" maxlength="150" class="dot-input" placeholder="e.g. Matched the January statement" />
+            <label for="accounts-edit-reason" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Reason (optional)</label>
+            <input id="accounts-edit-reason" type="text" name="reason" value="{{ old('reason') }}" maxlength="150" class="dot-input" placeholder="e.g. Matched the January statement" />
         </div>
         <div>
             <button type="submit" class="dot-btn dot-btn-ghost">Adjust opening balance</button>
