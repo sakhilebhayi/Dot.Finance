@@ -32,7 +32,7 @@
             <div>
                 <label for="categories-edit-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
                 @if($typeLocked)
-                <input type="text" value="{{ ucfirst($category->type) }}" disabled class="dot-input" />
+                <input id="categories-edit-type" type="text" value="{{ ucfirst($category->type) }}" disabled class="dot-input" />
                 <input type="hidden" name="type" value="{{ $category->type }}">
                 <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Locked: transactions or budgets already use this category.</p>
                 @else

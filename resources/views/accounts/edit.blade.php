@@ -49,7 +49,7 @@
             <div>
                 <label for="accounts-edit-currency" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Currency</label>
                 @if($currencyLocked)
-                <input type="text" value="{{ $account->currency }}" disabled class="dot-input" />
+                <input id="accounts-edit-currency" type="text" value="{{ $account->currency }}" disabled class="dot-input" />
                 <input type="hidden" name="currency" value="{{ $account->currency }}">
                 <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">The currency cannot change once an account has transactions.</p>
                 @else
