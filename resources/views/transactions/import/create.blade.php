@@ -31,8 +31,8 @@
         @csrf
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Account</label>
-            <select name="account_id" required class="dot-input">
+            <label for="transactions-import-create-account-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Account</label>
+            <select id="transactions-import-create-account-id" name="account_id" required class="dot-input">
                 <option value="">Select account</option>
                 @foreach($accounts as $account)
                 <option value="{{ $account->id }}" @selected((string) old('account_id') === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
@@ -42,8 +42,8 @@
         </div>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">CSV file</label>
-            <input type="file" name="file" accept=".csv,.txt" required class="dot-input" />
+            <label for="transactions-import-create-file" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">CSV file</label>
+            <input id="transactions-import-create-file" type="file" name="file" accept=".csv,.txt" required class="dot-input" />
             <p style="font-size:0.7rem;color:var(--text-muted);margin:0.35rem 0 0;">
                 Recognised columns (case-insensitive): <strong>date</strong>, <strong>description</strong> (or memo/payee), <strong>amount</strong>, and optionally <strong>category</strong>.
                 A negative amount is imported as an expense, positive as income. Comma, semicolon and tab separated files all work. Up to 5 MB.

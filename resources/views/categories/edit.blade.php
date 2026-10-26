@@ -24,33 +24,33 @@
         @method('PUT')
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Name</label>
-            <input type="text" name="name" value="{{ old('name', $category->name) }}" required maxlength="255" class="dot-input" />
+            <label for="categories-edit-name" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Name</label>
+            <input id="categories-edit-name" type="text" name="name" value="{{ old('name', $category->name) }}" required maxlength="255" class="dot-input" />
         </div>
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
+                <label for="categories-edit-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
                 @if($typeLocked)
-                <input type="text" value="{{ ucfirst($category->type) }}" disabled class="dot-input" />
+                <input id="categories-edit-type" type="text" value="{{ ucfirst($category->type) }}" disabled class="dot-input" />
                 <input type="hidden" name="type" value="{{ $category->type }}">
                 <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Locked: transactions or budgets already use this category.</p>
                 @else
-                <select name="type" required class="dot-input">
+                <select id="categories-edit-type" name="type" required class="dot-input">
                     <option value="expense" @selected(old('type', $category->type) === 'expense')>Expense</option>
                     <option value="income" @selected(old('type', $category->type) === 'income')>Income</option>
                 </select>
                 @endif
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Colour</label>
-                <input type="color" name="color" value="{{ old('color', $category->color) }}" style="height:36px;width:100%;padding:2px;border-radius:8px;border:1px solid var(--input-border);background:var(--input-bg);" />
+                <label for="categories-edit-color" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Colour</label>
+                <input id="categories-edit-color" type="color" name="color" value="{{ old('color', $category->color) }}" style="height:36px;width:100%;padding:2px;border-radius:8px;border:1px solid var(--input-border);background:var(--input-bg);" />
             </div>
         </div>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Icon (optional, a Material Symbols name)</label>
-            <input type="text" name="icon" value="{{ old('icon', $category->icon) }}" maxlength="10" class="dot-input" />
+            <label for="categories-edit-icon" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Icon (optional, a Material Symbols name)</label>
+            <input id="categories-edit-icon" type="text" name="icon" value="{{ old('icon', $category->icon) }}" maxlength="10" class="dot-input" />
         </div>
 
         <div style="display:flex;gap:0.75rem;">

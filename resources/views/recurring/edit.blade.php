@@ -26,18 +26,18 @@
         @method('PUT')
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description</label>
-            <input type="text" name="description" value="{{ old('description', $rule->description) }}" required maxlength="255" class="dot-input" />
+            <label for="recurring-edit-description" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description</label>
+            <input id="recurring-edit-description" type="text" name="description" value="{{ old('description', $rule->description) }}" required maxlength="255" class="dot-input" />
         </div>
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount ({{ $rule->currency }})</label>
-                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount', $rule->amount) }}" required class="dot-input" />
+                <label for="recurring-edit-amount" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount ({{ $rule->currency }})</label>
+                <input id="recurring-edit-amount" type="text" inputmode="decimal" name="amount" value="{{ old('amount', $rule->amount) }}" required class="dot-input" />
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category (optional)</label>
-                <select name="category_id" class="dot-input">
+                <label for="recurring-edit-category-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category (optional)</label>
+                <select id="recurring-edit-category-id" name="category_id" class="dot-input">
                     <option value="">Uncategorized</option>
                     @foreach($categories as $category)
                     <option value="{{ $category->id }}" @selected((string) old('category_id', $rule->category_id) === (string) $category->id)>{{ $category->name }}</option>
@@ -48,16 +48,16 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Repeats</label>
-                <select name="recurrence_type" class="dot-input">
+                <label for="recurring-edit-recurrence-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Repeats</label>
+                <select id="recurring-edit-recurrence-type" name="recurrence_type" class="dot-input">
                     @foreach(['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly'] as $value => $label)
                     <option value="{{ $value }}" @selected(old('recurrence_type', $rule->recurrence_type) === $value)>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Every</label>
-                <input type="number" name="recurrence_interval" min="1" max="365" value="{{ old('recurrence_interval', $rule->recurrence_interval) }}" required class="dot-input" />
+                <label for="recurring-edit-recurrence-interval" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Every</label>
+                <input id="recurring-edit-recurrence-interval" type="number" name="recurrence_interval" min="1" max="365" value="{{ old('recurrence_interval', $rule->recurrence_interval) }}" required class="dot-input" />
             </div>
         </div>
         <p style="font-size:0.7rem;color:var(--text-muted);margin:-0.4rem 0 0;">
@@ -65,8 +65,8 @@
         </p>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Notes (optional)</label>
-            <input type="text" name="notes" value="{{ old('notes', $rule->notes) }}" maxlength="255" class="dot-input" />
+            <label for="recurring-edit-notes" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Notes (optional)</label>
+            <input id="recurring-edit-notes" type="text" name="notes" value="{{ old('notes', $rule->notes) }}" maxlength="255" class="dot-input" />
         </div>
 
         <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
@@ -78,8 +78,8 @@
     <form method="POST" action="{{ route('recurring.stop', $rule) }}" class="dot-card" style="padding:1.25rem 1.5rem;margin-top:1.25rem;display:flex;gap:0.75rem;align-items:end;flex-wrap:wrap;">
         @csrf
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">End on (optional)</label>
-            <input type="date" name="end_date" value="{{ old('end_date') }}" class="dot-input" />
+            <label for="recurring-edit-end-date" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">End on (optional)</label>
+            <input id="recurring-edit-end-date" type="date" name="end_date" value="{{ old('end_date') }}" class="dot-input" />
             <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Entries up to and including this date are still added. Leave empty to stop today.</p>
         </div>
         <button type="submit" class="dot-btn dot-btn-ghost" style="color:#f87171;">Stop recurring</button>

@@ -23,18 +23,18 @@
         @csrf
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description</label>
-            <input type="text" name="description" value="{{ old('description') }}" required maxlength="255" class="dot-input" placeholder="e.g. Groceries at Woolworths" />
+            <label for="transactions-create-description" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description</label>
+            <input id="transactions-create-description" type="text" name="description" value="{{ old('description') }}" required maxlength="255" class="dot-input" placeholder="e.g. Groceries at Woolworths" />
         </div>
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount</label>
-                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                <label for="transactions-create-amount" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount</label>
+                <input id="transactions-create-amount" type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
-                <select name="type" required class="dot-input" id="type-select">
+                <label for="transactions-create-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
+                <select id="transactions-create-type" name="type" required class="dot-input" id="type-select">
                     @foreach(['expense', 'income'] as $type)
                     <option value="{{ $type }}" @selected(old('type', 'expense') === $type)>{{ ucfirst($type) }}</option>
                     @endforeach
@@ -44,8 +44,8 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Account</label>
-                <select name="account_id" required class="dot-input">
+                <label for="transactions-create-account-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Account</label>
+                <select id="transactions-create-account-id" name="account_id" required class="dot-input">
                     <option value="">Select account</option>
                     @foreach($accounts as $account)
                     <option value="{{ $account->id }}" @selected((string) old('account_id') === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
@@ -58,8 +58,8 @@
                 @endif
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category (optional)</label>
-                <select name="category_id" class="dot-input" id="category-select">
+                <label for="transactions-create-category-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category (optional)</label>
+                <select id="transactions-create-category-id" name="category_id" class="dot-input" id="category-select">
                     <option value="">Uncategorized</option>
                     @foreach($categories as $category)
                     <option value="{{ $category->id }}" data-type="{{ $category->type }}" @selected((string) old('category_id') === (string) $category->id)>{{ $category->name }} ({{ $category->type }})</option>
@@ -69,19 +69,19 @@
         </div>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Date</label>
-            <input type="date" name="date" value="{{ old('date', now()->toDateString()) }}" required class="dot-input" />
+            <label for="transactions-create-date" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Date</label>
+            <input id="transactions-create-date" type="date" name="date" value="{{ old('date', now()->toDateString()) }}" required class="dot-input" />
         </div>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Notes (optional)</label>
-            <input type="text" name="notes" value="{{ old('notes') }}" maxlength="255" class="dot-input" />
+            <label for="transactions-create-notes" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Notes (optional)</label>
+            <input id="transactions-create-notes" type="text" name="notes" value="{{ old('notes') }}" maxlength="255" class="dot-input" />
         </div>
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding-top:0.5rem;border-top:1px solid var(--input-border);">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Repeat (optional)</label>
-                <select name="recurrence_type" class="dot-input">
+                <label for="transactions-create-recurrence-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Repeat (optional)</label>
+                <select id="transactions-create-recurrence-type" name="recurrence_type" class="dot-input">
                     <option value="">Doesn't repeat</option>
                     @foreach(['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly'] as $value => $label)
                     <option value="{{ $value }}" @selected(old('recurrence_type') === $value)>{{ $label }}</option>
@@ -90,8 +90,8 @@
                 <p style="font-size:0.7rem;color:var(--text-muted);margin:0.35rem 0 0;">A new transaction like this one will be logged automatically each period.</p>
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Every</label>
-                <input type="number" name="recurrence_interval" min="1" max="365" value="{{ old('recurrence_interval', 1) }}" class="dot-input" />
+                <label for="transactions-create-recurrence-interval" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Every</label>
+                <input id="transactions-create-recurrence-interval" type="number" name="recurrence_interval" min="1" max="365" value="{{ old('recurrence_interval', 1) }}" class="dot-input" />
             </div>
         </div>
 

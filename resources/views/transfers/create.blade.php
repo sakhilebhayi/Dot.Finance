@@ -31,8 +31,8 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">From account</label>
-                <select name="from_account_id" required class="dot-input">
+                <label for="transfers-create-from-account-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">From account</label>
+                <select id="transfers-create-from-account-id" name="from_account_id" required class="dot-input">
                     <option value="">Select account</option>
                     @foreach($accounts as $account)
                     <option value="{{ $account->id }}" @selected((string) old('from_account_id') === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
@@ -40,8 +40,8 @@
                 </select>
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">To account</label>
-                <select name="to_account_id" required class="dot-input">
+                <label for="transfers-create-to-account-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">To account</label>
+                <select id="transfers-create-to-account-id" name="to_account_id" required class="dot-input">
                     <option value="">Select account</option>
                     @foreach($accounts as $account)
                     <option value="{{ $account->id }}" @selected((string) old('to_account_id') === (string) $account->id)>{{ $account->name }} ({{ $account->currency }})</option>
@@ -52,12 +52,12 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount leaving the source</label>
-                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
+                <label for="transfers-create-amount" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount leaving the source</label>
+                <input id="transfers-create-amount" type="text" inputmode="decimal" name="amount" value="{{ old('amount') }}" required class="dot-input" placeholder="0.00" />
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount arriving (different currencies only)</label>
-                <input type="text" inputmode="decimal" name="converted_amount" value="{{ old('converted_amount') }}" class="dot-input" placeholder="Leave empty within one currency" />
+                <label for="transfers-create-converted-amount" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Amount arriving (different currencies only)</label>
+                <input id="transfers-create-converted-amount" type="text" inputmode="decimal" name="converted_amount" value="{{ old('converted_amount') }}" class="dot-input" placeholder="Leave empty within one currency" />
             </div>
         </div>
         <p style="font-size:0.7rem;color:var(--text-muted);margin:-0.4rem 0 0;">
@@ -66,18 +66,18 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Date</label>
-                <input type="date" name="date" value="{{ old('date', now()->toDateString()) }}" required class="dot-input" />
+                <label for="transfers-create-date" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Date</label>
+                <input id="transfers-create-date" type="date" name="date" value="{{ old('date', now()->toDateString()) }}" required class="dot-input" />
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description (optional)</label>
-                <input type="text" name="description" value="{{ old('description') }}" maxlength="255" class="dot-input" placeholder="Transfer" />
+                <label for="transfers-create-description" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description (optional)</label>
+                <input id="transfers-create-description" type="text" name="description" value="{{ old('description') }}" maxlength="255" class="dot-input" placeholder="Transfer" />
             </div>
         </div>
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Notes (optional)</label>
-            <input type="text" name="notes" value="{{ old('notes') }}" maxlength="255" class="dot-input" />
+            <label for="transfers-create-notes" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Notes (optional)</label>
+            <input id="transfers-create-notes" type="text" name="notes" value="{{ old('notes') }}" maxlength="255" class="dot-input" />
         </div>
 
         <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">

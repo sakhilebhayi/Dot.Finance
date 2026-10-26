@@ -38,12 +38,12 @@
     {{-- ─── Search / Filter Bar ────────────────────────────────────────── --}}
     <form method="GET" action="{{ route('transactions.index') }}" class="dot-card r-stack" style="padding:1rem 1.25rem;margin-bottom:1.5rem;display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:end;">
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Search</label>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Description contains..." class="dot-input" />
+            <label for="transactions-index-search" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Search</label>
+            <input id="transactions-index-search" type="text" name="search" value="{{ request('search') }}" placeholder="Description contains..." class="dot-input" />
         </div>
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Type</label>
-            <select name="type" class="dot-input">
+            <label for="transactions-index-type" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Type</label>
+            <select id="transactions-index-type" name="type" class="dot-input">
                 <option value="">All</option>
                 @foreach(['income', 'expense', 'transfer'] as $type)
                 <option value="{{ $type }}" @selected(request('type') === $type)>{{ ucfirst($type) }}</option>
@@ -51,8 +51,8 @@
             </select>
         </div>
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Category</label>
-            <select name="category_id" class="dot-input">
+            <label for="transactions-index-category-id" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Category</label>
+            <select id="transactions-index-category-id" name="category_id" class="dot-input">
                 <option value="">All</option>
                 @foreach($categories as $category)
                 <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
@@ -60,12 +60,12 @@
             </select>
         </div>
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">From</label>
-            <input type="date" name="from" value="{{ request('from') }}" class="dot-input" />
+            <label for="transactions-index-from" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">From</label>
+            <input id="transactions-index-from" type="date" name="from" value="{{ request('from') }}" class="dot-input" />
         </div>
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">To</label>
-            <input type="date" name="to" value="{{ request('to') }}" class="dot-input" />
+            <label for="transactions-index-to" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">To</label>
+            <input id="transactions-index-to" type="date" name="to" value="{{ request('to') }}" class="dot-input" />
         </div>
         <div style="display:flex;gap:0.5rem;">
             <button type="submit" class="dot-btn dot-btn-primary">Filter</button>

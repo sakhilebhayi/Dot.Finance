@@ -24,8 +24,8 @@
         @method('PUT')
 
         <div>
-            <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category</label>
-            <select name="category_id" required class="dot-input">
+            <label for="budgets-edit-category-id" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Category</label>
+            <select id="budgets-edit-category-id" name="category_id" required class="dot-input">
                 @foreach($categories as $category)
                 <option value="{{ $category->id }}" @selected((string) old('category_id', $budget->category_id) === (string) $category->id)>{{ $category->name }}</option>
                 @endforeach
@@ -34,12 +34,12 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Monthly limit</label>
-                <input type="text" inputmode="decimal" name="amount" value="{{ old('amount', $budget->amount) }}" required class="dot-input" />
+                <label for="budgets-edit-amount" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Monthly limit</label>
+                <input id="budgets-edit-amount" type="text" inputmode="decimal" name="amount" value="{{ old('amount', $budget->amount) }}" required class="dot-input" />
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Currency</label>
-                <select name="currency" required class="dot-input">
+                <label for="budgets-edit-currency" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Currency</label>
+                <select id="budgets-edit-currency" name="currency" required class="dot-input">
                     @foreach($currencies as $code)
                     <option value="{{ $code }}" @selected(old('currency', $budget->currency) === $code)>{{ $code }}</option>
                     @endforeach
@@ -49,16 +49,16 @@
 
         <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Month</label>
-                <select name="month" required class="dot-input">
+                <label for="budgets-edit-month" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Month</label>
+                <select id="budgets-edit-month" name="month" required class="dot-input">
                     @foreach(range(1, 12) as $m)
                     <option value="{{ $m }}" @selected((int) old('month', $budget->month) === $m)>{{ \Carbon\Carbon::create()->month($m)->format('F') }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Year</label>
-                <input type="number" name="year" value="{{ old('year', $budget->year) }}" required class="dot-input" />
+                <label for="budgets-edit-year" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Year</label>
+                <input id="budgets-edit-year" type="number" name="year" value="{{ old('year', $budget->year) }}" required class="dot-input" />
             </div>
         </div>
 

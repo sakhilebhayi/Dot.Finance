@@ -84,19 +84,19 @@
             <form method="POST" action="{{ route('categories.store') }}" style="display:flex;flex-direction:column;gap:0.75rem;">
                 @csrf
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Name</label>
-                    <input type="text" name="name" value="{{ old('name') }}" required maxlength="255" class="dot-input" placeholder="e.g. Groceries" />
+                    <label for="categories-index-name" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Name</label>
+                    <input id="categories-index-name" type="text" name="name" value="{{ old('name') }}" required maxlength="255" class="dot-input" placeholder="e.g. Groceries" />
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Type</label>
-                    <select name="type" required class="dot-input">
+                    <label for="categories-index-type" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Type</label>
+                    <select id="categories-index-type" name="type" required class="dot-input">
                         <option value="expense" @selected(old('type', 'expense') === 'expense')>Expense</option>
                         <option value="income" @selected(old('type') === 'income')>Income</option>
                     </select>
                 </div>
                 <div>
-                    <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Color</label>
-                    <input type="color" name="color" value="{{ old('color', '#6366f1') }}" style="height:36px;width:100%;padding:2px;border-radius:8px;border:1px solid var(--input-border);background:var(--input-bg);" />
+                    <label for="categories-index-color" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem;">Color</label>
+                    <input id="categories-index-color" type="color" name="color" value="{{ old('color', '#6366f1') }}" style="height:36px;width:100%;padding:2px;border-radius:8px;border:1px solid var(--input-border);background:var(--input-bg);" />
                 </div>
                 <button type="submit" class="dot-btn dot-btn-primary" style="justify-content:center;margin-top:0.25rem;">Add Category</button>
             </form>

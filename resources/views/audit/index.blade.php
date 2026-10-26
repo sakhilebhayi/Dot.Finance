@@ -28,8 +28,8 @@
 
     <form method="GET" action="{{ route('audit.index') }}" class="dot-card" style="padding:0.9rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:0.75rem;align-items:end;flex-wrap:wrap;">
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Show</label>
-            <select name="subject" class="dot-input" style="min-width:12rem;">
+            <label for="audit-index-subject" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Show</label>
+            <select id="audit-index-subject" name="subject" class="dot-input" style="min-width:12rem;">
                 <option value="">Everything</option>
                 @foreach($subjects as $s)
                 <option value="{{ $s }}" @selected($subject === $s)>{{ ucfirst(str_replace('_', ' ', $s)) }}s</option>
@@ -38,8 +38,8 @@
         </div>
         @if($actors->isNotEmpty() || $actor)
         <div>
-            <label style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Who</label>
-            <select name="actor" class="dot-input" style="min-width:12rem;">
+            <label for="audit-index-actor" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Who</label>
+            <select id="audit-index-actor" name="actor" class="dot-input" style="min-width:12rem;">
                 <option value="">Everyone</option>
                 @foreach($actors as $person)
                 <option value="{{ $person->id }}" @selected($actor === $person->id)>{{ $person->name }}</option>
