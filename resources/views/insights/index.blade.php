@@ -1,52 +1,32 @@
-<x-app-layout>
+<x-app-layout title="Weekly summaries">
 
-<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
-
-    <div style="margin-bottom:1.5rem;">
-        <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
-            Weekly summaries
-        </h1>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;max-width:60rem;">
-            {{ $insights->total() }} summar{{ $insights->total() === 1 ? 'y' : 'ies' }}.
-            @if($activeLedger?->isCompany())
-            Each one is a rule-based summary: plain arithmetic on the company's ledger, worded by fixed rules, one per currency it holds. It is not AI, and it is not financial advice.
-            @else
-            Each one is a rule-based summary: plain arithmetic on your own ledger, worded by fixed rules, one per currency you hold. It is not AI, and it is not financial advice.
-            @endif
-            One is written per week.
-        </p>
-    </div>
-
-    <div class="dot-card" style="overflow:hidden;">
-        @if($insights->count() > 0)
-        <div>
-            @foreach($insights as $insight)
-            <div style="padding:1.1rem 1.5rem;border-bottom:1px solid var(--divider);display:flex;gap:1rem;align-items:flex-start;">
-                <div style="width:32px;height:32px;border-radius:8px;background:{{ $insight->type === 'reserve_runway_warning' ? 'rgba(248,113,113,0.15)' : 'rgba(74,222,128,0.12)' }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <span class="material-symbols-rounded" style="font-size:17px;color:{{ $insight->type === 'reserve_runway_warning' ? '#f87171' : '#34d399' }};">
-                        {{ $insight->type === 'reserve_runway_warning' ? 'warning' : 'savings' }}
-                    </span>
-                </div>
-                <div style="min-width:0;flex:1;">
-                    <p style="font-size:0.85rem;color:var(--text-primary);margin:0 0 0.3rem;line-height:1.5;">{{ $insight->insight }}</p>
-                    <p style="font-size:0.7rem;color:var(--text-muted);margin:0;">
-                        Rule-based summary &middot; {{ $insight->iso_week ? 'week '.str_replace('-W', ', week ', $insight->iso_week) : $insight->created_at->format('M j, Y') }}
-                    </p>
-                </div>
-            </div>
-            @endforeach
-        </div>
-        <div style="padding:1rem 1.5rem;border-top:1px solid var(--divider);">
-            {{ $insights->links() }}
-        </div>
+<x-fx.page-head title="Weekly summaries">
+    <x-slot name="sub">{{ $insights->total() }} summar{{ $insights->total() === 1 ? 'y' : 'ies' }}.
+        @if ($activeLedger?->isCompany())
+        Each one is a rule-based summary: plain arithmetic on the company's ledger, worded by fixed rules, one per currency it holds. It is not AI, and it is not financial advice.
         @else
-        <div style="padding:3rem 1.5rem;text-align:center;">
-            <span class="material-symbols-rounded" style="font-size:36px;color:var(--text-faint);display:block;margin-bottom:0.75rem;">summarize</span>
-            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">No summaries yet. One is written each week once {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger has some spending history.</p>
-        </div>
+        Each one is a rule-based summary: plain arithmetic on your own ledger, worded by fixed rules, one per currency you hold. It is not AI, and it is not financial advice.
         @endif
-    </div>
+        One is written per week.</x-slot>
+</x-fx.page-head>
 
-</div>
+<x-fx.panel>
+    @if ($insights->count() > 0)
+    <ul class="fx-list">
+        @foreach ($insights as $insight)
+        <li class="fx-needs__item @if ($insight->type === 'reserve_runway_warning') is-variance @endif">
+            <x-fx.icon :name="$insight->type === 'reserve_runway_warning' ? 'triangle-alert' : 'file-text'" />
+            <div>
+                <p>{{ $insight->insight }}</p>
+                <p class="fx-hint">Rule-based summary, {{ $insight->iso_week ? 'week '.str_replace('-W', ', week ', $insight->iso_week) : $insight->created_at->format('j M Y') }}</p>
+            </div>
+        </li>
+        @endforeach
+    </ul>
+    <x-slot name="foot">{{ $insights->links() }}</x-slot>
+    @else
+    <x-fx.empty title="No summaries yet.">No summaries yet. One is written each week once {{ $activeLedger?->isCompany() ? "the company's" : 'your' }} ledger has some spending history.</x-fx.empty>
+    @endif
+</x-fx.panel>
 
 </x-app-layout>

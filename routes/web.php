@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CashFlowController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\InsightController;
@@ -27,6 +28,13 @@ Route::post('/auth/ecosystem', [EcosystemAuthController::class, 'handle'])
 // Links minted before the token moved into a POST body carried it in the URL. They are no longer honoured:
 // the visitor is sent to the normal sign-in page and the token in the URL is never read.
 Route::get('/auth/ecosystem', [EcosystemAuthController::class, 'legacy']);
+// Browsers post Content-Security-Policy violation reports here without a session or a CSRF token; the controller keeps
+// only the directive and the blocked host. Throttled because anyone can call it.
+Route::post('/csp-report', CspReportController::class)
+    ->withoutMiddleware(['Illuminate\Foundation\Http\Middleware\PreventRequestForgery', 'Illuminate\Foundation\Http\Middleware\VerifyCsrfToken', 'Illuminate\Foundation\Http\Middleware\ValidateCsrfToken'])
+    ->middleware('throttle:30,1')
+    ->name('csp.report');
+
 Route::get('/', function () {
     return view('welcome');
 });

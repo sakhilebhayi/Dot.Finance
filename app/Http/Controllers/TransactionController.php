@@ -39,7 +39,12 @@ class TransactionController extends Controller
         }
 
         if ($categoryId = $request->query('category_id')) {
-            $query->where('category_id', $categoryId);
+            if ($categoryId === 'none') {
+                // "No category": the state line links here. Transfers carry no category by design, so they are not "uncategorised".
+                $query->whereNull('category_id')->whereIn('type', ['income', 'expense']);
+            } else {
+                $query->where('category_id', $categoryId);
+            }
         }
 
         if ($accountId = $request->query('account_id')) {
