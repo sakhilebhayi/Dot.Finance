@@ -324,7 +324,31 @@ ledger built that way. Also one real behaviour to be aware of: a reminder or a r
 
 ## 11. Tests
 
-TESTS_PLACEHOLDER
+New tests (22, in `tests/Feature/Ops`, all pass on SQLite and on PostgreSQL 16):
+
+| Class | Tests | Proves |
+|---|---|---|
+| `JobRecoveryTest` | 8 | posting rollback and gap-free numbers; export taken over from a dead worker (one file, one row) and the daily requeue; CSV import stopped between chunks and finished by a second run; repeating invoices stopped after one template; a reminder never sent twice; one failing detector does not stop the scan; payroll import rolled back whole |
+| `ScaleBoundsTest` | 5 | CSV streamed (40,000 rows within 2 MB); Windows-1252 converted while streaming; row limit on the page and on the posted form, lifted for the command; missing-documents count and payables open items cost the same queries for few and for many rows |
+| `ScaleBoundsSalesTest` | 1 | receivables summary in a bounded number of queries and equal to the books; limit and count |
+| `ExportStreamingTest` | 2 | streamed general-ledger rows, CSV and spreadsheet XML identical to the array path |
+| `AppendOnlyMessageTest` | 1 | posted journal rows refuse change as "append-only" (SQLSTATE 23000 on PostgreSQL) |
+| `BackupCheckTest` | 5 | the backup watchdog (fresh, none, old, altered, incomplete), its schedule, and the scripts' syntax and safety guards |
+
+Existing tests changed: one line in `LedgerScopeGuardTest` (the allowlist of files that may read a table directly gains
+`RestoreCheck.php`, with its reason). No test was deleted or weakened; the Sales (158), Purchases (134), Tax (114), Reporting (50),
+Bank, Accounting and Intelligence suites pass unchanged against the rewritten services.
+
+Full runs of the whole suite on the final code:
+
+| Run | Result |
+|---|---|
+| PostgreSQL 16, clean environment, throwaway database (`phpunit.pgsql.xml`) | **1,937 tests, 284,974 assertions, OK, 10 skipped** |
+| SQLite in memory | **1,937 tests, 284,929 assertions, all pass, 13 skipped** |
+
+Also run: `route:cache` then `route:clear` (no routes were added; it caches), `vendor/bin/pint` on every file I changed.
+The measurement harness (`tests/Perf/PagesPerfTest.php`, `tests/Support/Perf/*`) is skipped or inert unless asked for (`PERF=1`, or run
+by hand) and is not part of the suites.
 
 ## 12. Owner steps
 
