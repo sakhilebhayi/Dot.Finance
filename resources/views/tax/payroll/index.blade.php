@@ -10,7 +10,7 @@
             <tbody>
             @foreach ($runs as $r)
                 <tr>
-                    <td data-label="Month" class="is-lead"><a class="fx-link" href="{{ route('tax.payroll.show', $r) }}">{{ $r->period_month->format('F Y') }}</a><span class="fx-cell-sub">{{ $r->source === 'hr_import' ? 'imported from Dot.HR' : 'entered by hand' }}</span></td>
+                    <td data-label="Month" class="is-lead"><a class="fx-link" href="{{ route('tax.payroll.show', $r) }}">{{ $r->period_month->format('F Y') }}</a><span class="fx-cell-sub"><x-tax.basis :basis="$r->source === 'hr_import' ? 'calculated' : 'entered'" /> {{ $r->source === 'hr_import' ? 'imported from Dot.HR' : 'entered by hand' }}</span></td>
                     <td data-label="Gross pay" class="is-num"><x-fx.money :cents="$r->gross_pay_cents" currency="ZAR" /></td>
                     <td data-label="PAYE" class="is-num"><x-fx.money :cents="$r->paye_cents" currency="ZAR" /></td>
                     <td data-label="UIF" class="is-num"><x-fx.money :cents="$r->uif_employee_cents + $r->uif_employer_cents" currency="ZAR" /></td>

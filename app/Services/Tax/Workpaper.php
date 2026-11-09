@@ -3,6 +3,7 @@
 namespace App\Services\Tax;
 
 use App\Models\Tax\TaxReturn;
+use App\Models\User;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 
@@ -21,7 +22,7 @@ final class Workpaper
     {
         $frozen = $return->figures !== null;
         $computed = $frozen ? null : $this->returns->compute($ctx, $return);
-        $boxes = $frozen ? $return->figures['boxes'] : $computed->boxes;
+        $boxes = array_map(fn (array $b) => $b + ['basis' => $this->boxBasis($b)], $frozen ? $return->figures['boxes'] : $computed->boxes);
 
         return [
             'return' => $return,
@@ -50,6 +51,7 @@ final class Workpaper
             'figures_hash' => $return->figures_hash,
             'sars_reference' => $return->sars_reference,
             'submitted_on' => $return->submitted_on,
+            'submitted_by' => $return->submitted_by_user_id ? User::query()->whereKey($return->submitted_by_user_id)->value('name') : null,
             'paid_cents' => $return->paid_cents,
             'paid_on' => $return->paid_on,
             'payment_reference' => $return->payment_reference,
@@ -58,10 +60,36 @@ final class Workpaper
         ];
     }
 
+    /**
+     * How a field came to be (QA D-1306): every figure on the working paper carries one of the four basis tags. A field made of
+     * lines from the books is Calculated; one made of a person's adjustments or a manually captured payroll summary is You entered;
+     * a field with both says so. Calculated totals (13, 19, 20, ...) are Calculated.
+     */
+    public function boxBasis(array $box): string
+    {
+        if (($box['kind'] ?? '') === 'calc') {
+            return TaxBasis::label(TaxBasis::CALCULATED);
+        }
+
+        $entered = false;
+        $calculated = false;
+        foreach ($box['contributors'] ?? [] as $c) {
+            $manual = ($c['type'] ?? '') === 'adjustment' || (($c['type'] ?? '') === 'run' && ! str_contains((string) ($c['description'] ?? ''), 'imported from Dot.HR'));
+            $entered = $entered || $manual;
+            $calculated = $calculated || ! $manual;
+        }
+
+        return match (true) {
+            $entered && $calculated => TaxBasis::label(TaxBasis::CALCULATED).' + '.TaxBasis::label(TaxBasis::ENTERED),
+            $entered => TaxBasis::label(TaxBasis::ENTERED),
+            default => TaxBasis::label(TaxBasis::CALCULATED),
+        };
+    }
+
     public function banner(TaxReturn $return, bool $frozen): string
     {
         return match (true) {
-            $return->isSubmitted() => 'RECORDED AS SUBMITTED BY A PERSON (SARS reference '.$return->sars_reference.', '.$return->submitted_on->format('j F Y').'). Dot.Finance did not submit this to SARS.',
+            $return->isSubmitted() => 'RECORDED AS SUBMITTED BY A PERSON ('.($return->submitted_by_user_id ? User::query()->whereKey($return->submitted_by_user_id)->value('name').', ' : '').'SARS reference '.$return->sars_reference.', '.$return->submitted_on->format('j F Y').'). Dot.Finance did not submit this to SARS.',
             $frozen => TaxBasis::NOT_SUBMITTED,
             default => 'DRAFT, NOT PREPARED, NOT SUBMITTED. These figures are recomputed from the books each time and can still change. Dot.Finance does not submit anything to SARS.',
         };
@@ -78,15 +106,15 @@ final class Workpaper
             ['Status', $paper['status_label']],
             ['Generated', $paper['generated_at']->toDateTimeString()],
             [],
-            ['Field', 'Description', 'Amount', 'Kind', 'Note'],
+            ['Field', 'Description', 'Amount', 'Kind', 'Basis', 'Note'],
         ];
         foreach ($paper['boxes'] as $b) {
-            $rows[] = [$b['code'], $b['label'], CsvSafe::money((int) $b['amount_cents']), $b['kind'], $b['note'] ?? ''];
+            $rows[] = [$b['code'], $b['label'], CsvSafe::money((int) $b['amount_cents']), $b['kind'], $b['basis'], $b['note'] ?? ''];
         }
         $rows[] = [];
-        $rows[] = ['Output tax', '', CsvSafe::money((int) $paper['output_tax_cents'])];
-        $rows[] = ['Input tax', '', CsvSafe::money((int) $paper['input_tax_cents'])];
-        $rows[] = [(int) $paper['payable_cents'] >= 0 ? 'Payable to SARS' : 'Refundable from SARS', '', CsvSafe::money((int) $paper['payable_cents'])];
+        $rows[] = ['Output tax', '', CsvSafe::money((int) $paper['output_tax_cents']), 'calc', TaxBasis::label(TaxBasis::CALCULATED)];
+        $rows[] = ['Input tax', '', CsvSafe::money((int) $paper['input_tax_cents']), 'calc', TaxBasis::label(TaxBasis::CALCULATED)];
+        $rows[] = [(int) $paper['payable_cents'] >= 0 ? 'Payable to SARS' : 'Refundable from SARS', '', CsvSafe::money((int) $paper['payable_cents']), 'calc', TaxBasis::label(TaxBasis::CALCULATED)];
 
         if ($paper['adjustments'] !== []) {
             $rows[] = [];
