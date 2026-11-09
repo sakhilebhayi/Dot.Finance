@@ -31,9 +31,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
         Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
         Route::post('/calendar/generate', [CalendarController::class, 'generate'])->name('calendar.generate');
-        Route::get('/calendar/{deadline}', [CalendarController::class, 'show'])->whereNumber('deadline')->name('calendar.show');
-        Route::post('/calendar/{deadline}/tick', [CalendarController::class, 'tick'])->whereNumber('deadline')->name('calendar.tick');
-        Route::post('/calendar/{deadline}/waive', [CalendarController::class, 'waive'])->whereNumber('deadline')->name('calendar.waive');
+        Route::get('/calendar/{taxDeadline}', [CalendarController::class, 'show'])->whereNumber('taxDeadline')->name('calendar.show');
+        Route::post('/calendar/{taxDeadline}/tick', [CalendarController::class, 'tick'])->whereNumber('taxDeadline')->name('calendar.tick');
+        Route::post('/calendar/{taxDeadline}/waive', [CalendarController::class, 'waive'])->whereNumber('taxDeadline')->name('calendar.waive');
 
         Route::get('/vat', [VatController::class, 'index'])->name('vat.index');
         Route::post('/vat/start', [VatController::class, 'start'])->name('vat.start');
@@ -42,7 +42,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
         Route::get('/returns/{taxReturn}', [ReturnController::class, 'show'])->whereNumber('taxReturn')->name('returns.show');
         Route::post('/returns/{taxReturn}/adjustments', [ReturnController::class, 'adjust'])->whereNumber('taxReturn')->name('returns.adjust');
-        Route::post('/returns/{taxReturn}/adjustments/{adjustment}/void', [ReturnController::class, 'voidAdjustment'])->whereNumber(['taxReturn', 'adjustment'])->name('returns.adjust.void');
+        Route::post('/returns/{taxReturn}/adjustments/{returnAdjustment}/void', [ReturnController::class, 'voidAdjustment'])->whereNumber(['taxReturn', 'returnAdjustment'])->name('returns.adjust.void');
         Route::post('/returns/{taxReturn}/prepare', [ReturnController::class, 'prepare'])->whereNumber('taxReturn')->name('returns.prepare');
         Route::post('/returns/{taxReturn}/withdraw', [ReturnController::class, 'withdraw'])->whereNumber('taxReturn')->name('returns.withdraw');
         Route::post('/returns/{taxReturn}/submission', [ReturnController::class, 'submission'])->whereNumber('taxReturn')->name('returns.submission');
@@ -57,8 +57,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
         Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
         Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
-        Route::get('/payroll/{payrollRun}', [PayrollController::class, 'show'])->whereNumber('payrollRun')->name('payroll.show');
-        Route::post('/payroll/{payrollRun}/post', [PayrollController::class, 'post'])->whereNumber('payrollRun')->name('payroll.post');
+        Route::get('/payroll/{taxPayrollRun}', [PayrollController::class, 'show'])->whereNumber('taxPayrollRun')->name('payroll.show');
+        Route::post('/payroll/{taxPayrollRun}/post', [PayrollController::class, 'post'])->whereNumber('taxPayrollRun')->name('payroll.post');
 
         Route::get('/income', [IncomeTaxController::class, 'index'])->name('income.index');
         Route::post('/income/adjustments', [IncomeTaxController::class, 'adjust'])->name('income.adjust');
@@ -70,7 +70,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
         Route::get('/provisional', [ProvisionalController::class, 'index'])->name('provisional.index');
         Route::post('/provisional/estimate', [ProvisionalController::class, 'estimate'])->name('provisional.estimate');
-        Route::post('/provisional/{payment}/payment', [ProvisionalController::class, 'payment'])->whereNumber('payment')->name('provisional.payment');
+        Route::post('/provisional/{provisionalPayment}/payment', [ProvisionalController::class, 'payment'])->whereNumber('provisionalPayment')->name('provisional.payment');
 
         Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');

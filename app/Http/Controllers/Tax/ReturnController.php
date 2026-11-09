@@ -88,14 +88,14 @@ class ReturnController extends TaxController
         return back()->with('status', 'Adjustment added to field '.$data['box_code'].', with your reason on record.');
     }
 
-    public function voidAdjustment(Request $request, TaxReturn $taxReturn, TaxReturnAdjustment $adjustment, TaxReturnService $service): RedirectResponse
+    public function voidAdjustment(Request $request, TaxReturn $taxReturn, TaxReturnAdjustment $returnAdjustment, TaxReturnService $service): RedirectResponse
     {
         $this->require(Capability::PrepareTaxReturn);
-        abort_unless((int) $adjustment->tax_return_id === (int) $taxReturn->id, 404);
+        abort_unless((int) $returnAdjustment->tax_return_id === (int) $taxReturn->id, 404);
         $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:255']]);
 
         try {
-            $service->voidAdjustment($this->ctx(), $taxReturn, $adjustment, $data['reason'], $request->user());
+            $service->voidAdjustment($this->ctx(), $taxReturn, $returnAdjustment, $data['reason'], $request->user());
         } catch (TaxException $e) {
             return back()->withErrors(['adjustment' => $e->getMessage()]);
         }

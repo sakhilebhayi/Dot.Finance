@@ -49,10 +49,13 @@ class ContextIsolationRoutesTest extends TestCase
         'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments',
         // R-44 accounting tables
         'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+        // R-44 tax tables
+        'tax_profiles', 'tax_deadlines', 'tax_reminders', 'tax_returns', 'tax_return_adjustments', 'tax_review_resolutions', 'tax_adjustments',
+        'tax_income_estimates', 'tax_provisional_payments', 'tax_payroll_runs', 'tax_payroll_lines', 'tax_documents', 'tax_correspondence', 'tax_checklist_ticks',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'taxDeadline' => 'taxDeadline', 'taxReturn' => 'taxReturn', 'returnAdjustment' => 'returnAdjustment', 'taxPayrollRun' => 'taxPayrollRun', 'taxAdjustment' => 'taxAdjustment', 'provisionalPayment' => 'provisionalPayment', 'taxDocument' => 'taxDocument', 'taxCorrespondence' => 'taxCorrespondence'];
 
     private User $me;
 
@@ -124,7 +127,18 @@ class ContextIsolationRoutesTest extends TestCase
             AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
         ]);
 
-        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+        // R-44 Tax: one of each kind of row, so every tax route can be smuggled a foreign id.
+        $deadline = \App\Models\Tax\TaxDeadline::create($owner + ['obligation' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel period {$label}", 'base_due_date' => '2026-11-30', 'due_date' => '2026-11-30']);
+        $taxReturn = \App\Models\Tax\TaxReturn::create($owner + ['kind' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel return {$label}", 'status' => 'draft']);
+        $returnAdjustment = \App\Models\Tax\TaxReturnAdjustment::create($owner + ['tax_return_id' => $taxReturn->id, 'box_code' => '15', 'kind' => 'other', 'amount_cents' => 100, 'reason' => "Sentinel adjustment {$label}"]);
+        $payrollRun = \App\Models\Tax\TaxPayrollRun::create($owner + ['period_month' => '2026-10-01', 'source' => 'manual', 'status' => 'draft', 'gross_pay_cents' => 100]);
+        $taxAdjustment = \App\Models\Tax\TaxAdjustment::create($owner + ['tax_year_end' => '2027-02-28', 'kind' => 'add_back', 'label' => "Sentinel add-back {$label}", 'amount_cents' => 100, 'reason' => 'Sentinel reason']);
+        $provisional = \App\Models\Tax\TaxProvisionalPayment::create($owner + ['tax_year_end' => '2027-02-28', 'period' => 1, 'due_date' => '2026-08-31']);
+        $taxDocument = \App\Models\Tax\TaxDocument::create($owner + ['category' => 'other', 'title' => "Sentinel document {$label}", 'retention_until' => '2031-01-01', 'retention_basis' => 'Sentinel']);
+        $correspondence = \App\Models\Tax\TaxCorrespondence::create($owner + ['direction' => 'received', 'channel' => 'letter', 'subject' => "Sentinel letter {$label}", 'occurred_on' => '2026-10-01']);
+
+        return ['taxDeadline' => $deadline->id, 'taxReturn' => $taxReturn->id, 'returnAdjustment' => $returnAdjustment->id, 'taxPayrollRun' => $payrollRun->id, 'taxAdjustment' => $taxAdjustment->id, 'provisionalPayment' => $provisional->id, 'taxDocument' => $taxDocument->id, 'taxCorrespondence' => $correspondence->id,
+            'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
     }
 
     private function keyFor(array $owner): string

@@ -80,34 +80,34 @@ class PayrollController extends TaxController
         return redirect()->route('tax.payroll.index')->with('status', 'Payroll summary for '.$month->format('F Y').' saved as a draft.'.$note);
     }
 
-    public function show(TaxPayrollRun $payrollRun, PayrollJournal $journal): View
+    public function show(TaxPayrollRun $taxPayrollRun, PayrollJournal $journal): View
     {
         $this->access();
         $canDetail = $this->can(Capability::ViewPayrollDetail);
 
         return view('tax.payroll.show', [
-            'run' => $payrollRun,
-            'lines' => $canDetail ? $payrollRun->lines()->orderBy('employee_ref')->get() : collect(),
-            'lineCount' => $payrollRun->lines()->count(),
+            'run' => $taxPayrollRun,
+            'lines' => $canDetail ? $taxPayrollRun->lines()->orderBy('employee_ref')->get() : collect(),
+            'lineCount' => $taxPayrollRun->lines()->count(),
             'canDetail' => $canDetail,
-            'suggested' => $journal->suggest($payrollRun),
+            'suggested' => $journal->suggest($taxPayrollRun),
             'canPost' => $this->can(Capability::PrepareTaxReturn) && $this->can(Capability::PostJournal),
         ]);
     }
 
-    public function post(Request $request, TaxPayrollRun $payrollRun, PayrollJournal $journal): RedirectResponse
+    public function post(Request $request, TaxPayrollRun $taxPayrollRun, PayrollJournal $journal): RedirectResponse
     {
         $this->require(Capability::PrepareTaxReturn);
         $this->require(Capability::PostJournal);
         $request->validate(['confirm' => ['accepted']]);
 
         try {
-            $entry = $journal->post($this->ctx(), $payrollRun, $request->user());
+            $entry = $journal->post($this->ctx(), $taxPayrollRun, $request->user());
         } catch (TaxException|AccountingException $e) {
             return back()->withErrors(['post' => $e->getMessage()]);
         }
 
-        return redirect()->route('tax.payroll.show', $payrollRun)->with('status', 'Posted as '.$entry->reference().'. This payroll is now locked: it is never overwritten.');
+        return redirect()->route('tax.payroll.show', $taxPayrollRun)->with('status', 'Posted as '.$entry->reference().'. This payroll is now locked: it is never overwritten.');
     }
 
     private function given(array $data, string $key): ?int

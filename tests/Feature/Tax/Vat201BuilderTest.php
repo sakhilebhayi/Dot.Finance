@@ -214,7 +214,7 @@ class Vat201BuilderTest extends TestCase
         $e = $this->sale('2026-09-10', 100_000);
         $r = $this->build();
 
-        $lineIds = $e->load('lines')->lines->pluck('id')->all();
+        $lineIds = \App\Models\Accounting\JournalLine::withoutGlobalScopes()->where('journal_entry_id', $e->id)->pluck('id')->all();
         $contributors1 = array_column($r->box('1')['contributors'], 'id');
         $this->assertCount(2, $contributors1, 'the sales line and the VAT line make up field 1');
         foreach ($contributors1 as $id) {

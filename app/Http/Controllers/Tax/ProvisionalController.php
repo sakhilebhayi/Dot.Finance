@@ -82,13 +82,13 @@ class ProvisionalController extends TaxController
         return redirect()->route('tax.provisional.index', ['year_end' => $data['year_end']])->with('status', 'Your estimate is saved. The amounts below are arithmetic on your estimate, not an assessment.');
     }
 
-    public function payment(Request $request, TaxProvisionalPayment $payment, ProvisionalTaxPlanner $planner): RedirectResponse
+    public function payment(Request $request, TaxProvisionalPayment $provisionalPayment, ProvisionalTaxPlanner $planner): RedirectResponse
     {
         $this->require(Capability::RecordTaxSubmission);
         $data = $request->validate(['amount' => ['required', new MoneyAmount], 'paid_on' => ['required', 'date_format:Y-m-d'], 'reference' => ['nullable', 'string', 'max:60']]);
 
         try {
-            $planner->recordPayment($this->ctx(), $payment, Money::parse($data['amount']), CarbonImmutable::parse($data['paid_on']), $data['reference'] ?? null, $request->user());
+            $planner->recordPayment($this->ctx(), $provisionalPayment, Money::parse($data['amount']), CarbonImmutable::parse($data['paid_on']), $data['reference'] ?? null, $request->user());
         } catch (TaxException $e) {
             return back()->withInput()->withErrors(['payment' => $e->getMessage()]);
         }

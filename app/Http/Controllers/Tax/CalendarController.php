@@ -64,7 +64,7 @@ class CalendarController extends TaxController
         return redirect()->route('tax.calendar.index')->with('status', $message);
     }
 
-    public function show(TaxDeadline $deadline, TaxChecklists $checklists, TaxExplainer $explainer): View|RedirectResponse
+    public function show(TaxDeadline $taxDeadline, TaxChecklists $checklists, TaxExplainer $explainer): View|RedirectResponse
     {
         $this->access();
         $profile = $this->profileOrWizard();
@@ -73,25 +73,25 @@ class CalendarController extends TaxController
         }
 
         return view('tax.calendar.show', [
-            'deadline' => $deadline->load('taxReturn'),
+            'deadline' => $taxDeadline->load('taxReturn'),
             'profile' => $profile,
-            'checklist' => $checklists->for($this->ctx(), $deadline, $profile),
-            'missing' => $explainer->missing($this->ctx(), $deadline, $profile)['items'],
+            'checklist' => $checklists->for($this->ctx(), $taxDeadline, $profile),
+            'missing' => $explainer->missing($this->ctx(), $taxDeadline, $profile)['items'],
             'canManage' => $this->can(Capability::PrepareTaxReturn),
             'today' => CarbonImmutable::today(),
         ]);
     }
 
-    public function tick(Request $request, TaxDeadline $deadline, TaxChecklists $checklists): RedirectResponse
+    public function tick(Request $request, TaxDeadline $taxDeadline, TaxChecklists $checklists): RedirectResponse
     {
         $this->require(Capability::PrepareTaxReturn);
         $data = $request->validate(['item' => ['required', 'string', 'max:60'], 'note' => ['nullable', 'string', 'max:255'], 'undo' => ['nullable', 'boolean']]);
 
         try {
             if ($request->boolean('undo')) {
-                $checklists->untick($this->ctx(), $deadline, $data['item']);
+                $checklists->untick($this->ctx(), $taxDeadline, $data['item']);
             } else {
-                $checklists->tick($this->ctx(), $deadline, $data['item'], $data['note'] ?? null, $request->user());
+                $checklists->tick($this->ctx(), $taxDeadline, $data['item'], $data['note'] ?? null, $request->user());
             }
         } catch (\App\Services\Tax\Exceptions\TaxException $e) {
             return back()->withErrors(['item' => $e->getMessage()]);
@@ -100,17 +100,17 @@ class CalendarController extends TaxController
         return back()->with('status', 'Checklist updated.');
     }
 
-    public function waive(Request $request, TaxDeadline $deadline): RedirectResponse
+    public function waive(Request $request, TaxDeadline $taxDeadline): RedirectResponse
     {
         $this->require(Capability::RecordTaxSubmission);
         $data = $request->validate(['reason' => ['required', 'string', 'min:5', 'max:255']]);
 
-        if ($deadline->status !== 'open') {
+        if ($taxDeadline->status !== 'open') {
             return back()->withErrors(['reason' => 'Only an open deadline can be set aside.']);
         }
 
-        $deadline->forceFill(['status' => 'waived', 'waived_reason' => $data['reason']])->save();
-        FinanceAudit::record($this->ctx()->ownerAttributes(), 'waived', 'tax_deadline', (int) $deadline->id, $deadline->label().' '.$deadline->period_label, ['status' => ['after' => 'waived']], $data['reason'], null, $request->user()->id);
+        $taxDeadline->forceFill(['status' => 'waived', 'waived_reason' => $data['reason']])->save();
+        FinanceAudit::record($this->ctx()->ownerAttributes(), 'waived', 'tax_deadline', (int) $taxDeadline->id, $taxDeadline->label().' '.$taxDeadline->period_label, ['status' => ['after' => 'waived']], $data['reason'], null, $request->user()->id);
 
         return redirect()->route('tax.calendar.index')->with('status', 'Set aside, with your reason on record. Use this for something already filed before you started here.');
     }
