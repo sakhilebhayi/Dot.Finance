@@ -28,6 +28,8 @@ class Attachment extends Model
         'extraction_reviewed_by', 'extraction_reviewed_at', 'archived_at',
     ];
 
+    protected $attributes = ['extraction_status' => 'none'];
+
     protected $casts = [
         'size' => 'integer',
         'extraction_json' => 'array',

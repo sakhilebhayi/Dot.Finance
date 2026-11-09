@@ -21,8 +21,9 @@ use InvalidArgumentException;
  * the rate and the rule versions used. Nothing here reads a browser-supplied total.
  *
  * The rounding policy is read from the rule `vat.rounding.level` by default. That rule is a Dot.Finance
- * design choice, not a SARS figure (seeded with confidence low and said so); change $roundingRuleKey for
- * another tax type or jurisdiction.
+ * design choice, not a SARS figure (seeded with legal status policy and confidence low, and said so); its
+ * version is recorded with the answer but it does not lower the answer's confidence, which is the least
+ * certain of the RATES used. Change $roundingRuleKey for another tax type or jurisdiction.
  */
 final class TaxCalculator
 {
@@ -76,7 +77,7 @@ final class TaxCalculator
 
         $out = [];
         $documentVersions = [$roundingRule->version()];
-        $confidences = [$roundingRule->confidence];
+        $confidences = [];
 
         foreach ($prepared as $i => $p) {
             $amount = $p['amounts']['amount'];
@@ -105,7 +106,7 @@ final class TaxCalculator
                 boxOutput: $p['code']->box_output,
                 boxInput: $p['code']->box_input,
                 ruleVersions: array_values(array_unique($versions)),
-                confidence: $this->weakest([$p['confidence'], $roundingRule->confidence]),
+                confidence: $p['confidence'],
             );
         }
 

@@ -153,6 +153,11 @@ class PartyController extends Controller
             $rules["shipping_address.{$field}"] = ['nullable', 'string', 'max:120'];
         }
 
+        // 'usd' is as good as 'USD': tidy before checking against the currency list
+        if (is_string($request->input('currency'))) {
+            $request->merge(['currency' => strtoupper(trim($request->input('currency'))) ?: null]);
+        }
+
         $validated = $request->validate($rules);
 
         // The two identifiers the database keeps unique among live parties: say so before it has to.

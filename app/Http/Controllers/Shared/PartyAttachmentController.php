@@ -25,13 +25,13 @@ class PartyAttachmentController extends Controller
         ]);
 
         try {
-            $attachments->store($request->file('file'), $party, $request->user(), allowDuplicate: $request->boolean('allow_duplicate'), context: $this->ledger());
+            $stored = $attachments->store($request->file('file'), $party, $request->user(), allowDuplicate: $request->boolean('allow_duplicate'), context: $this->ledger());
         } catch (DuplicateAttachment $e) {
             return back()->withErrors(['file' => $e->getMessage().' Tick "Keep it anyway" to store a second copy.']);
         } catch (AttachmentRejected $e) {
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        return redirect()->route('parties.show', $party)->with('status', 'Document added.');
+        return redirect()->route('parties.show', $party)->with('status', $stored->wasRecentlyCreated ? 'Document added.' : 'That document was already on file for this record, so nothing new was added.');
     }
 }

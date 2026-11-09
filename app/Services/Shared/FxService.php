@@ -89,6 +89,9 @@ final class FxService
     {
         $stored = [];
 
+        // only currencies the app knows: a provider that offers more must not fail the whole import
+        $quotes = array_values(array_intersect(array_map('strtoupper', $quotes), array_keys(Currency::digitsByCode())));
+
         DB::transaction(function () use ($provider, $base, $quotes, $on, &$stored) {
             foreach ($provider->fetch($base, $quotes, $on) as $quote => $entry) {
                 $stored[] = $this->record($base, $quote, $entry['rate_e8'], $entry['as_of'], $provider->name(), global: true);
@@ -155,7 +158,7 @@ final class FxService
     /** The newest stored entry for the pair on the latest day on or before $date. */
     private function best(string $from, string $to, CarbonImmutable $date): ?FxRate
     {
-        return FxRate::query()->visibleTo($this->activeContext())
+        return FxRate::visibleTo($this->activeContext())
             ->where('from_currency', $from)->where('to_currency', $to)
             ->where('as_of', '<=', $date->toDateString())
             ->orderByDesc('as_of')

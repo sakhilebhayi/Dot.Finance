@@ -81,7 +81,7 @@ final class TaxRuleBook
     {
         $date = $this->day($on);
 
-        $candidates = TaxRate::query()->visibleTo($this->activeContext())
+        $candidates = TaxRate::visibleTo($this->activeContext())
             ->where('jurisdiction', $jurisdiction)->where('rate_key', $rateKey)->get();
 
         $winner = $candidates
@@ -101,7 +101,7 @@ final class TaxRuleBook
     {
         $date = $this->day($on);
 
-        $candidates = TaxCode::query()->visibleTo($this->activeContext())
+        $candidates = TaxCode::visibleTo($this->activeContext())
             ->where('jurisdiction', $jurisdiction)->where('code', $code)->get();
 
         $winner = $candidates
@@ -121,7 +121,7 @@ final class TaxRuleBook
     {
         $date = $this->day($on);
 
-        return TaxCode::query()->visibleTo($this->activeContext())
+        return TaxCode::visibleTo($this->activeContext())
             ->where('jurisdiction', $jurisdiction)->where('is_active', true)
             ->when($appliesTo, fn (Builder $q) => $q->whereIn('applies_to', [$appliesTo, 'both']))
             ->get()
@@ -135,7 +135,7 @@ final class TaxRuleBook
 
     private function rules(string $jurisdiction, string $key, string $qualifier)
     {
-        return TaxRule::query()->visibleTo($this->activeContext())
+        return TaxRule::visibleTo($this->activeContext())
             ->where('jurisdiction', $jurisdiction)->where('rule_key', $key)->where('qualifier', $qualifier);
     }
 

@@ -161,8 +161,8 @@ final class Glossary
             'paye' => ['PAYE', 'Pay-As-You-Earn, the income tax an employer deducts from an employee\'s pay and pays over to SARS.'],
             'uif' => ['UIF', 'The Unemployment Insurance Fund, to which both the employee and the employer contribute 1 percent of pay up to a ceiling.'],
             'sdl' => ['SDL', 'The Skills Development Levy, which an employer pays at 1 percent of its payroll to fund training.'],
-            'eti' => ['Employment Tax Incentive', 'A reduction in the PAYE an employer pays for qualifying young employees on lower pay.'],
-            'emp201' => ['EMP201 return', 'The monthly return on which an employer declares and pays PAYE, UIF and SDL by the seventh of the following month.'],
+            'eti' => ['Employment Tax Incentive', 'A reduction in the Pay-As-You-Earn tax (PAYE) that an employer pays for qualifying young employees on lower pay.'],
+            'emp201' => ['EMP201 return', 'The monthly return on which an employer declares and pays employees\' tax, unemployment insurance and the skills levy by the seventh of the following month.'],
             'emp501' => ['EMP501 reconciliation', 'The twice-yearly check that the pay and tax in your employee certificates match what you paid to SARS.'],
             'coida' => ['COIDA', 'The Compensation for Occupational Injuries and Diseases Act, under which employers pay a yearly assessment to cover workplace injuries.'],
 

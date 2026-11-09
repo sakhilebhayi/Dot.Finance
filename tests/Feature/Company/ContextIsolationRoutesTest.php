@@ -7,6 +7,8 @@ use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
 use App\Models\RecurringRule;
+use App\Models\Shared\Attachment;
+use App\Models\Shared\Party;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\TransferService;
@@ -37,10 +39,10 @@ class ContextIsolationRoutesTest extends TestCase
     use BuildsCompanyLedgers;
     use RefreshDatabase;
 
-    private const LEDGER_TABLES = ['accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights'];
+    private const LEDGER_TABLES = ['accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments'];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment'];
 
     private User $me;
 
@@ -80,6 +82,13 @@ class ContextIsolationRoutesTest extends TestCase
         $rule = RecurringRule::factory()->create($owner + ['account_id' => $account->id, 'description' => "Sentinel rule {$label}"]);
         Insight::create($owner + ['insight' => "Sentinel insight {$label}", 'type' => 'x', 'iso_week' => '2026-W0'.(strlen($label) % 9 + 1)]);
 
+        $party = Party::factory()->create($owner + ['name' => "Sentinel party {$label}"]);
+        $attachment = Attachment::create($owner + [
+            'attachable_type' => $party->getMorphClass(), 'attachable_id' => $party->id, 'disk' => 'local',
+            'path' => 'finance-attachments/sentinel-'.Str::uuid().'.pdf', 'sha256' => hash('sha256', $label), 'original_name' => "Sentinel file {$label}.pdf",
+            'mime' => 'application/pdf', 'size' => 10,
+        ]);
+
         // A staged import is bound to the context it was staged in.
         $token = (string) Str::uuid();
         Storage::disk('local')->put("finance-imports/{$this->me->id}/{$token}.csv", "date,description,amount\n2026-08-01,Sentinel row {$label},-1.00\n");
@@ -91,7 +100,7 @@ class ContextIsolationRoutesTest extends TestCase
             app(TransferService::class)->create($company->owner, $account, $other, 100, null, now(), "Sentinel transfer {$label}", null);
         }
 
-        return ['account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id];
+        return ['account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
     }
 
     private function keyFor(array $owner): string
@@ -233,7 +242,7 @@ class ContextIsolationRoutesTest extends TestCase
 
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
-        $pages = ['dashboard', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create'];
+        $pages = ['dashboard', 'parties.index', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -248,7 +257,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }
@@ -263,6 +272,7 @@ class ContextIsolationRoutesTest extends TestCase
         $this->get(route('transactions.index'))->assertSee('Sentinel entry mine');
         $this->get(route('categories.index'))->assertSee('Sentinel category mine');
         $this->get(route('recurring.index'))->assertSee('Sentinel rule mine');
+        $this->get(route('parties.index'))->assertSee('Sentinel party mine');
     }
 
     // ── foreign ids smuggled in the request body ───────────────────────────

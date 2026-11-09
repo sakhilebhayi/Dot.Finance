@@ -64,11 +64,10 @@ final class Numbering
             $number = (int) $sequence->next_number;
         }
 
-        DB::table('document_sequences')->where('id', $sequence->id)->update([
+        DocumentSequence::query()->forContext($context)->whereKey($sequence->id)->update([
             'next_number' => $number + 1,
             'current_year' => $sequence->year_reset ? $date->year : $sequence->current_year,
             'last_issued_at' => now(),
-            'updated_at' => now(),
         ]);
 
         return ['number' => $number, 'year' => $year, 'formatted' => $this->format($sequence->prefix, $year, $number, (int) $sequence->padding)];
@@ -147,7 +146,7 @@ final class Numbering
     private function lockedSequence(string $docType, LedgerContext $context, bool $create = true): ?DocumentSequence
     {
         for ($attempt = 0; $attempt < 3; $attempt++) {
-            $touched = $this->scope(DB::table('document_sequences'), $context)->where('doc_type', $docType)->update(['updated_at' => now()]);
+            $touched = DocumentSequence::query()->forContext($context)->where('doc_type', $docType)->update(['updated_at' => now()]);
 
             if ($touched === 0) {
                 if (! $create) {
@@ -168,12 +167,5 @@ final class Numbering
         }
 
         throw new NumberingException("Could not set up the {$docType} sequence.");
-    }
-
-    private function scope($query, LedgerContext $context)
-    {
-        return $context->isCompany()
-            ? $query->where('team_id', $context->teamId)
-            : $query->where('user_id', $context->userId)->whereNull('team_id');
     }
 }

@@ -34,27 +34,41 @@ trait HasOptionalLedgerContext
         return $this->user_id === null && $this->team_id === null;
     }
 
-    /** Global rows plus the rows of $context (null = global only), ignoring the ambient context. */
-    public function scopeVisibleTo(Builder $query, ?LedgerContext $context): Builder
+    /**
+     * Global rows plus the rows of $context (null = global only), ignoring the ambient context. The one
+     * sanctioned way past GlobalOrLedgerContextScope: it always names a context.
+     */
+    public static function visibleTo(?LedgerContext $context): Builder
     {
-        $query->withoutGlobalScope(GlobalOrLedgerContextScope::class);
+        $model = new static;
 
-        return GlobalOrLedgerContextScope::constrain($query, $context, $this->getTable());
+        return GlobalOrLedgerContextScope::constrain($model->newQueryWithoutScope(GlobalOrLedgerContextScope::class), $context, $model->getTable());
     }
 
-    public function scopeGlobalOnly(Builder $query): Builder
+    /** Only global rows. */
+    public static function globalOnly(): Builder
     {
-        return $query->withoutGlobalScope(GlobalOrLedgerContextScope::class)->whereNull($this->getTable().'.user_id')->whereNull($this->getTable().'.team_id');
+        $model = new static;
+        $table = $model->getTable();
+
+        return $model->newQueryWithoutScope(GlobalOrLedgerContextScope::class)->whereNull("{$table}.user_id")->whereNull("{$table}.team_id");
     }
 
     /** Only the rows this ledger owns (its overrides). */
-    public function scopeOwnedBy(Builder $query, LedgerContext $context): Builder
+    public static function ownedBy(LedgerContext $context): Builder
     {
-        $table = $this->getTable();
-        $query->withoutGlobalScope(GlobalOrLedgerContextScope::class);
+        $model = new static;
+        $table = $model->getTable();
+        $query = $model->newQueryWithoutScope(GlobalOrLedgerContextScope::class);
 
         return $context->isCompany()
             ? $query->where("{$table}.team_id", $context->teamId)
             : $query->where("{$table}.user_id", $context->userId)->whereNull("{$table}.team_id");
+    }
+
+    /** Every row of every owner, for integrity checks (overlapping versions) that must see the whole table. Never for display. */
+    public static function everyRow(): Builder
+    {
+        return (new static)->newQueryWithoutScope(GlobalOrLedgerContextScope::class);
     }
 }

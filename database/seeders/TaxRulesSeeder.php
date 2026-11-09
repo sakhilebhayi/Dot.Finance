@@ -407,7 +407,7 @@ class TaxRulesSeeder extends Seeder
 
     private function rule(string $type, string $key, string $valueType, mixed $value, string $from, ?string $to, string $url, string $confidence, string $qualifier = '', ?string $unit = null, string $status = 'enacted', ?string $ref = null, ?string $note = null): void
     {
-        $exists = TaxRule::query()->withoutGlobalScopes()->whereNull('user_id')->whereNull('team_id')
+        $exists = TaxRule::globalOnly()
             ->where('jurisdiction', self::J)->where('rule_key', $key)->where('qualifier', $qualifier)->where('valid_from', $from)->exists();
 
         if ($exists) {
@@ -426,7 +426,7 @@ class TaxRulesSeeder extends Seeder
 
     private function rate(string $key, int $bp, string $from, ?string $to, string $url, string $confidence, ?string $ref, ?string $note): void
     {
-        $exists = TaxRate::query()->withoutGlobalScopes()->whereNull('user_id')->whereNull('team_id')
+        $exists = TaxRate::globalOnly()
             ->where('jurisdiction', self::J)->where('rate_key', $key)->where('valid_from', $from)->exists();
 
         if ($exists) {
@@ -445,7 +445,7 @@ class TaxRulesSeeder extends Seeder
 
     private function code(string $code, string $name, string $description, string $kind, string $appliesTo, ?string $rateRef, ?string $boxOutput, ?string $boxInput, string $policy, int $sort): void
     {
-        $exists = TaxCode::query()->withoutGlobalScopes()->whereNull('user_id')->whereNull('team_id')
+        $exists = TaxCode::globalOnly()
             ->where('jurisdiction', self::J)->where('code', $code)->where('valid_from', '2018-04-01')->exists();
 
         if ($exists) {

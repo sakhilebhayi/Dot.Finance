@@ -75,7 +75,7 @@ trait AppendsVersions
 
     public function assertNoOverlap(): void
     {
-        $query = static::query()->withoutGlobalScopes();
+        $query = static::everyRow();
 
         foreach ($this->versionIdentity() as $column) {
             $query->where($column, $this->getAttribute($column));

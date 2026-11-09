@@ -37,8 +37,8 @@ final class PaymentAllocator
             throw new AllocationRejected('The tax part of an allocation is between zero and the allocated amount.');
         }
 
-        return DB::transaction(function () use ($payment, $target, $amountCents, $taxCents, $fxDiffCents, $by) {
-            $locked = Payment::query()->forContext($payment->ledgerContext())->whereKey($payment->getKey())->lockForUpdate()->first()
+        return LedgerContext::run($payment->ledgerContext(), fn () => DB::transaction(function () use ($payment, $target, $amountCents, $taxCents, $fxDiffCents, $by) {
+            $locked = Payment::query()->whereKey($payment->getKey())->lockForUpdate()->first()
                 ?? throw new AllocationRejected('That payment is not in this ledger.');
 
             $this->lockTarget($target);
@@ -80,7 +80,7 @@ final class PaymentAllocator
                 'fx_diff_cents' => $fxDiffCents,
                 'allocated_by' => $by?->id,
             ]);
-        });
+        }));
     }
 
     /** Take an allocation back (the payment was applied to the wrong document). The row stays, marked released. */
@@ -91,10 +91,10 @@ final class PaymentAllocator
             throw new AllocationRejected('Say why the allocation is being released.');
         }
 
-        return DB::transaction(function () use ($allocation, $reason, $by) {
-            Payment::query()->forContext($allocation->ledgerContext())->whereKey($allocation->payment_id)->lockForUpdate()->firstOrFail();
+        return LedgerContext::run($allocation->ledgerContext(), fn () => DB::transaction(function () use ($allocation, $reason, $by) {
+            Payment::query()->whereKey($allocation->payment_id)->lockForUpdate()->firstOrFail();
 
-            $fresh = PaymentAllocation::query()->forContext($allocation->ledgerContext())->whereKey($allocation->getKey())->lockForUpdate()->firstOrFail();
+            $fresh = PaymentAllocation::query()->whereKey($allocation->getKey())->lockForUpdate()->firstOrFail();
 
             if ($fresh->released_at !== null) {
                 throw new AllocationRejected('That allocation has already been released.');
@@ -103,7 +103,7 @@ final class PaymentAllocator
             $fresh->forceFill(['released_at' => now(), 'released_by' => $by?->id, 'release_reason' => mb_substr($reason, 0, 255)])->save();
 
             return $fresh;
-        });
+        }));
     }
 
     /** Reverse a payment: it stops counting, and everything it settled is released with it. */
@@ -114,8 +114,8 @@ final class PaymentAllocator
             throw new AllocationRejected('Say why the payment is being reversed.');
         }
 
-        return DB::transaction(function () use ($payment, $reason, $by) {
-            $locked = Payment::query()->forContext($payment->ledgerContext())->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
+        return LedgerContext::run($payment->ledgerContext(), fn () => DB::transaction(function () use ($payment, $reason, $by) {
+            $locked = Payment::query()->whereKey($payment->getKey())->lockForUpdate()->firstOrFail();
 
             if ($locked->status === 'reversed') {
                 throw new AllocationRejected('That payment has already been reversed.');
@@ -133,7 +133,7 @@ final class PaymentAllocator
             ])->save();
 
             return $locked;
-        });
+        }));
     }
 
     /** What is still owed on a document: its total minus the live allocations of recorded payments. */
@@ -145,20 +145,19 @@ final class PaymentAllocator
     /** The sum of live allocations (recorded payments only) against a document. */
     public function allocatedTo(Allocatable $target): int
     {
-        return (int) PaymentAllocation::query()
-            ->forContext($this->contextOf($target))
+        return (int) LedgerContext::run($this->contextOf($target), fn () => PaymentAllocation::query()
             ->where('allocatable_type', $target->getMorphClass())
             ->where('allocatable_id', $target->getKey())
             ->whereNull('released_at')
-            ->whereHas('payment', fn ($q) => $q->withoutGlobalScopes()->where('status', 'recorded'))
-            ->sum('amount_cents');
+            ->whereHas('payment', fn ($q) => $q->where('status', 'recorded'))
+            ->sum('amount_cents'));
     }
 
     /** Lock the document row when it is a model, so two allocations to it queue up. */
     private function lockTarget(Allocatable $target): void
     {
         if ($target instanceof Model) {
-            $target->newQuery()->withoutGlobalScopes()->whereKey($target->getKey())->lockForUpdate()->first();
+            $target->newQuery()->whereKey($target->getKey())->lockForUpdate()->first();
         }
     }
 
