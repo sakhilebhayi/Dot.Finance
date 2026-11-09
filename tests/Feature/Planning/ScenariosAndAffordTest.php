@@ -70,6 +70,23 @@ class ScenariosAndAffordTest extends TestCase
         $this->as_()->get(route('planning.cash.index', ['scenario' => $scenario->id]))->assertOk()->assertSee('changes nothing in this window')->assertDontSee('rp-chart__scenario', false);
     }
 
+    public function test_compare_reports_the_biggest_gap_between_the_two_projections_even_when_the_headlines_match(): void
+    {
+        $projection = app(\App\Services\Planning\CashProjection::class);
+        $mk = fn (array $closings) => ['closing_cents' => 100, 'lowest' => ['balance_cents' => 50], 'inflow_cents' => 0, 'outflow_cents' => 0, 'shortage' => null,
+            'buckets' => array_map(fn ($c, $i) => ['label' => 'Week '.($i + 1), 'closing_cents' => $c], $closings, array_keys($closings))];
+
+        $c = $projection->compare($mk([50, 60, 100]), $mk([50, 90, 100]));
+        $this->assertSame(0, $c['lowest_diff_cents']);
+        $this->assertSame(0, $c['closing_diff_cents']);
+        $this->assertSame(30, $c['between_diff_cents']);
+        $this->assertSame('Week 2', $c['between_label']);
+
+        $same = $projection->compare($mk([50, 60, 100]), $mk([50, 60, 100]));
+        $this->assertSame(0, $same['between_diff_cents']);
+        $this->assertNull($same['between_label']);
+    }
+
     public function test_the_no_effect_reason_follows_the_assumption_and_is_null_when_something_moves(): void
     {
         $projection = app(\App\Services\Planning\CashProjection::class);

@@ -23,6 +23,8 @@
 }
 
 .intel-suggest {
+    margin: var(--s-4) 0 0;
+    padding: 0;
     list-style: none;
     display: flex;
     flex-wrap: wrap;

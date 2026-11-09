@@ -4,6 +4,9 @@
     $in = $input;
     $selectedPreset = $request->period->preset;
 @endphp
+{{-- On a phone the settings fold behind one line so the report itself comes first; on a wide screen they stay open. --}}
+<details class="rp-settings rp-noprint" open data-fx-collapse-mobile>
+<summary>Period and options: {{ $request->period->from }} to {{ $request->period->to }}</summary>
 <form method="GET" action="{{ route($routeName) }}" class="rp-toolbar" aria-label="Report settings" data-fx-custom-dates>
     @unless ($point)
     <x-fx.select name="preset" label="Period">
@@ -72,6 +75,7 @@
         <x-fx.button variant="primary">Show report</x-fx.button>
     </div>
 </form>
+</details>
 
 <div class="fx-cluster rp-noprint">
     @if (count($presets))

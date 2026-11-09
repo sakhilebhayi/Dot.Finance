@@ -71,7 +71,7 @@ class Reconciliations
             ->groupBy('account_id')->selectRaw('account_id, SUM('.Transaction::signedCentsSql('transactions').') AS net')->pluck('net', 'account_id');
 
         $accounts = Account::query()->forContext($r->context)->withTrashed()->get();
-        $worst = 0;
+        $worstBy = [];
         $off = [];
         foreach ($accounts as $account) {
             $opening = ($account->opening_balance_date === null || $account->opening_balance_date->toDateString() <= $asOf) ? (int) $account->opening_balance_cents : 0;
@@ -79,13 +79,18 @@ class Reconciliations
             $diff = $ledger - (int) ($gl[$account->id] ?? 0);
             if ($diff !== 0) {
                 $off[] = $account->name.' ('.Money::format(abs($diff), $account->currency).')';
-                $worst += abs($diff);
+                $worstBy[$account->currency] = ($worstBy[$account->currency] ?? 0) + abs($diff);
             }
         }
 
+        // Accounts in different currencies cannot be added into one amount: name the currency when there is one, and say
+        // so (with each account's own figure in the detail) when there are several.
+        $currency = count($worstBy) === 1 ? array_key_first($worstBy) : null;
+        $worst = count($worstBy) === 1 ? (int) array_sum($worstBy) : 0;
+
         return $this->check('ties_to_bank_balances', 'Ties to bank balances', $off === [], $worst, $off === []
             ? 'Every cash and bank account\'s balance as at '.$asOf.' equals what the ledger says (each in its own currency).'
-            : 'These accounts differ from the ledger: '.implode(', ', $off).'.');
+            : 'These accounts differ from the ledger: '.implode(', ', $off).'.', $worstBy === [] ? [] : ['currency' => $currency]);
     }
 
     /** Debits equal credits in the trial balance. */
@@ -97,8 +102,8 @@ class Reconciliations
     }
 
     /** @return array{key: string, label: string, ok: bool, difference_cents: int, detail: string} */
-    public function check(string $key, string $label, bool $ok, int $difference, string $detail): array
+    public function check(string $key, string $label, bool $ok, int $difference, string $detail, array $extra = []): array
     {
-        return ['key' => $key, 'label' => $label, 'ok' => $ok, 'difference_cents' => $difference, 'detail' => $detail];
+        return ['key' => $key, 'label' => $label, 'ok' => $ok, 'difference_cents' => $difference, 'detail' => $detail] + $extra;
     }
 }

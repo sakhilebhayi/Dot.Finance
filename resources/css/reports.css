@@ -88,6 +88,24 @@ dl.rp-header {
     color: var(--ink-2);
 }
 
+.rp-check > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 47.5rem) {
+    .rp-check {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--s-1);
+    }
+
+    .rp-check .fx-pill {
+        justify-self: start;
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
 .rp-check strong {
     color: var(--ink);
     font-weight: 600;
@@ -346,5 +364,34 @@ dl.rp-header {
         position: static;
         min-width: 0;
         max-width: none;
+    }
+}
+
+.rp-settings > summary {
+    display: none;
+    cursor: pointer;
+    min-height: 44px;
+    align-items: center;
+    padding: var(--s-2) var(--s-3);
+    margin-block-end: var(--s-3);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+    color: var(--ink);
+    font-size: var(--fs-small);
+    list-style: none;
+}
+
+.rp-settings > summary::-webkit-details-marker {
+    display: none;
+}
+
+@media (max-width: 47.5rem) {
+    .rp-settings > summary {
+        display: flex;
+    }
+
+    .rp-settings[open] > summary {
+        margin-block-end: var(--s-2);
     }
 }

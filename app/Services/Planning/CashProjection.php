@@ -229,7 +229,18 @@ class CashProjection
     /** A summary of how a scenario's projection differs from the base projection. @return array<string, mixed> */
     public function compare(array $base, array $scenario): array
     {
+        // The biggest gap between the two projections at the end of any week (or month): a scenario can leave the lowest
+        // point and the closing balance exactly where they were and still change the balance in between.
+        $between = ['cents' => 0, 'label' => null];
+        foreach ($base['buckets'] as $i => $bucket) {
+            $diff = ($scenario['buckets'][$i]['closing_cents'] ?? $bucket['closing_cents']) - $bucket['closing_cents'];
+            if (abs($diff) > abs($between['cents'])) {
+                $between = ['cents' => $diff, 'label' => $bucket['label']];
+            }
+        }
+
         return [
+            'between_diff_cents' => $between['cents'], 'between_label' => $between['label'],
             'closing_diff_cents' => $scenario['closing_cents'] - $base['closing_cents'],
             'lowest_diff_cents' => $scenario['lowest']['balance_cents'] - $base['lowest']['balance_cents'],
             'inflow_diff_cents' => $scenario['inflow_cents'] - $base['inflow_cents'],

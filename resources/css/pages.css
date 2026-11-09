@@ -190,6 +190,11 @@
 .fx-chart__label {
     fill: var(--ink-2);
     font-size: 11px;
+    /* a halo in the page colour keeps the label readable where the line passes behind it */
+    paint-order: stroke;
+    stroke: var(--sheet);
+    stroke-width: 4px;
+    stroke-linejoin: round;
 }
 
 .fx-chart__line {
