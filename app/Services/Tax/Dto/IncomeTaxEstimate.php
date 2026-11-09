@@ -2,6 +2,8 @@
 
 namespace App\Services\Tax\Dto;
 
+use App\Services\Tax\Canonical;
+
 /**
  * An income-tax estimate for a tax year, year to date. Every line carries its basis (calculated, estimate, entered,
  * suggestion). An ESTIMATE: the assessment SARS issues can differ, and items this tool does not model are listed.
@@ -55,6 +57,6 @@ final class IncomeTaxEstimate
 
     public function hash(): string
     {
-        return hash('sha256', json_encode($this->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        return Canonical::hash($this->toArray());
     }
 }

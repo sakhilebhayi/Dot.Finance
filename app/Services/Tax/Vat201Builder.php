@@ -2,13 +2,13 @@
 
 namespace App\Services\Tax;
 
+use App\Models\Accounting\JournalEntry;
 use App\Models\Tax\TaxReturnAdjustment;
 use App\Services\Tax\Dto\ComputedReturn;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Computes a VAT201 (SARS layout rev 11, fields 1 to 20, diesel totals optional) from the journal lines that carry a tax code.
@@ -55,7 +55,7 @@ final class Vat201Builder
         $accommodationBp = $rules->rule('vat.accommodation.long_stay_pct_bp', $to)->basisPoints();
 
         $tagged = $this->lines->tagged($ctx, $from->toDateString(), $to->toDateString(), $postedUntil?->format('Y-m-d H:i:s'));
-        $tagged = $this->withoutCancelledPairs($tagged, $from, $to);
+        $tagged = $this->withoutCancelledPairs($ctx, $tagged, $from, $to);
 
         $issues = [];
         $boxes = [];
@@ -328,14 +328,14 @@ final class Vat201Builder
      *
      * @param  Collection<int, object>  $tagged
      */
-    private function withoutCancelledPairs(Collection $tagged, CarbonImmutable $from, CarbonImmutable $to): Collection
+    private function withoutCancelledPairs(LedgerContext $ctx, Collection $tagged, CarbonImmutable $from, CarbonImmutable $to): Collection
     {
         $reversals = $tagged->filter(fn ($l) => $l->reverses_entry_id !== null)->pluck('reverses_entry_id', 'entry_id');
         if ($reversals->isEmpty()) {
             return $tagged;
         }
 
-        $dates = DB::table('journal_entries')->whereIn('id', $reversals->values()->unique()->all())->pluck('entry_date', 'id');
+        $dates = JournalEntry::query()->forContext($ctx)->whereIn('id', $reversals->values()->unique()->all())->get(['id', 'entry_date'])->mapWithKeys(fn ($e) => [$e->id => $e->entry_date->toDateString()]);
         $drop = [];
         foreach ($reversals as $reversalId => $originalId) {
             $date = $dates[$originalId] ?? null;

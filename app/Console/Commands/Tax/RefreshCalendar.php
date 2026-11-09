@@ -23,13 +23,16 @@ class RefreshCalendar extends Command
         $only = $this->option('ledger');
         $created = $updated = $notices = 0;
 
-        foreach (TaxProfile::query()->withoutGlobalScopes()->get() as $profile) {
-            $ctx = LedgerContext::fromOwner($profile->user_id, $profile->team_id);
+        foreach (LedgerContext::owningRowsIn('tax_profiles') as $ctx) {
             if ($only !== null && $only !== $ctx->key()) {
                 continue;
             }
 
-            LedgerContext::run($ctx, function () use ($generator, $reminders, $ctx, $profile, &$created, &$updated, &$notices) {
+            LedgerContext::run($ctx, function () use ($generator, $reminders, $ctx, &$created, &$updated, &$notices) {
+                $profile = TaxProfile::query()->forContext($ctx)->first();
+                if ($profile === null) {
+                    return;
+                }
                 $r = $generator->generate($ctx, $profile);
                 $created += $r['created'];
                 $updated += $r['updated'];

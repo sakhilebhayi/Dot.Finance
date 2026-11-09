@@ -88,6 +88,12 @@ final class GlTaxLines
                     ->where(fn ($q) => $q->where('ce.source_type', 'period_close')
                         ->orWhereIn('ce.reverses_entry_id', fn ($s) => $s->select('pc.id')->from('journal_entries as pc')->where('pc.source_type', 'period_close')));
             })
+            // The income tax provision is itself an expense: counting it would make the estimate chase its own tail.
+            ->whereNotExists(function ($sub) {
+                $sub->selectRaw('1')->from('journal_entries as pe')->whereColumn('pe.id', 'l.journal_entry_id')
+                    ->where(fn ($q) => $q->where(fn ($w) => $w->where('pe.source_type', 'adjustment')->where('pe.source_id', 'like', 'income_tax_provision:%'))
+                        ->orWhereIn('pe.reverses_entry_id', fn ($s) => $s->select('pp.id')->from('journal_entries as pp')->where('pp.source_type', 'adjustment')->where('pp.source_id', 'like', 'income_tax_provision:%')));
+            })
             ->groupBy('g.id', 'g.code', 'g.name', 'g.class', 'g.system_key')
             ->orderBy('g.code')
             ->get(['g.id as gl_id', 'g.code', 'g.name', 'g.class', 'g.system_key', DB::raw('COALESCE(SUM(l.debit_cents), 0) as debits'), DB::raw('COALESCE(SUM(l.credit_cents), 0) as credits')]);

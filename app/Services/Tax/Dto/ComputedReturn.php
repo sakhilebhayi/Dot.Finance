@@ -2,6 +2,8 @@
 
 namespace App\Services\Tax\Dto;
 
+use App\Services\Tax\Canonical;
+
 /**
  * The outcome of computing a return (VAT201 or EMP201) from the books for one period.
  *
@@ -63,6 +65,6 @@ final class ComputedReturn
 
     public function hash(): string
     {
-        return hash('sha256', json_encode($this->figures(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        return Canonical::hash($this->figures());
     }
 }

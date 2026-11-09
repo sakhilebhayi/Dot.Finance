@@ -234,20 +234,20 @@ class ReturnLifecycleTest extends TestCase
         // the database, going around the model
         foreach (['payable_cents' => 1, 'sars_reference' => "'CHANGED'", 'submitted_on' => "'2026-01-01'", 'status' => "'draft'", 'figures_hash' => "'x'"] as $column => $value) {
             try {
-                DB::update("UPDATE tax_returns SET {$column} = {$value} WHERE id = ?", [$s->id]);
+                DB::transaction(fn () => DB::update("UPDATE tax_returns SET {$column} = {$value} WHERE id = ?", [$s->id]));
                 $this->fail("the database let {$column} change");
             } catch (QueryException $e) {
                 $this->assertStringContainsString('frozen', $e->getMessage());
             }
         }
         try {
-            DB::delete('DELETE FROM tax_returns WHERE id = ?', [$s->id]);
+            DB::transaction(fn () => DB::delete('DELETE FROM tax_returns WHERE id = ?', [$s->id]));
             $this->fail('the database deleted it');
         } catch (QueryException $e) {
             $this->assertStringContainsString('draft', $e->getMessage());
         }
         try {
-            DB::table('tax_return_adjustments')->insert($this->tax->ownerAttributes() + ['tax_return_id' => $s->id, 'box_code' => '17', 'kind' => 'other', 'amount_cents' => 5, 'reason' => 'late', 'created_at' => now(), 'updated_at' => now()]);
+            DB::transaction(fn () => DB::table('tax_return_adjustments')->insert($this->tax->ownerAttributes() + ['tax_return_id' => $s->id, 'box_code' => '17', 'kind' => 'other', 'amount_cents' => 5, 'reason' => 'late', 'created_at' => now(), 'updated_at' => now()]));
             $this->fail('an adjustment was added after submission');
         } catch (QueryException $e) {
             $this->assertStringContainsString('draft', $e->getMessage());
@@ -259,7 +259,7 @@ class ReturnLifecycleTest extends TestCase
     {
         $r = $this->prepare($this->start());
         $this->expectException(QueryException::class);
-        DB::update("UPDATE tax_returns SET status = 'submitted' WHERE id = ?", [$r->id]);
+        DB::transaction(fn () => DB::update("UPDATE tax_returns SET status = 'submitted' WHERE id = ?", [$r->id]));
     }
 
     public function test_payment_is_recorded_once_after_submission_and_a_refund_has_nothing_to_pay(): void

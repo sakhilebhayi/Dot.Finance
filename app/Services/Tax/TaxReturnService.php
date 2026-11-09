@@ -456,7 +456,7 @@ final class TaxReturnService
         $core = ['kind' => $f['kind'], 'period_start' => $f['period_start'], 'period_end' => $f['period_end'], 'boxes' => $f['boxes'],
             'output_tax_cents' => $f['output_tax_cents'], 'input_tax_cents' => $f['input_tax_cents'], 'payable_cents' => $f['payable_cents']];
 
-        return hash_equals($return->figures_hash, hash('sha256', json_encode($core, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)));
+        return hash_equals($return->figures_hash, Canonical::hash($core));
     }
 
     private function linkDeadline(LedgerContext $ctx, TaxReturn $return, string $status): void

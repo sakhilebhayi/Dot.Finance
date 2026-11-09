@@ -4,6 +4,7 @@ namespace App\Services\Tax;
 
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Accounting\JournalLine;
 use App\Models\User;
 use App\Services\Accounting\GlSync;
 use App\Services\Accounting\JournalPoster;
@@ -80,19 +81,16 @@ final class IncomeTaxProvision
 
     private function provided(LedgerContext $ctx, string $yearEnd): int
     {
-        return (int) DB::table('journal_lines as l')
-            ->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
-            ->join('gl_accounts as g', 'g.id', '=', 'l.gl_account_id')
-            ->where($ctx->isCompany() ? 'l.team_id' : 'l.user_id', $ctx->isCompany() ? $ctx->teamId : $ctx->userId)
+        return (int) JournalLine::query()->forContext($ctx)
+            ->join('journal_entries as e', 'e.id', '=', 'journal_lines.journal_entry_id')
+            ->join('gl_accounts as g', 'g.id', '=', 'journal_lines.gl_account_id')
             ->where('e.source_type', 'adjustment')->where('e.source_id', 'like', 'income_tax_provision:'.$yearEnd.':%')
             ->where('g.system_key', 'income_tax_payable')
-            ->selectRaw('COALESCE(SUM(l.credit_cents), 0) - COALESCE(SUM(l.debit_cents), 0) AS net')->value('net');
+            ->selectRaw('COALESCE(SUM(journal_lines.credit_cents), 0) - COALESCE(SUM(journal_lines.debit_cents), 0) AS net')->value('net');
     }
 
     private function count(LedgerContext $ctx, string $yearEnd): int
     {
-        return (int) DB::table('journal_entries')
-            ->where($ctx->isCompany() ? 'team_id' : 'user_id', $ctx->isCompany() ? $ctx->teamId : $ctx->userId)
-            ->where('source_type', 'adjustment')->where('source_id', 'like', 'income_tax_provision:'.$yearEnd.':%')->count();
+        return JournalEntry::query()->forContext($ctx)->where('source_type', 'adjustment')->where('source_id', 'like', 'income_tax_provision:'.$yearEnd.':%')->count();
     }
 }
