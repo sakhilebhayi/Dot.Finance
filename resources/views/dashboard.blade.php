@@ -17,6 +17,8 @@
 
 <div class="fx-grid fx-grid--lead">
 
+    <div class="fx-stack">
+
     {{-- Cash position: the answer this screen exists to give. One block per currency, never a mixed total. --}}
     <x-fx.panel title="Cash position" id="cash-position" :meta="'Balances are derived from '.$whose.' ledger. '.now()->format('F Y').' income and spending exclude transfers.'">
         @if (count($position) > 0)
@@ -61,6 +63,41 @@
         @endif
     </x-fx.panel>
 
+    <x-fx.panel title="Coming up" id="coming-up" meta="Repeating items due in the next 14 days">
+        @if ($upcoming->count() > 0)
+        <x-fx.table caption="Repeating items due in the next 14 days" class="fx-table--compact">
+            <thead>
+                <tr>
+                    <th scope="col">Due</th>
+                    <th scope="col">Item</th>
+                    <th scope="col" class="is-num">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($upcoming as $rule)
+                @php $overdue = $rule->next_occurrence_date->lt(now()->startOfDay()); @endphp
+                <tr>
+                    <td data-label="Due"><span class="fx-date">{{ $rule->next_occurrence_date->format('Y-m-d') }}</span>@if ($overdue)<div class="fx-cell-sub"><x-fx.pill kind="variance">Past its date</x-fx.pill></div>@endif</td>
+                    <td data-label="Item" class="is-lead"><span class="fx-cell-main">{{ $rule->description }}</span><div class="fx-cell-sub">{{ $rule->type === 'income' ? 'Money in' : 'Money out' }}</div></td>
+                    <td data-label="Amount" class="is-num"><x-fx.money :cents="$rule->type === 'income' ? $rule->amount_cents : -$rule->amount_cents" :currency="$rule->currency" :signed="true" /></td>
+                </tr>
+                @endforeach
+            </tbody>
+        </x-fx.table>
+        <x-slot name="foot"><a href="{{ route('recurring.index') }}" class="fx-link">All repeating items</a></x-slot>
+        @else
+        <x-fx.empty title="Nothing is due in the next 14 days.">
+            Repeating items (rent, salary, a subscription) appear here a fortnight before they are due. Tick &ldquo;Repeat&rdquo; when you add a transaction.
+            <x-slot name="action">
+                @if ($canRecord)<x-fx.button :href="route('transactions.create')" icon="plus">Add a repeating item</x-fx.button>@endif
+            </x-slot>
+        </x-fx.empty>
+        @endif
+    </x-fx.panel>
+
+    </div>
+
+    <div class="fx-stack">
     {{-- What needs the owner, in words. The same facts as the line at the top of every page. --}}
     <x-fx.panel title="Needs you" id="needs-you">
         @if (count($needs) > 0)
@@ -68,7 +105,7 @@
             @foreach ($needs as $item)
             <li @class(['fx-needs__item', 'is-variance' => ($item['tone'] ?? '') === 'variance'])>
                 <x-fx.icon :name="($item['tone'] ?? '') === 'variance' ? 'circle-alert' : 'info'" />
-                <span><span class="fx-needs__count">{{ $item['count'] }}</span> <x-fx.state-item :item="$item" /></span>
+                <span><x-fx.state-item :item="$item" /></span>
             </li>
             @endforeach
         </ul>
@@ -84,59 +121,6 @@
         </div>
         @endif
 
-    </x-fx.panel>
-</div>
-
-{{-- Cushion: how long reserves last at the current pace (one per currency). --}}
-@foreach ($cushions as $code => $cushion)
-@if ($cushion['available'])
-@php $cushionTitle = ($company ? $activeLedger->label()."'s" : 'Your').' '.$code.' cushion'; @endphp
-<x-fx.panel :title="$cushionTitle">
-    @if ($cushion['is_growing'])
-    <p class="fx-panel__title">{{ $code }} reserves are currently growing, not depleting.</p>
-    @else
-    <p class="fx-panel__title">Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.</p>
-    @endif
-    <p class="fx-hint">{{ $cushion['basis'] }}</p>
-    @if ($cushion['what_if'])
-    <p class="fx-hint">If {{ $company ? 'its' : 'your' }} <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.</p>
-    @endif
-</x-fx.panel>
-@endif
-@endforeach
-
-<div class="fx-grid fx-grid--even">
-
-    <x-fx.panel title="Coming up" id="coming-up" meta="Repeating items due in the next 14 days">
-        @if ($upcoming->count() > 0)
-        <x-fx.table caption="Repeating items due in the next 14 days" class="fx-table--keep">
-            <thead>
-                <tr>
-                    <th scope="col">Due</th>
-                    <th scope="col">Item</th>
-                    <th scope="col" class="is-num">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($upcoming as $rule)
-                @php $overdue = $rule->next_occurrence_date->lt(now()->startOfDay()); @endphp
-                <tr>
-                    <td><span class="fx-date">{{ $rule->next_occurrence_date->format('Y-m-d') }}</span>@if ($overdue)<div class="fx-cell-sub"><x-fx.pill kind="variance">Past its date</x-fx.pill></div>@endif</td>
-                    <td><span class="fx-cell-main">{{ $rule->description }}</span><div class="fx-cell-sub">{{ $rule->type === 'income' ? 'Money in' : 'Money out' }}, {{ $rule->account?->name ?? 'no account' }}</div></td>
-                    <td class="is-num"><x-fx.money :cents="$rule->type === 'income' ? $rule->amount_cents : -$rule->amount_cents" :currency="$rule->currency" :signed="true" /></td>
-                </tr>
-                @endforeach
-            </tbody>
-        </x-fx.table>
-        <x-slot name="foot"><a href="{{ route('recurring.index') }}" class="fx-link">All repeating items</a></x-slot>
-        @else
-        <x-fx.empty title="Nothing is due in the next 14 days.">
-            Repeating items (rent, salary, a subscription) appear here a fortnight before they are due. Tick &ldquo;Repeat&rdquo; when you add a transaction.
-            <x-slot name="action">
-                @if ($canRecord)<x-fx.button :href="route('transactions.create')" icon="plus">Add a repeating item</x-fx.button>@endif
-            </x-slot>
-        </x-fx.empty>
-        @endif
     </x-fx.panel>
 
     <x-fx.panel title="Budgets this month" id="budgets-this-month">
@@ -168,6 +152,25 @@
         </x-fx.empty>
         @endif
     </x-fx.panel>
+{{-- Cushion: how long reserves last at the current pace (one per currency). --}}
+@foreach ($cushions as $code => $cushion)
+@if ($cushion['available'])
+@php $cushionTitle = ($company ? $activeLedger->label()."'s" : 'Your').' '.$code.' cushion'; @endphp
+<x-fx.panel :title="$cushionTitle">
+    @if ($cushion['is_growing'])
+    <p class="fx-panel__title">{{ $code }} reserves are currently growing, not depleting.</p>
+    @else
+    <p class="fx-panel__title">Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.</p>
+    @endif
+    <p class="fx-hint">{{ $cushion['basis'] }}</p>
+    @if ($cushion['what_if'])
+    <p class="fx-hint">If {{ $company ? 'its' : 'your' }} <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.</p>
+    @endif
+</x-fx.panel>
+@endif
+@endforeach
+
+    </div>
 </div>
 
 {{-- Panels other modules add (overdue invoices, bills due, VAT dates). Each draws nothing when it has no data. --}}
@@ -233,7 +236,7 @@
     <x-fx.panel title="Recent Transactions" flush>
         <x-slot name="head"><a href="{{ route('transactions.index') }}" class="fx-link fx-panel__meta">View all</a></x-slot>
         @if ($recentTransactions->count() > 0)
-        <x-fx.table caption="The ten most recent transactions">
+        <x-fx.table caption="The ten most recent transactions" class="fx-table--compact">
             <thead>
                 <tr>
                     <th scope="col">Date</th>

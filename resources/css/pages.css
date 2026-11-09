@@ -39,14 +39,11 @@
 
 .fx-cash__cols {
     display: grid;
-    gap: var(--s-4) var(--s-6);
-    align-items: end;
+    gap: var(--s-3);
 }
 
-@media (min-width: 640px) {
-    .fx-cash__cols {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    }
+.fx-cash__cols > .fx-statement {
+    max-width: 30rem;
 }
 
 .fx-needs {
@@ -167,11 +164,13 @@
 .fx-chart__grid {
     stroke: var(--rule);
     stroke-width: 1;
+    vector-effect: non-scaling-stroke;
 }
 
 .fx-chart__base {
     stroke: var(--ink);
     stroke-width: 1;
+    vector-effect: non-scaling-stroke;
 }
 
 .fx-chart__bar--in {
@@ -191,8 +190,9 @@
 .fx-chart__line {
     fill: none;
     stroke: var(--ink);
-    stroke-width: 2;
+    stroke-width: 1.75;
     stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
 }
 
 .fx-chart__line--projected {
@@ -229,8 +229,8 @@
 }
 
 .fx-legend__key--proj {
-    background: repeating-linear-gradient(90deg, var(--ink) 0 4px, transparent 4px 7px);
-    height: 2px;
+    height: 0;
+    border-top: 2px dashed var(--ink);
     vertical-align: 0.25em;
     width: 1rem;
 }

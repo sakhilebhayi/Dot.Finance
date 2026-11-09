@@ -194,14 +194,16 @@
     background: transparent;
 }
 
+/* A destructive action is never red: red means a variance or an overdue item. It is marked by its words, its icon and
+   the confirmation that always follows, and it takes the heavier ink outline. */
 .fx-btn--danger {
-    border-color: var(--pencil-line);
-    color: var(--pencil);
+    border-color: var(--ink);
+    border-width: 2px;
 }
 
 .fx-btn--danger:hover {
-    background: var(--pencil-bg);
-    border-color: var(--pencil);
+    background: var(--ink);
+    color: var(--paper);
 }
 
 .fx-btn--sm {
@@ -243,8 +245,7 @@
 }
 
 .fx-linkbtn--danger {
-    color: var(--pencil);
-    text-decoration-color: var(--pencil-line);
+    color: var(--ink-2);
 }
 
 @media (pointer: coarse) {
@@ -527,8 +528,8 @@
 
 /* The tick draws itself once when it appears (the one motion verb of the product). */
 .fx-tick-draw path {
-    stroke-dasharray: 24;
-    stroke-dashoffset: 24;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
     animation: fx-tick var(--dur-tick) var(--ease) 60ms forwards;
 }
 
@@ -548,6 +549,7 @@
 /* ---- Tables ---------------------------------------------------------------------------------------- */
 .fx-tablewrap {
     min-width: 0;
+    container: fxt / inline-size;
 }
 
 .fx-tablewrap--scroll {
@@ -569,7 +571,7 @@
 
 .fx-table thead th {
     position: sticky;
-    top: var(--top-h);
+    top: 0;
     z-index: 2;
     padding: var(--s-2) var(--s-3);
     background: var(--sheet);
@@ -583,6 +585,12 @@
 
 .fx-tablewrap--scroll .fx-table thead th {
     position: static;
+}
+
+@media (min-width: 1024px) {
+    .fx-table thead th {
+        top: var(--top-h);
+    }
 }
 
 .fx-table th:first-child,
@@ -634,6 +642,14 @@
     display: inline;
 }
 
+.fx-table td[data-label='Account'] {
+    white-space: nowrap;
+}
+
+.fx-table td.is-lead {
+    min-width: 10rem;
+}
+
 .fx-cell-main {
     font-weight: 500;
     color: var(--ink);
@@ -676,10 +692,12 @@
     border-bottom: 4px double var(--ink);
 }
 
-/* Below 720px a table becomes a list of cards: the first cell is the heading, every other cell carries its
-   own label from data-label. Nothing is dropped and the page never scrolls sideways. */
-@media (max-width: 719.98px) {
-    .fx-table:not(.fx-table--keep) thead {
+/* A table becomes a list of cards when ITS OWN container is narrow (container query, so a table in a half-width panel
+   behaves the same as one on a phone): below 760px for a normal table, below 480px for a `compact` one (a few short columns).
+   The first cell is the heading, every other cell carries its own label from data-label. Nothing is dropped and the page
+   never scrolls sideways. `keep` stops card mode altogether. The two blocks are the same rules under two selectors. */
+@container fxt (max-width: 759.98px) {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) thead {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -687,29 +705,29 @@
         clip: rect(0, 0, 0, 0);
     }
 
-    .fx-table:not(.fx-table--keep),
-    .fx-table:not(.fx-table--keep) tbody,
-    .fx-table:not(.fx-table--keep) tfoot,
-    .fx-table:not(.fx-table--keep) tr {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact),
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tfoot,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr {
         display: block;
     }
 
-    .fx-table:not(.fx-table--keep) tbody tr,
-    .fx-table:not(.fx-table--keep) tfoot tr {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody tr,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tfoot tr {
         padding: var(--s-3) var(--s-4);
         border-bottom: 1px solid var(--rule);
     }
 
-    .fx-table:not(.fx-table--keep) tbody tr:last-child {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody tr:last-child {
         border-bottom: 0;
     }
 
-    .fx-table:not(.fx-table--keep) th,
-    .fx-table:not(.fx-table--keep) td,
-    .fx-table:not(.fx-table--keep) th:first-child,
-    .fx-table:not(.fx-table--keep) td:first-child,
-    .fx-table:not(.fx-table--keep) th:last-child,
-    .fx-table:not(.fx-table--keep) td:last-child {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th:first-child,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:first-child,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th:last-child,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:last-child {
         display: flex;
         justify-content: space-between;
         gap: var(--s-4);
@@ -718,7 +736,7 @@
         text-align: right;
     }
 
-    .fx-table:not(.fx-table--keep) td::before {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td::before {
         content: attr(data-label);
         flex: none;
         font-size: var(--fs-small);
@@ -727,34 +745,139 @@
         color: var(--ink-3);
     }
 
-    .fx-table:not(.fx-table--keep) td[data-label='']::before,
-    .fx-table:not(.fx-table--keep) td:not([data-label])::before {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td[data-label='']::before,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:not([data-label])::before {
         content: none;
     }
 
-    .fx-table:not(.fx-table--keep) td.is-lead {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td.is-lead,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th.is-lead {
         display: block;
+        order: -1;
         padding-bottom: var(--s-1);
         text-align: left;
         font-size: var(--fs-body);
     }
 
-    .fx-table:not(.fx-table--keep) td.is-actions {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td.is-lead::before {
+        content: none;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody tr,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tfoot tr {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td.is-actions {
         justify-content: flex-start;
         padding-top: var(--s-2);
     }
 
-    .fx-table:not(.fx-table--keep) tr.is-total,
-    .fx-table:not(.fx-table--keep) tr.is-subtotal {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-total,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-subtotal {
         border-top: 1px solid var(--ink);
     }
 
-    .fx-table:not(.fx-table--keep) tr.is-total {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-total {
         border-bottom: 4px double var(--ink);
     }
 
-    .fx-table:not(.fx-table--keep) tr.is-total td,
-    .fx-table:not(.fx-table--keep) tr.is-subtotal td {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-total td,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-subtotal td {
+        border: 0;
+    }
+}
+
+@container fxt (max-width: 479.98px) {
+    .fx-table--compact:not(.fx-table--keep) thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .fx-table--compact:not(.fx-table--keep),
+    .fx-table--compact:not(.fx-table--keep) tbody,
+    .fx-table--compact:not(.fx-table--keep) tfoot,
+    .fx-table--compact:not(.fx-table--keep) tr {
+        display: block;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tbody tr,
+    .fx-table--compact:not(.fx-table--keep) tfoot tr {
+        padding: var(--s-3) var(--s-4);
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) th,
+    .fx-table--compact:not(.fx-table--keep) td,
+    .fx-table--compact:not(.fx-table--keep) th:first-child,
+    .fx-table--compact:not(.fx-table--keep) td:first-child,
+    .fx-table--compact:not(.fx-table--keep) th:last-child,
+    .fx-table--compact:not(.fx-table--keep) td:last-child {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--s-4);
+        padding: var(--s-1) 0;
+        border: 0;
+        text-align: right;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td::before {
+        content: attr(data-label);
+        flex: none;
+        font-size: var(--fs-small);
+        font-weight: 500;
+        text-align: left;
+        color: var(--ink-3);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td[data-label='']::before,
+    .fx-table--compact:not(.fx-table--keep) td:not([data-label])::before {
+        content: none;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td.is-lead,
+    .fx-table--compact:not(.fx-table--keep) th.is-lead {
+        display: block;
+        order: -1;
+        padding-bottom: var(--s-1);
+        text-align: left;
+        font-size: var(--fs-body);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td.is-lead::before {
+        content: none;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tbody tr,
+    .fx-table--compact:not(.fx-table--keep) tfoot tr {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td.is-actions {
+        justify-content: flex-start;
+        padding-top: var(--s-2);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tr.is-total,
+    .fx-table--compact:not(.fx-table--keep) tr.is-subtotal {
+        border-top: 1px solid var(--ink);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tr.is-total {
+        border-bottom: 4px double var(--ink);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tr.is-total td,
+    .fx-table--compact:not(.fx-table--keep) tr.is-subtotal td {
         border: 0;
     }
 }
@@ -887,27 +1010,48 @@
     color: var(--ink);
 }
 
-/* ---- Filter bar ------------------------------------------------------------------------------------------ */
+/* ---- Filter bar ------------------------------------------------------------------------------------------------ */
 .fx-filters {
-    display: grid;
-    gap: var(--s-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3) var(--s-3);
     padding: var(--s-4) var(--s-5);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: end;
+    align-items: flex-end;
 }
 
-.fx-filters .fx-filters__wide {
-    grid-column: 1 / -1;
+/* Filters fold away on a phone so the list starts on the first screen; they stay open when a filter is active and on larger screens. */
+.fx-collapse > summary {
+    display: none;
+    list-style: none;
+    cursor: pointer;
 }
 
-@media (min-width: 900px) {
-    .fx-filters {
-        grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)) auto;
+.fx-collapse > summary::-webkit-details-marker {
+    display: none;
+}
+
+@media (max-width: 719.98px) {
+    .fx-collapse > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: var(--touch);
+        padding: 0 var(--s-4);
+        font-size: var(--fs-cell);
+        font-weight: 600;
     }
 
-    .fx-filters .fx-filters__wide {
-        grid-column: auto;
+    .fx-collapse[open] > summary {
+        border-bottom: 1px solid var(--rule);
     }
+}
+
+.fx-filters > .fx-field {
+    flex: 1 1 9rem;
+}
+
+.fx-filters > .fx-filters__wide {
+    flex: 2 1 16rem;
 }
 
 .fx-filters__actions {

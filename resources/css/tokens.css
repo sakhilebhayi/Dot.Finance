@@ -106,7 +106,7 @@
     --fs-body: 0.9375rem;      /* 15 */
     --fs-section: 1.0625rem;   /* 17 */
     --fs-title: 1.5rem;        /* 24 */
-    --fs-answer: 2rem;         /* 32: the one lead figure on a screen */
+    --fs-answer: 1.875rem;     /* 30: the one lead figure on a screen */
 
     /* Space: 4px base. One gap, used both ways. */
     --s-1: 0.25rem;

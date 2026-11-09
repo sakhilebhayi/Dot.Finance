@@ -274,6 +274,7 @@
 }
 
 .fx-user__name {
+    display: block;
     font-size: var(--fs-cell);
     font-weight: 600;
     overflow: hidden;
@@ -282,6 +283,7 @@
 }
 
 .fx-user__sub {
+    display: block;
     font-size: var(--fs-meta);
     color: var(--ink-3);
 }
@@ -446,6 +448,7 @@
     font-size: var(--fs-small);
     font-weight: 500;
     color: var(--ink-2);
+    white-space: nowrap;
 }
 
 .fx-cmdbtn:hover {
@@ -480,6 +483,25 @@
 
 .fx-state__item {
     display: inline;
+}
+
+@media (max-width: 1023.98px) {
+    .fx-state__list,
+    .fx-state__item {
+        display: block;
+    }
+
+    .fx-state__lead {
+        margin-bottom: 2px;
+    }
+
+    .fx-state__item {
+        padding: 2px 0;
+    }
+
+    .fx-state__item + .fx-state__item::before {
+        content: none !important;
+    }
 }
 
 .fx-state__item + .fx-state__item::before {
@@ -644,6 +666,21 @@ html.is-locked body {
         transition: transform 220ms var(--ease), visibility 0s;
     }
 
+    .fx-side {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .fx-side__scroll {
+        flex: none;
+        overflow: visible;
+    }
+
+    .fx-side__foot {
+        max-height: none;
+        overflow: visible;
+    }
+
     .fx-side__close {
         margin-left: auto;
     }
@@ -698,16 +735,14 @@ html.is-locked body {
         z-index: 30;
         flex-wrap: nowrap;
         min-height: var(--top-h);
-        padding-block: 0;
+        padding-block: var(--s-1);
     }
 
     .fx-state {
         order: 0;
         flex: 1 1 auto;
         font-size: var(--fs-body);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        padding-block: var(--s-2);
     }
 
     .fx-search,

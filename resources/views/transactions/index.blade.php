@@ -16,8 +16,10 @@
 
 <x-fx.flash />
 
-<form method="GET" action="{{ route('transactions.index') }}" class="fx-panel fx-filters r-stack" role="search" aria-label="Filter transactions">
-    <x-fx.input name="search" id="transactions-index-search" label="Search" :value="request('search')" placeholder="Description contains..." class="fx-filters__wide" :bind="false" />
+<details class="fx-panel fx-collapse r-stack" open data-fx-collapse-mobile data-active="{{ $filtered ? '1' : '0' }}">
+<summary><span>Filters @if ($filtered) <x-fx.pill kind="plain">on</x-fx.pill>@endif</span><x-fx.icon name="chevron-down" /></summary>
+<form method="GET" action="{{ route('transactions.index') }}" class="fx-filters" role="search" aria-label="Filter transactions">
+    <x-fx.input name="search" id="transactions-index-search" label="Search" :value="request('search')" placeholder="Description contains..." wrap="fx-filters__wide" :bind="false" />
     <x-fx.select name="type" id="transactions-index-type" label="Type">
         <option value="">All</option>
         @foreach (['income', 'expense', 'transfer'] as $type)
@@ -39,6 +41,7 @@
         @if ($filtered)<x-fx.button :href="route('transactions.index')">Clear</x-fx.button>@endif
     </div>
 </form>
+</details>
 
 <x-fx.panel flush class="r-stack">
     @if ($transactions->count() > 0)

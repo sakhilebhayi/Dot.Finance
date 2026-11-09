@@ -20,8 +20,8 @@
     $max = max(array_column($series, 'balance_cents'));
     $span = max(1, $max - $min);
     $start = \Illuminate\Support\Carbon::parse($f['from']);
-    $w = 700; $h = 140;
-    $x = fn ($date) => ($start->diffInDays(\Illuminate\Support\Carbon::parse($date), true) / max(1, $f['days'])) * $w;
+    $w = 700; $h = 140; $padL = 104;
+    $x = fn ($date) => $padL + ($start->diffInDays(\Illuminate\Support\Carbon::parse($date), true) / max(1, $f['days'])) * ($w - $padL);
     $y = fn ($cents) => $h - (($cents - $min) / $span) * $h;
     $points = [];
     $prev = null;
@@ -53,18 +53,17 @@
     @if (count($c['events']) > 0)
     <div class="fx-stack">
         <svg class="fx-chart" viewBox="0 0 {{ $w }} {{ $h + 6 }}" role="img" aria-label="Projected {{ $code }} balance over {{ $f['days'] }} days, from recurring items only">
-            @if ($zeroY !== null)<line class="fx-chart__zero" x1="0" y1="{{ $zeroY }}" x2="{{ $w }}" y2="{{ $zeroY }}" />@endif
+            <line class="fx-chart__grid" x1="{{ $padL }}" y1="0" x2="{{ $w }}" y2="0" />
+            <line class="fx-chart__base" x1="{{ $padL }}" y1="{{ $h }}" x2="{{ $w }}" y2="{{ $h }}" />
+            @if ($zeroY !== null)<line class="fx-chart__zero" x1="{{ $padL }}" y1="{{ $zeroY }}" x2="{{ $w }}" y2="{{ $zeroY }}" />@endif
             <polyline class="fx-chart__line fx-chart__line--projected" points="{{ implode(' ', $points) }}" />
-            <text class="fx-chart__tick" x="4" y="12">{{ \App\Support\Money::format($max, $code) }}</text>
-            <text class="fx-chart__tick" x="4" y="{{ $h + 4 }}">{{ \App\Support\Money::format($min, $code) }}</text>
+            <text class="fx-chart__tick" x="{{ $padL - 8 }}" y="10" text-anchor="end">{{ \App\Support\Money::format($max, $code) }}</text>
+            <text class="fx-chart__tick" x="{{ $padL - 8 }}" y="{{ $h }}" text-anchor="end">{{ \App\Support\Money::format($min, $code) }}</text>
         </svg>
         <p class="fx-hint">Dashed because it is a projection: every step is a recurring entry on its due date.</p>
     </div>
     @endif
 
-    @if (count($c['events']) > 0)
-    <x-slot name="foot"><span>The projection is read from the schedule, never guessed.</span></x-slot>
-    @endif
 </x-fx.panel>
 
 @if (count($c['events']) > 0)

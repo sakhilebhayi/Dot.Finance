@@ -1,11 +1,11 @@
 @props(['style' => session('flash.bannerStyle', 'success'), 'message' => session('flash.banner')])
 
 {{-- Jetstream raises "banner-message" browser events after some Livewire actions. Shown as a toast, hidden with x-cloak. --}}
-<div x-data="{{ json_encode(['show' => true, 'style' => $style, 'message' => $message]) }}"
+<div x-data="{{ json_encode(['show' => true, 'tone' => $style, 'message' => $message]) }}"
     x-cloak
     x-show="show && message"
     x-on:banner-message.window="
-        style = event.detail.style;
+        tone = event.detail.style;
         message = event.detail.message;
         show = true;
     "
