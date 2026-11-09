@@ -67,7 +67,7 @@ class Acceptance22_TaxDeadlinesTest extends AcceptanceCase
         $this->assertSame('upcoming', $november->displayStatus(now()->toImmutable()));
         Carbon::setTestNow('2026-11-25 09:00:00');
         $this->assertSame('due', $november->displayStatus(now()->toImmutable()), 'within 14 days');
-        $this->asOwner()->get(route('tax.calendar.index'))->assertOk()->assertSee('overdue', false);
+        $this->asOwner()->get(route('tax.calendar.index'))->assertOk()->assertSee('Overdue', false);
         $this->asOwner()->get(route('dashboard'))->assertOk();
     }
 

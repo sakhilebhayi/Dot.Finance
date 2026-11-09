@@ -86,7 +86,7 @@ class Acceptance17_TaxJurisdictionTest extends AcceptanceCase
         $this->assertStringContainsString('Company income tax return (ITR14)', $text);
         $this->assertStringContainsString('Provisional tax applies: companies are provisional taxpayers automatically', $text);
         $this->assertStringContainsString('EMP201 every month', $text);
-        $this->assertStringContainsString('Confidence in the rules behind this', $text);
+        $this->assertStringContainsString('How sure we are of the rules behind this', $text);
 
         // the same business as an unregistered sole proprietor without staff: a different set, and the year end is forced to February
         $this->asOwner()->put(route('tax.profile.update'), $this->form(['legal_entity' => 'sole_proprietor', 'vat_registered' => '0', 'vat_number' => '', 'vat_category' => '', 'financial_year_end_month' => 6, 'employs_staff' => '0', 'provisional_taxpayer' => '0']))->assertSessionHasNoErrors();
