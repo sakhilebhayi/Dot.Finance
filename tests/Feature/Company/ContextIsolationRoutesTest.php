@@ -49,10 +49,14 @@ class ContextIsolationRoutesTest extends TestCase
         'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments',
         // R-44 accounting tables
         'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+        // R-44 purchases tables
+        'payments', 'payment_allocations', 'purchase_settings', 'supplier_profiles', 'supplier_bank_details', 'bills', 'bill_lines', 'expense_claims', 'expense_claim_lines', 'recurring_bills', 'payment_runs', 'payment_run_items',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period',
+        // R-44 purchases
+        'bill' => 'bill', 'claim' => 'claim', 'line' => 'line', 'run' => 'run', 'recurring' => 'recurring', 'detail' => 'detail', 'payment' => 'payment'];
 
     private User $me;
 
@@ -124,7 +128,18 @@ class ContextIsolationRoutesTest extends TestCase
             AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
         ]);
 
-        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+        // Purchases: one of each record the purchases routes bind, in this context.
+        $ownerUser = $owner['user_id'] ?? $company->user_id;
+        $supplier = Party::factory()->create($owner + ['type' => 'supplier', 'name' => "Sentinel supplier {$label}"]);
+        $bill = \App\Models\Purchases\Bill::create($owner + ['party_id' => $supplier->id, 'bill_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft', 'kind' => 'bill']);
+        $claim = \App\Models\Purchases\ExpenseClaim::create($owner + ['claimant_user_id' => $ownerUser, 'title' => "Sentinel claim {$label}", 'claim_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft']);
+        $claimLine = \App\Models\Purchases\ExpenseClaimLine::create($owner + ['expense_claim_id' => $claim->id, 'line_no' => 1, 'spent_on' => '2026-11-01', 'merchant' => 'Sentinel merchant', 'description' => 'x', 'gl_account_id' => $glAccount, 'tax_code' => 'ZA_VAT_ZERO']);
+        $run = \App\Models\Purchases\PaymentRun::create($owner + ['name' => "Sentinel run {$label}", 'due_by' => '2026-11-30', 'paid_on' => '2026-11-30', 'cash_account_id' => $account->id, 'currency' => 'ZAR', 'status' => 'draft', 'idempotency_key' => "sentinel-run-{$label}"]);
+        $recurring = \App\Models\Purchases\RecurringBill::create($owner + ['party_id' => $supplier->id, 'name' => "Sentinel schedule {$label}", 'frequency' => 'monthly', 'start_on' => '2026-11-01', 'next_run_on' => '2026-12-01', 'currency' => 'ZAR', 'template' => []]);
+        $detail = \App\Models\Purchases\SupplierBankDetail::create($owner + ['party_id' => $supplier->id, 'version' => 1, 'status' => 'pending', 'payload' => ['account_number' => '123456'], 'bank_name' => 'Bank', 'account_last4' => '3456', 'account_hash' => hash('sha256', $label), 'change_reason' => 'sentinel', 'requested_at' => now()]);
+        $payment = \App\Models\Shared\Payment::create($owner + ['direction' => 'out', 'party_id' => $supplier->id, 'cash_account_id' => $account->id, 'amount_cents' => 100, 'currency' => 'ZAR', 'paid_on' => '2026-11-01', 'method' => 'eft', 'idempotency_key' => "sentinel-pay-{$label}", 'status' => 'recorded']);
+
+        return ['bill' => $bill->id, 'claim' => $claim->id, 'line' => $claimLine->id, 'run' => $run->id, 'recurring' => $recurring->id, 'detail' => $detail->id, 'payment' => $payment->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
     }
 
     private function keyFor(array $owner): string
@@ -272,7 +287,8 @@ class ContextIsolationRoutesTest extends TestCase
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
         $pages = ['dashboard', 'parties.index', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create',
-            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create'];
+            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create',
+            'purchases.index', 'purchases.bills.index', 'purchases.suppliers.index', 'purchases.claims.index', 'purchases.payments.index', 'purchases.runs.index', 'purchases.ap.index', 'purchases.documents.index', 'purchases.recurring.index', 'purchases.receipts.index'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -287,7 +303,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'supplier', 'claim', 'run', 'schedule'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }

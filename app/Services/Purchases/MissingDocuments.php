@@ -19,7 +19,8 @@ use Illuminate\Support\Collection;
  *
  *   bill          a supplier bill that is on its way into the books or in them (not a draft, not void) with no file attached
  *   expense_claim a receipt on a submitted claim with no file attached
- *   transaction   an expense in the cash ledger (not a payment of a bill, which the bill's own document supports) with no file attached
+ *   transaction   an expense in the cash ledger (not a payment of a bill, which the bill's own document supports) with no file attached;
+ *                 only for a ledger that has accounting on
  *
  * ... when the amount is at or above the ledger's threshold (Purchases > Settings; by default the tax rule "no tax invoice is needed
  * under" amount, R50 for South Africa). It is the single source for "missing documents" in the product: the Tax module reads it
@@ -77,9 +78,11 @@ final class MissingDocuments
                     ]);
                 });
 
+            // Cash-ledger expenses are only listed for a ledger that keeps books (accounting on): a casual personal ledger is not nagged for receipts.
             $txFiles = $withFile((new Transaction)->getMorphClass());
-            $candidates = Transaction::query()->counted()->where('type', 'expense')->whereNull('transfer_group')->where('amount_cents', '>=', $threshold)
-                ->orderByDesc('date')->limit(self::TRANSACTION_LIMIT)->get();
+            $candidates = $this->ledger->accountingEnabled($context)
+                ? Transaction::query()->counted()->where('type', 'expense')->whereNull('transfer_group')->where('amount_cents', '>=', $threshold)->orderByDesc('date')->limit(self::TRANSACTION_LIMIT)->get()
+                : collect();
             $settlement = array_flip(SettlementTransactions::among($context, $candidates->pluck('id')->map(fn ($id) => (int) $id)->all()));
 
             foreach ($candidates as $tx) {
