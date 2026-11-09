@@ -134,7 +134,7 @@ class SupplierController extends PurchasesController
         $statement = $statements->forSupplier($party, $from, $to);
 
         if (($v['format'] ?? null) === 'csv') {
-            Gate::authorize(Capability::ExportReports->value);
+            // like the customer statement, a per-supplier statement is for anyone who may read the supplier; the download is audited
             ExportAudit::record('Supplier statement');
 
             return Response::streamDownload(function () use ($statement) {

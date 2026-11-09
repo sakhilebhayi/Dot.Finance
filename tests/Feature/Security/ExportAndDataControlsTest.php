@@ -96,7 +96,12 @@ class ExportAndDataControlsTest extends TestCase
                 $after = \DB::table('finance_audit_log')->where('team_id', $this->mine->id)->where('action', 'exported')->count();
 
                 // reading the access review needs the audit capability as well as the export one
-                $allowed = $label === 'access review CSV' ? ['owner', 'manager', 'accountant'] : $canExport;
+                $allowed = match ($label) {
+                    'access review CSV' => ['owner', 'manager', 'accountant'],
+                    // per-party statements are documents about one customer or supplier: anyone who reads the books (the download is still audited)
+                    'supplier statement CSV', 'customer statement CSV' => array_keys($this->people),
+                    default => $canExport,
+                };
                 if (in_array($role, $allowed, true)) {
                     $this->assertContains($response->getStatusCode(), [200, 302], "{$role} on {$label}: ".$response->getStatusCode());
                     if ($response->getStatusCode() === 200) {

@@ -104,7 +104,7 @@ class CustomerController extends SalesController
     public function statementCsv(Request $request, Party $party, Statements $statements): Response
     {
         $this->allow('view-finance');
-        $this->allow('export-reports');
+        // a statement is a document about one customer, readable (and printable) by anyone who reads the books (Sales matrix); the download is audited
         ExportAudit::record('Customer statement');
         [$from, $to] = $this->period($request);
         $rows = $statements->csv($statements->build($this->ledger(), $party, $from, $to));

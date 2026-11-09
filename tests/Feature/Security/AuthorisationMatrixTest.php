@@ -297,6 +297,8 @@ class AuthorisationMatrixTest extends TestCase
             'intel.attention.scan' => 'refreshing the findings the person can read',
             'intel.attention.dismiss' => 'dismissing a finding',
             'intel.attention.snooze' => 'snoozing a finding',
+            'sales.customers.statement.csv' => 'a per-customer statement download is open to readers and writes only its audit row (D-1412)',
+            'purchases.suppliers.statement' => 'a per-supplier statement download (?format=csv) is open to readers and writes only its audit row (D-1412)',
         ];
         $approver = [
             'controls.approvals.approve' => 'approving is what an approver is for',

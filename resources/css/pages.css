@@ -897,6 +897,8 @@
 
 .fx-inline {
     display: inline-block;
+}
+
 /* ── Tax (R-44) ───────────────────────────────────────────────────────────────────────────────
    Small additions to the Tie-Out system for the tax pages. Colour keeps its two meanings: green for ticked, red for variance. */
 .tax-fieldset {
