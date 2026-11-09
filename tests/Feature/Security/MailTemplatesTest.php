@@ -5,6 +5,7 @@ namespace Tests\Feature\Security;
 use App\Mail\FinanceNotificationMail;
 use App\Mail\SalesDocumentMail;
 use App\Mail\SalesReminderMail;
+use App\Models\Intelligence\FinanceNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsSales;
 use Tests\TestCase;
@@ -47,7 +48,7 @@ class MailTemplatesTest extends TestCase
     public function test_a_notification_mail_with_hostile_text_renders_inert(): void
     {
         $this->setUpSales();
-        $n = \App\Models\Intelligence\FinanceNotification::create(['team_id' => $this->company->id, 'recipient_id' => $this->owner->id, 'kind' => 'system', 'title' => self::HOSTILE, 'body' => self::HOSTILE, 'dedupe_key' => 'x']);
+        $n = FinanceNotification::create(['team_id' => $this->company->id, 'recipient_id' => $this->owner->id, 'kind' => 'system', 'title' => self::HOSTILE, 'body' => self::HOSTILE, 'dedupe_key' => 'x']);
 
         $this->assertInert((new FinanceNotificationMail($n, self::HOSTILE))->render());
     }

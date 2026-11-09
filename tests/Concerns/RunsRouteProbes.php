@@ -156,7 +156,7 @@ trait RunsRouteProbes
 
         // The errors bag is a ViewErrorBag during the request and its array form once the test session has stored it.
         $errors = session('errors');
-        $hasErrors = $errors instanceof \Illuminate\Support\ViewErrorBag ? $errors->count() > 0 : (is_array($errors) && $errors !== []);
+        $hasErrors = $errors instanceof ViewErrorBag ? $errors->count() > 0 : (is_array($errors) && $errors !== []);
 
         return $hasErrors ? 'invalid' : 'redirect';
     }
