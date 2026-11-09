@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Reporting;
 
+use App\Models\Account;
 use App\Models\Accounting\AccountingPeriod;
 use App\Models\Category;
 use App\Services\Accounting\GlSync;
@@ -12,6 +13,7 @@ use App\Services\Reporting\ReportRunner;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\BuildsReportingLedger;
 use Tests\TestCase;
 
@@ -206,6 +208,26 @@ class StatementsTest extends TestCase
 
         $page = $this->inCompany($this->owner, $this->company)->get(route('reports.trial-balance', ['to' => '2026-06-30']));
         $page->assertOk()->assertSee('Ties to bank balances')->assertSee('out by');
+    }
+
+    public function test_a_bank_difference_in_a_foreign_currency_is_never_labelled_as_the_report_currency(): void
+    {
+        $this->buildCompanyBooks();
+        $usd = Account::factory()->forCompany($this->company)->currency('USD')->create(['name' => 'Supplier USD', 'type' => 'checking']);
+        // A row the journals never saw (written behind the posting rules' back): the USD account is out by USD 231.00.
+        DB::table('transactions')->insert([
+            'team_id' => $this->company->id, 'account_id' => $usd->id, 'type' => 'expense', 'amount' => '231.00', 'amount_cents' => 23_100, 'currency' => 'USD',
+            'date' => '2026-06-20', 'description' => 'Courier', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $r = $this->run_('trial-balance', ['to' => '2026-06-30']);
+        $bank = collect($r->checks)->firstWhere('key', 'ties_to_bank_balances');
+        $this->assertFalse($bank['ok']);
+        $this->assertSame('USD', $bank['currency'], 'one offending currency: the check names it');
+        $this->assertSame(23_100, $bank['difference_cents']);
+
+        $page = $this->inCompany($this->owner, $this->company)->get(route('reports.trial-balance', ['to' => '2026-06-30']));
+        $page->assertOk()->assertSee('USD 231.00')->assertDontSee('out by ZAR 231.00');
     }
 
     public function test_statements_before_accounting_started_say_there_is_nothing_to_compare(): void

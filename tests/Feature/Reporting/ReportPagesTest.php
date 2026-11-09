@@ -43,12 +43,27 @@ class ReportPagesTest extends TestCase
         $this->as_()->get(route('reports.profit-loss', ['from' => '2026-01-01', 'to' => '2026-06-30', 'compare' => 'last_year']))
             ->assertOk()
             ->assertSee('Acme (Pty) Ltd')->assertSee('1 Jan 2026 to 30 Jun 2026')->assertSee('Compared with')->assertSee('Generated')
-            ->assertSee('Ties to the trial balance')->assertSee('Accrual basis')->assertSee('Posting rules v1')
+            ->assertSee('Ties to the trial balance')->assertSee('Accrual basis')->assertSee('Show working')->assertSee('Posting rules version')
             ->assertSee('Net profit');
 
         $this->as_()->get(route('reports.balance-sheet', ['to' => '2026-06-30']))->assertOk()->assertSee('As at 30 Jun 2026')->assertSee('Assets equal liabilities plus equity');
         $print = $this->as_()->get(route('reports.profit-loss', ['preset' => 'this_year', 'print' => 1]));
         $print->assertOk()->assertSee('print view')->assertSee('Save as PDF');
+    }
+
+    public function test_the_provenance_is_one_line_with_the_working_behind_a_disclosure_and_open_when_printed(): void
+    {
+        $this->buildCompanyBooks();
+
+        $page = $this->as_()->get(route('reports.profit-loss', ['from' => '2026-01-01', 'to' => '2026-06-30']))->assertOk();
+        $page->assertSee('Acme (Pty) Ltd · 1 Jan 2026 to 30 Jun 2026', false)->assertSee('Show working');
+        $this->assertDoesNotMatchRegularExpression('/<details class="rp-header__working"\s+open/', $page->getContent(), 'closed on screen');
+        // The tie-out badges come before the report settings and the table.
+        $this->assertLessThan(strpos($page->getContent(), 'rp-toolbar'), strpos($page->getContent(), 'rp-checks'));
+        $page->assertDontSee('Dates apply for Custom dates.')->assertSee('Changing a date switches Period to Custom dates.');
+
+        $print = $this->as_()->get(route('reports.profit-loss', ['from' => '2026-01-01', 'to' => '2026-06-30', 'print' => 1]))->assertOk();
+        $this->assertMatchesRegularExpression('/<details class="rp-header__working"\s+open/', $print->getContent(), 'a printed copy carries its working');
     }
 
     public function test_bad_input_is_refused_with_a_message_not_a_server_error(): void

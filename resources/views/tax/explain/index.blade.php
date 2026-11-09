@@ -12,7 +12,7 @@
         </x-fx.panel>
         <x-fx.panel title="What is missing for a deadline?">
             <form method="GET" action="{{ route('tax.explain.index') }}" class="fx-form fx-cluster"><input type="hidden" name="mode" value="missing">
-                <x-fx.select name="deadline" label="Deadline">@foreach ($deadlines as $d)<option value="{{ $d->id }}">{{ $d->label() }}, {{ $d->period_label }}</option>@endforeach</x-fx.select><x-fx.button>Explain</x-fx.button></form>
+                <x-fx.select name="deadline" label="Deadline">@foreach ($deadlines as $d)<option value="{{ $d->id }}">{{ $d->label() }}, {{ $d->periodText() }}</option>@endforeach</x-fx.select><x-fx.button>Explain</x-fx.button></form>
         </x-fx.panel>
         <x-fx.panel title="Why did VAT change between two looks?" meta="What was posted in between">
             <form method="GET" action="{{ route('tax.explain.index') }}" class="fx-form fx-stack"><input type="hidden" name="mode" value="change">

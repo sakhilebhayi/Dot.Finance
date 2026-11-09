@@ -7,7 +7,7 @@
 
     @foreach ($obligations as $o)
     <x-fx.panel :title="$o->label" :meta="$o->summary">
-        <x-slot name="head"><x-fx.pill :kind="in_array($o->status, ['review', 'not_configured'], true) ? 'variance' : 'plain'">{{ str_replace('_', ' ', ucfirst($o->status)) }}</x-fx.pill></x-slot>
+        <x-slot name="head"><x-fx.pill :kind="\App\Services\Tax\TaxLabels::obligationNeedsAction($o->status) ? 'variance' : 'plain'">{{ \App\Services\Tax\TaxLabels::obligationStatus($o->status) }}</x-fx.pill></x-slot>
         <div class="fx-stack">
             @foreach ($o->reasoning as $line)<p>{{ $line }}</p>@endforeach
             @if (count($o->facts))
@@ -17,7 +17,10 @@
                 @endforeach
             </x-fx.statement>
             @endif
-            <p class="fx-hint">Confidence in the rules behind this: {{ $o->confidence }}.@if ($o->ruleVersions) Rules: {{ implode('; ', $o->ruleVersions) }}.@endif</p>
+            <p class="fx-hint">How sure we are of the rules behind this: {{ $o->confidence }}.</p>
+            @if ($o->ruleVersions)
+            <details class="tax-rules"><summary>Show working: the rule versions used</summary><p class="fx-hint">{{ implode('; ', $o->ruleVersions) }}</p></details>
+            @endif
         </div>
     </x-fx.panel>
     @endforeach

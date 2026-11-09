@@ -80,10 +80,10 @@
 </x-fx.panel>
 
 <x-fx.panel flush title="What each role can do" meta="A tick means the role can do it">
-    <x-fx.table caption="Capabilities by role" scroll class="fx-table--matrix">
+    <x-fx.table caption="What each role can do" scroll class="fx-table--matrix">
         <thead>
             <tr>
-                <th scope="col">Capability</th>
+                <th scope="col">Action</th>
                 @foreach ($roles as $role)
                 <th scope="col" class="is-center">{{ $role->label() }}</th>
                 @endforeach

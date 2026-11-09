@@ -5,8 +5,8 @@
     $openReview = collect($review)->where('resolved', false)->count();
     $reviewUrl = route('tax.vat.review', ['from' => $return->period_start->toDateString(), 'to' => $return->period_end->toDateString()]);
 @endphp
-<x-app-layout :title="$return->kindLabel().' '.$return->period_label">
-    <x-fx.page-head :title="$return->kindLabel().' for '.$return->period_label" :sub="$return->period_start->format('j M Y').' to '.$return->period_end->format('j M Y').($return->revision > 1 ? ', revision '.$return->revision : '')">
+<x-app-layout :title="$return->kindLabel().' '.$return->periodText()">
+    <x-fx.page-head :title="$return->kindLabel().' for '.$return->periodText()" :sub="$return->period_start->format('j M Y').' to '.$return->period_end->format('j M Y').($return->revision > 1 ? ', revision '.$return->revision : '')">
         <x-slot name="actions">
             @if ($canExport)
                 <x-fx.button :href="route('tax.returns.workpaper', $return)" icon="file-text">Working paper</x-fx.button>
@@ -55,7 +55,7 @@
                 <tr>
                     <td data-label="Field" class="is-lead"><span class="tax-box">{{ $b['code'] }}</span></td>
                     <td data-label="What it is">{{ $b['label'] }}@if($b['note'] ?? null)<span class="fx-cell-sub">{{ $b['note'] }}</span>@endif @if(($b['kind'] ?? '') === 'calc')<span class="fx-cell-sub"><x-tax.basis basis="calculated" /></span>@endif</td>
-                    <td data-label="Amount" class="is-num"><x-fx.money :cents="$b['amount_cents']" currency="ZAR" /></td>
+                    <td data-label="Amount" class="is-num"><x-fx.money :cents="$b['amount_cents']" currency="ZAR" /><span class="fx-cell-sub"><x-tax.basis :basis="collect($b['contributors'])->contains(fn ($k) => $k['type'] === 'adjustment') ? 'entered' : 'calculated'" /></span></td>
                     <td data-label="Behind it">
                         @if (count($b['contributors']))
                         <details class="tax-drill"><summary>{{ count($b['contributors']) }} line{{ count($b['contributors']) === 1 ? '' : 's' }}</summary>
@@ -76,9 +76,9 @@
         </x-fx.table>
         <x-slot name="foot">
             <x-fx.statement>
-                <x-fx.statement-row :label="$isVat ? 'Output tax' : 'PAYE, SDL and UIF'"><x-fx.money :cents="$totals['output']" currency="ZAR" /></x-fx.statement-row>
-                <x-fx.statement-row :label="$isVat ? 'Input tax' : 'ETI claimed'"><x-fx.money :cents="$totals['input']" currency="ZAR" /></x-fx.statement-row>
-                <x-fx.statement-row :label="$totals['payable'] >= 0 ? 'Payable to SARS' : 'Refundable from SARS'" kind="total"><x-fx.money :cents="abs($totals['payable'])" currency="ZAR" lead /></x-fx.statement-row>
+                <x-fx.statement-row :label="$isVat ? 'Output tax (VAT you charged)' : 'PAYE, SDL and UIF'"><x-fx.money :cents="$totals['output']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+                <x-fx.statement-row :label="$isVat ? 'Input tax (VAT you paid)' : 'ETI claimed'"><x-fx.money :cents="$totals['input']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+                <x-fx.statement-row :label="$totals['payable'] >= 0 ? 'Payable to SARS' : 'Refundable from SARS'" kind="total"><x-fx.money :cents="abs($totals['payable'])" currency="ZAR" lead /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
             </x-fx.statement>
         </x-slot>
     </x-fx.panel>
@@ -87,13 +87,13 @@
     @if ($isVat && isset($reconciliation['gl_net_cents']))
     <x-fx.panel title="Reconciled to the VAT accounts" :meta="($reconciliation['ties'] ?? false) ? 'Ties out' : 'Does not tie out'">
         <x-fx.statement>
-            <x-fx.statement-row label="Output VAT in the books"><x-fx.money :cents="$reconciliation['gl_output_cents']" currency="ZAR" /></x-fx.statement-row>
-            <x-fx.statement-row label="Input VAT in the books"><x-fx.money :cents="$reconciliation['gl_input_cents']" currency="ZAR" /></x-fx.statement-row>
-            <x-fx.statement-row label="Net VAT in the books" kind="subtotal"><x-fx.money :cents="$reconciliation['gl_net_cents']" currency="ZAR" /></x-fx.statement-row>
-            <x-fx.statement-row label="Field 20 from the books alone"><x-fx.money :cents="$reconciliation['return_from_books_cents']" currency="ZAR" /></x-fx.statement-row>
-            <x-fx.statement-row label="Difference"><x-fx.money :cents="$reconciliation['difference_cents']" currency="ZAR" /></x-fx.statement-row>
-            @foreach ($reconciliation['explained'] ?? [] as $e)<x-fx.statement-row :label="'Explained: '.$e['label']"><x-fx.money :cents="$e['cents']" currency="ZAR" /></x-fx.statement-row>@endforeach
-            <x-fx.statement-row label="Unexplained" kind="total"><x-fx.money :cents="$reconciliation['unexplained_cents']" currency="ZAR" :ticked="$reconciliation['ties'] ?? false" :variance="! ($reconciliation['ties'] ?? false)" /></x-fx.statement-row>
+            <x-fx.statement-row label="Output VAT in the books"><x-fx.money :cents="$reconciliation['gl_output_cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+            <x-fx.statement-row label="Input VAT in the books"><x-fx.money :cents="$reconciliation['gl_input_cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+            <x-fx.statement-row label="Net VAT in the books" kind="subtotal"><x-fx.money :cents="$reconciliation['gl_net_cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+            <x-fx.statement-row label="What the return would be from the books alone (field 20)"><x-fx.money :cents="$reconciliation['return_from_books_cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+            <x-fx.statement-row label="Difference"><x-fx.money :cents="$reconciliation['difference_cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>
+            @foreach ($reconciliation['explained'] ?? [] as $e)<x-fx.statement-row :label="'Explained: '.$e['label']"><x-fx.money :cents="$e['cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>@endforeach
+            <x-fx.statement-row label="Unexplained difference" kind="total"><x-fx.money :cents="$reconciliation['unexplained_cents']" currency="ZAR" :ticked="$reconciliation['ties'] ?? false" :variance="! ($reconciliation['ties'] ?? false)" /></x-fx.statement-row>
         </x-fx.statement>
         @if (($reconciliation['adjustments_cents'] ?? 0) !== 0)<p class="fx-hint">Your manual adjustments move field 20 by <x-fx.money :cents="$reconciliation['adjustments_cents']" currency="ZAR" signed />. They are in the return and, by design, not in the books.</p>@endif
         <x-tax.basis basis="calculated" />
@@ -220,7 +220,7 @@
         @else
             <x-fx.table caption="Suggested settlement journal">
                 <thead><tr><th scope="col">Account</th><th scope="col">Debit</th><th scope="col">Credit</th></tr></thead>
-                <tbody>@foreach ($settlement as $l)<tr><td data-label="Account" class="is-lead">{{ str_replace('_', ' ', $l['account']) }}<span class="fx-cell-sub">{{ $l['label'] }}</span></td><td data-label="Debit" class="is-num">@if($l['debit_cents'])<x-fx.money :cents="$l['debit_cents']" currency="ZAR" />@endif</td><td data-label="Credit" class="is-num">@if($l['credit_cents'])<x-fx.money :cents="$l['credit_cents']" currency="ZAR" />@endif</td></tr>@endforeach</tbody>
+                <tbody>@foreach ($settlement as $l)<tr><td data-label="Account" class="is-lead">{{ ucfirst(str_replace('_', ' ', $l['account'])) }}<span class="fx-cell-sub">{{ $l['label'] }}</span></td><td data-label="Debit" class="is-num">@if($l['debit_cents'])<x-fx.money :cents="$l['debit_cents']" currency="ZAR" />@endif</td><td data-label="Credit" class="is-num">@if($l['credit_cents'])<x-fx.money :cents="$l['credit_cents']" currency="ZAR" />@endif</td></tr>@endforeach</tbody>
             </x-fx.table>
             <form method="POST" action="{{ route('tax.returns.settlement', $return) }}">@csrf<x-fx.button data-fx-confirm="Post this journal? Journal entries are never edited afterwards, only reversed." data-fx-confirm-label="Post">Confirm and post</x-fx.button></form>
         @endif
@@ -229,6 +229,9 @@
     @endif
 
     @include('tax._rules', ['versions' => $ruleVersions])
-    @if ($frozen)<p class="fx-hint">Prepared {{ $return->prepared_at->format('j M Y H:i') }}. Figures hash {{ substr($return->figures_hash, 0, 16) }}@if($integrity), intact @endif.</p>@endif
+    @if ($frozen)
+    <p class="fx-hint">Prepared {{ $return->prepared_at->format('j M Y H:i') }}. @if ($integrity) The figures are sealed and unchanged since. @endif</p>
+    <details class="tax-rules"><summary>Show working: the seal on these figures</summary><p class="fx-hint">The figures are sealed with a fingerprint so any later change would show. Fingerprint: <span class="fx-fig">{{ substr($return->figures_hash, 0, 16) }}</span>@if ($integrity) and it matches the figures above. @endif</p></details>
+    @endif
     @include('tax._footer')
 </x-app-layout>

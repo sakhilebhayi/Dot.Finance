@@ -27,7 +27,7 @@
                         @php $s = $d->displayStatus($today); @endphp
                         <tr>
                             <td data-label="What" class="is-lead"><a class="fx-link" href="{{ route('tax.calendar.show', $d) }}">{{ $d->label() }}</a></td>
-                            <td data-label="Period">{{ $d->period_label }}</td>
+                            <td data-label="Period">{{ $d->periodText() }}</td>
                             <td data-label="Due">{{ $d->due_date->format('j M Y') }}</td>
                             <td data-label="Status"><x-fx.pill :kind="$s === 'overdue' ? 'variance' : 'plain'">{{ ucfirst($s) }}</x-fx.pill></td>
                         </tr>
@@ -42,7 +42,7 @@
                     @foreach ($obligations as $o)
                     <li>
                         <strong>{{ $o->label }}</strong>
-                        <x-fx.pill :kind="in_array($o->status, ['review', 'not_configured'], true) ? 'variance' : 'plain'">{{ str_replace('_', ' ', ucfirst($o->status)) }}</x-fx.pill>
+                        <x-fx.pill :kind="\App\Services\Tax\TaxLabels::obligationNeedsAction($o->status) ? 'variance' : 'plain'">{{ \App\Services\Tax\TaxLabels::obligationStatus($o->status) }}</x-fx.pill>
                         <p class="fx-hint">{{ $o->summary }}</p>
                     </li>
                     @endforeach
@@ -59,7 +59,7 @@
             </x-fx.table>
         </x-fx.panel>
         @endif
-        @if ($undelivered > 0)<p class="fx-hint">{{ $undelivered }} reminder record(s) are waiting to be delivered.</p>@endif
+        @if ($undelivered > 0)<p class="fx-hint">{{ $undelivered }} tax {{ $undelivered === 1 ? 'reminder is' : 'reminders are' }} queued and will be sent to the people who look after tax.</p>@endif
     @endif
     @include('tax._footer')
 </x-app-layout>

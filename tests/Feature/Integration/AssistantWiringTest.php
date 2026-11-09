@@ -75,7 +75,7 @@ class AssistantWiringTest extends TestCase
         $tax = $this->ask('What tax do I need to prepare for?');
         $this->assertSame('answered', $tax->status);
         $labels = collect($tax->answer['rows'])->map(fn ($r) => $r['cells'][1])->implode(' | ');
-        $this->assertStringContainsString('VAT201 return for', $labels);
+        $this->assertStringContainsString('VAT return (VAT201) for', $labels);
         $this->assertStringContainsString('EMP201', $labels);
     }
 

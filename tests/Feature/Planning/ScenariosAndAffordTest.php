@@ -6,6 +6,7 @@ use App\Models\Accounting\LedgerSetting;
 use App\Models\Planning\Dimension;
 use App\Models\Planning\Scenario;
 use App\Services\Planning\AffordCalculator;
+use App\Services\Planning\CashProjection;
 use App\Services\Reporting\ReportRunner;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,6 +51,61 @@ class ScenariosAndAffordTest extends TestCase
             ['type' => 'new_cost', 'name' => 'New hire', 'amount' => '25000.00', 'start_on' => '2026-08-01', 'months' => ''],
             ['type' => ''],
         ]];
+    }
+
+    public function test_a_scenario_that_moves_nothing_says_why_instead_of_higher_by_zero(): void
+    {
+        // No open invoice in the books: customers paying sooner has no payment to move.
+        $this->as_()->post(route('planning.scenarios.store'), ['name' => 'Pay sooner', 'horizon' => 'weeks_13', 'assumptions' => [['type' => 'collect_faster', 'days' => '7']]])->assertRedirect();
+        $scenario = Scenario::withoutGlobalScopes()->firstOrFail();
+
+        $page = $this->as_()->get(route('planning.scenarios.show', $scenario))->assertOk();
+        $page->assertSee('No effect on cash in this window.')
+            ->assertSee('No invoice is expected to be paid between')
+            ->assertDontSee('higher by')
+            ->assertDontSee('lower by');
+        $html = $page->getContent();
+        $this->assertDoesNotMatchRegularExpression('/ZAR\s[\d,]+\.\d\d<\/span>\s+\./', $html, 'no stray space before a full stop after a figure');
+        $this->assertStringNotContainsString('rp-chart__scenario', $html, 'an identical line is not drawn on top of the base line');
+
+        $this->as_()->get(route('planning.cash.index', ['scenario' => $scenario->id]))->assertOk()->assertSee('changes nothing in this window')->assertDontSee('rp-chart__scenario', false);
+    }
+
+    public function test_compare_reports_the_biggest_gap_between_the_two_projections_even_when_the_headlines_match(): void
+    {
+        $projection = app(CashProjection::class);
+        $mk = fn (array $closings) => ['closing_cents' => 100, 'lowest' => ['balance_cents' => 50], 'inflow_cents' => 0, 'outflow_cents' => 0, 'shortage' => null,
+            'buckets' => array_map(fn ($c, $i) => ['label' => 'Week '.($i + 1), 'closing_cents' => $c], $closings, array_keys($closings))];
+
+        $c = $projection->compare($mk([50, 60, 100]), $mk([50, 90, 100]));
+        $this->assertSame(0, $c['lowest_diff_cents']);
+        $this->assertSame(0, $c['closing_diff_cents']);
+        $this->assertSame(30, $c['between_diff_cents']);
+        $this->assertSame('Week 2', $c['between_label']);
+
+        $same = $projection->compare($mk([50, 60, 100]), $mk([50, 60, 100]));
+        $this->assertSame(0, $same['between_diff_cents']);
+        $this->assertNull($same['between_label']);
+    }
+
+    public function test_the_no_effect_reason_follows_the_assumption_and_is_null_when_something_moves(): void
+    {
+        $projection = app(CashProjection::class);
+        $series = [['date' => '2026-07-01', 'balance_cents' => 100], ['date' => '2026-09-29', 'balance_cents' => 100]];
+        $base = ['today' => '2026-07-01', 'end' => '2026-09-29', 'series' => $series, 'events' => []];
+
+        $this->assertStringContainsString('No invoice is expected to be paid', $projection->noEffectReason([['type' => 'collect_faster', 'days' => 7]], $base, $base));
+        $this->assertStringContainsString('No supplier bill falls due', $projection->noEffectReason([['type' => 'delay_payment', 'days' => 7]], $base, $base));
+        $this->assertStringContainsString('No recurring item falls in this window', $projection->noEffectReason([['type' => 'change_recurring', 'direction' => 'income', 'bp' => 500]], $base, $base));
+        $this->assertStringContainsString('outside the window', $projection->noEffectReason([['type' => 'one_off']], $base, $base));
+
+        $late = $base + [];
+        $late['events'] = [['date' => '2026-07-02', 'cents' => 500, 'label' => 'Late co', 'source' => 'invoice', 'overdue' => true]];
+        $this->assertStringContainsString('already overdue', $projection->noEffectReason([['type' => 'collect_faster', 'days' => 7]], $late, $late));
+
+        $moved = $base;
+        $moved['series'][1]['balance_cents'] = 90;
+        $this->assertNull($projection->noEffectReason([['type' => 'collect_faster', 'days' => 7]], $base, $moved), 'a scenario that changes the balance has an effect');
     }
 
     public function test_scenarios_are_saved_normalised_and_every_use_of_one_leaves_the_books_untouched(): void

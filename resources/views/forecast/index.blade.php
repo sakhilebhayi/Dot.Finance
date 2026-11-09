@@ -16,11 +16,11 @@
 @forelse ($f['currencies'] as $code => $c)
 @php
     $series = $c['series'];
-    $min = min(array_column($series, 'balance_cents'));
-    $max = max(array_column($series, 'balance_cents'));
+    $scale = \App\Support\Ui\ChartScale::near(min(array_column($series, 'balance_cents')), max(array_column($series, 'balance_cents')));
+    $min = $scale['min']; $max = $scale['max'];
     $span = max(1, $max - $min);
     $start = \Illuminate\Support\Carbon::parse($f['from']);
-    $w = 700; $h = 140; $padL = 104;
+    $w = 700; $h = 150; $padL = 104;
     $x = fn ($date) => $padL + ($start->diffInDays(\Illuminate\Support\Carbon::parse($date), true) / max(1, $f['days'])) * ($w - $padL);
     $y = fn ($cents) => $h - (($cents - $min) / $span) * $h;
     $points = [];
@@ -30,7 +30,10 @@
         $points[] = round($x($pt['date']), 1).','.round($y($pt['balance_cents']), 1);
         $prev = $pt['balance_cents'];
     }
-    $zeroY = ($min < 0 && $max > 0) ? $y(0) : null;
+    $zeroY = $scale['crossesZero'] ? $y(0) : null;
+    // Red means "gets worse": a balance that is already below zero and stays there is flat, and flat is neutral.
+    $worse = $c['lowest_cents'] < $c['start_cents'];
+    $dips = $c['lowest_cents'] < 0 && $worse;
 @endphp
 <x-fx.panel :title="$code" :meta="count($c['events']).' projected entr'.(count($c['events']) === 1 ? 'y' : 'ies')">
 
@@ -38,7 +41,7 @@
     <dl class="fx-facts">
         <div>
             <dt>Balance today (actual ledger)</dt>
-            <dd><x-fx.money :cents="$c['start_cents']" :currency="$code" :trace="route('accounts.index')" trace-label="See the accounts this balance is made of" /></dd>
+            <dd><x-fx.money :cents="$c['start_cents']" :currency="$code" :trace="route('accounts.index')" trace-label="See the accounts this balance is made of" />@if ($c['overdrawn'])<small>overdrawn today</small>@endif</dd>
         </div>
         <div>
             <dt>Projected balance in {{ $f['days'] }} days</dt>
@@ -46,21 +49,24 @@
         </div>
         <div>
             <dt>Projected low point</dt>
-            <dd><x-fx.money :cents="$c['lowest_cents']" :currency="$code" :variance="$c['lowest_cents'] < 0" /><small class="fx-fig">{{ $c['lowest_date'] === $f['from'] ? 'today' : $c['lowest_date'] }}</small></dd>
+            <dd><x-fx.money :cents="$c['lowest_cents']" :currency="$code" :variance="$dips" /><small class="fx-fig">{{ $worse ? \Illuminate\Support\Carbon::parse($c['lowest_date'])->format('j M Y') : 'no lower than today' }}</small></dd>
         </div>
     </dl>
 
     @if (count($c['events']) > 0)
     <div class="fx-stack">
-        <svg class="fx-chart" viewBox="0 0 {{ $w }} {{ $h + 6 }}" role="img" aria-label="Projected {{ $code }} balance over {{ $f['days'] }} days, from recurring items only">
-            <line class="fx-chart__grid" x1="{{ $padL }}" y1="0" x2="{{ $w }}" y2="0" />
-            <line class="fx-chart__base" x1="{{ $padL }}" y1="{{ $h }}" x2="{{ $w }}" y2="{{ $h }}" />
-            @if ($zeroY !== null)<line class="fx-chart__zero" x1="{{ $padL }}" y1="{{ $zeroY }}" x2="{{ $w }}" y2="{{ $zeroY }}" />@endif
+        <svg class="fx-chart" viewBox="0 0 {{ $w }} {{ $h + 10 }}" role="img" aria-label="Projected {{ $code }} balance over {{ $f['days'] }} days, from recurring items only">
+            @foreach ($scale['ticks'] as $tick)
+            <line class="fx-chart__grid" x1="{{ $padL }}" y1="{{ round($y($tick), 1) }}" x2="{{ $w }}" y2="{{ round($y($tick), 1) }}" />
+            <text class="fx-chart__tick" x="{{ $padL - 8 }}" y="{{ round($y($tick), 1) + 4 }}" text-anchor="end">{{ \App\Support\Money::format($tick, $code) }}</text>
+            @endforeach
+            @if ($zeroY !== null)<line class="fx-chart__zero" x1="{{ $padL }}" y1="{{ round($zeroY, 1) }}" x2="{{ $w }}" y2="{{ round($zeroY, 1) }}" />@endif
             <polyline class="fx-chart__line fx-chart__line--projected" points="{{ implode(' ', $points) }}" />
-            <text class="fx-chart__tick" x="{{ $padL - 8 }}" y="10" text-anchor="end">{{ \App\Support\Money::format($max, $code) }}</text>
-            <text class="fx-chart__tick" x="{{ $padL - 8 }}" y="{{ $h }}" text-anchor="end">{{ \App\Support\Money::format($min, $code) }}</text>
         </svg>
-        <p class="fx-hint">Dashed because it is a projection: every step is a recurring entry on its due date.</p>
+        <p class="fx-hint">The dashed line is the projected balance (dashed because it is a projection): every step is a recurring entry on its due date.
+            @if ($scale['flat']) The balance does not change in this window, so the line is flat.@endif
+            @unless ($scale['fromZero'] || $scale['crossesZero']) The vertical scale starts at {{ \App\Support\Money::format($min, $code) }}, not at zero.@endunless
+            @if ($c['overdrawn'] && ! $worse) This {{ $code }} balance is below zero today and nothing recurring changes that.@endif</p>
     </div>
     @endif
 
@@ -100,6 +106,16 @@
 </x-fx.empty>
 @endforelse
 
+@if (count($f['not_cash']) > 0)
+<x-fx.panel title="Not counted as cash" meta="Listed so nothing is hidden; never added to a cash balance above">
+    <ul class="fx-list">
+        @foreach ($f['not_cash'] as $code => $rows)@foreach ($rows as $row)
+        <li>{{ $row['name'] }}, {{ $row['type'] === 'credit' ? 'a credit account (money owed)' : ($row['type'] === 'investment' ? 'an investment account' : 'a '.$row['type'].' account') }}: <x-fx.money :cents="$row['balance_cents']" :currency="$code" /></li>
+        @endforeach @endforeach
+    </ul>
+</x-fx.panel>
+@endif
+
 @if ($f['included_rules'] === 0 && count($f['currencies']) > 0)
 <x-fx.empty title="Nothing recurring to project.">
     @can('create', \App\Models\Transaction::class)
@@ -114,7 +130,7 @@
 <x-fx.panel title="Left out of this projection">
     <ul class="fx-list">
         @foreach ($f['excluded'] as $item)
-        <li>{{ $item['description'] }} <span class="fx-hint">({{ $item['reason'] }}; <a href="{{ route('recurring.index') }}">resume it</a> to include it)</span></li>
+        <li>{{ $item['description'] }} <span class="fx-hint">({{ $item['reason'] }}@if ($item['resumable'] ?? true); <a href="{{ route('recurring.index') }}">resume it</a><span> to include it</span>@endif)</span></li>
         @endforeach
     </ul>
 </x-fx.panel>

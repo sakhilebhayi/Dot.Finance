@@ -4,6 +4,7 @@ namespace Tests\Feature\Intelligence;
 
 use App\Models\Intelligence\AssistantDraft;
 use App\Models\Intelligence\AssistantMessage;
+use App\Services\Intelligence\Intent;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -60,6 +61,47 @@ class AssistantPagesTest extends TestCase
         $this->asOwner()->post(route('intel.assistant.ask'), ['question' => 'Who owes me money?'])->assertRedirect();
 
         $this->get(route('intel.assistant.index'))->assertSee('I don&#039;t have that information', false)->assertSee('No information');
+    }
+
+    public function test_every_suggestion_chip_submits_its_own_text_and_is_not_blocked_by_the_empty_required_field(): void
+    {
+        $html = $this->asOwner()->get(route('intel.assistant.index'))->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8"?>'.$html);
+        $xpath = new \DOMXPath($dom);
+
+        $chips = $xpath->query('//ul[contains(@class,"intel-suggest")]//button');
+        $this->assertGreaterThanOrEqual(5, $chips->length, 'the page offers the suggested questions');
+
+        foreach ($chips as $chip) {
+            $form = $xpath->query('ancestor::form', $chip)->item(0);
+            $this->assertNotNull($form, 'a chip sits in a form');
+            // The browser validates every required control of the chip's form: none may be empty.
+            $this->assertSame(0, $xpath->query('.//*[@required]', $form)->length, 'a chip form must not contain the required free-text field');
+            $hidden = $xpath->query('.//input[@type="hidden"][@name="question"]', $form)->item(0);
+            $this->assertNotNull($hidden, 'the chip carries its own question');
+            $this->assertSame(trim($chip->textContent), $hidden->getAttribute('value'), 'the chip asks what it says');
+        }
+
+        // The typed field is still required and is in a form of its own.
+        $typed = $xpath->query('//input[@name="question"][@required]')->item(0);
+        $this->assertNotNull($typed);
+        $this->assertSame(0, $xpath->query('ancestor::form//ul[contains(@class,"intel-suggest")]', $typed)->length);
+    }
+
+    public function test_asking_each_suggestion_stores_exactly_that_question(): void
+    {
+        config(['intelligence.assistant.per_minute' => 60]);
+        $this->asOwner();
+        foreach (Intent::suggestions() as $suggestion) {
+            $this->post(route('intel.assistant.ask'), ['question' => $suggestion])->assertRedirectContains('#answer-');
+        }
+
+        $asked = $this->messages($this->b['owner'])->pluck('question')->all();
+        foreach (Intent::suggestions() as $suggestion) {
+            $this->assertContains($suggestion, $asked);
+        }
     }
 
     public function test_an_unrecognised_question_is_answered_honestly_without_figures(): void

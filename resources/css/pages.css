@@ -187,6 +187,16 @@
     font-size: 11px;
 }
 
+.fx-chart__label {
+    fill: var(--ink-2);
+    font-size: 11px;
+    /* a halo in the page colour keeps the label readable where the line passes behind it */
+    paint-order: stroke;
+    stroke: var(--sheet);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+}
+
 .fx-chart__line {
     fill: none;
     stroke: var(--ink);
@@ -992,6 +1002,11 @@
     margin: 0;
     font-weight: 600;
 }
+.tax-sheet__iso {
+    font-weight: 400;
+    color: #3a424e;
+    font-size: 0.75rem;
+}
 .tax-sheet__table {
     width: 100%;
     border-collapse: collapse;
@@ -1020,9 +1035,27 @@
     color: #3a424e;
     font-size: 0.8125rem;
 }
+/* The paper is always light, whatever theme the person chose for the app. */
+html:has(body.tax-print) {
+    color-scheme: light;
+}
+@page {
+    size: A4;
+    margin: 16mm 14mm;
+}
 @media print {
     .tax-sheet {
         padding: 0;
+        max-width: none;
+    }
+    .tax-sheet__table thead {
+        display: table-header-group;
+    }
+    .tax-sheet__table tfoot {
+        display: table-footer-group;
+    }
+    .tax-sheet__banner {
+        break-after: avoid;
     }
     .tax-sheet h2,
     .tax-sheet h3 {

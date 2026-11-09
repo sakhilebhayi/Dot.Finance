@@ -149,9 +149,61 @@ class ForecastTest extends TestCase
 
         $forecast = (new ForecastService)->project(LedgerContext::personal($user));
 
-        $this->assertSame(['USD', 'ZAR'], array_keys($forecast['currencies']));
+        $this->assertSame(['ZAR', 'USD'], array_keys($forecast['currencies']), 'the currency holding the most cash comes first');
         $this->assertSame(5_000 - 3_000, $forecast['currencies']['USD']['end_cents']);
         $this->assertSame(100_000 - 30_000, $forecast['currencies']['ZAR']['end_cents']);
+    }
+
+    public function test_a_credit_account_is_never_netted_against_cash_and_its_rules_are_left_out(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $cash = Account::factory()->for($user)->currency('USD')->opening(500_000, null)->create(['name' => 'Wise']);
+        $card = Account::factory()->for($user)->currency('USD')->ofType('credit')->opening(-900_000, null)->create(['name' => 'Travel card']);
+        $this->rule($user, $card, ['description' => 'Card subscription', 'amount_cents' => 2_000]);
+
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
+
+        $this->assertSame(500_000, $forecast['currencies']['USD']['start_cents'], 'only cash accounts make the cash balance');
+        $this->assertSame(500_000, $forecast['currencies']['USD']['end_cents'], 'a rule on a credit account does not move cash');
+        $this->assertSame('Travel card', $forecast['not_cash']['USD'][0]['name']);
+        $this->assertSame('Card subscription', $forecast['excluded'][0]['description']);
+        $this->assertStringContainsString('not cash', $forecast['excluded'][0]['reason']);
+
+        $this->actingAs($user)->get(route('forecast.index'))->assertOk()->assertSee('Not counted as cash')->assertSee('Travel card')->assertSee('a credit account (money owed)')->assertDontSee('resume it');
+    }
+
+    public function test_a_currency_with_only_a_credit_account_has_no_cash_balance_to_project(): void
+    {
+        $user = User::factory()->create();
+        Account::factory()->for($user)->currency('USD')->ofType('credit')->opening(-300_000, null)->create();
+
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
+
+        $this->assertSame([], $forecast['currencies']);
+        $this->assertCount(1, $forecast['not_cash']['USD']);
+    }
+
+    public function test_an_overdrawn_flat_line_is_neutral_not_red_and_the_biggest_cash_currency_leads(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        Account::factory()->for($user)->currency('USD')->opening(-300_000, null)->create(['name' => 'Supplier USD']);
+        Account::factory()->for($user)->currency('ZAR')->opening(750_000_00, null)->create(['name' => 'Main account']);
+
+        $forecast = (new ForecastService)->project(LedgerContext::personal($user));
+        $this->assertSame(['ZAR', 'USD'], array_keys($forecast['currencies']));
+        $this->assertTrue($forecast['currencies']['USD']['overdrawn']);
+
+        $page = $this->actingAs($user)->get(route('forecast.index'))->assertOk();
+        $page->assertSee('overdrawn today')->assertSee('no lower than today')->assertDontSee('is-variance', false);
+    }
+
+    public function test_a_balance_that_falls_below_zero_is_still_red(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $account = Account::factory()->for($user)->opening(5_000, null)->create();
+        $this->rule($user, $account, ['description' => 'Big bill', 'amount_cents' => 20_000, 'next_occurrence_date' => '2026-10-15', 'start_date' => '2026-10-15']);
+
+        $this->actingAs($user)->get(route('forecast.index'))->assertOk()->assertSee('is-variance', false);
     }
 
     public function test_it_reports_the_lowest_projected_balance_and_when(): void

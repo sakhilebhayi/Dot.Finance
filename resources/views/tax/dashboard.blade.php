@@ -9,7 +9,7 @@
         <tbody>
         @foreach ($__d as $d)
             @php $s = $d->displayStatus($__today); @endphp
-            <tr><td data-label="What" class="is-lead"><a class="fx-link" href="{{ route('tax.calendar.show', $d) }}">{{ $d->label() }}</a><span class="fx-cell-sub">{{ $d->period_label }}</span></td><td data-label="Due">{{ $d->due_date->format('j M Y') }}</td><td data-label="Status"><x-fx.pill :kind="$s === 'overdue' ? 'variance' : 'plain'">{{ ucfirst($s) }}</x-fx.pill></td></tr>
+            <tr><td data-label="What" class="is-lead"><a class="fx-link" href="{{ route('tax.calendar.show', $d) }}">{{ $d->label() }}</a><span class="fx-cell-sub">{{ $d->periodText() }}</span></td><td data-label="Due">{{ $d->due_date->format('j M Y') }}</td><td data-label="Status"><x-fx.pill :kind="$s === 'overdue' ? 'variance' : 'plain'">{{ ucfirst($s) }}</x-fx.pill></td></tr>
         @endforeach
         </tbody>
     </x-fx.table>

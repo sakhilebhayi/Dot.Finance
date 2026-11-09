@@ -1,5 +1,5 @@
 <x-app-layout title="VAT">
-    <x-fx.page-head title="VAT" sub="VAT201 returns, built from the tax codes on your journal lines. Prepared here, filed by a person on SARS eFiling.">
+    <x-fx.page-head title="VAT" sub="Your VAT returns (the VAT201), built from the tax codes on your invoices and bills. Prepared here, filed by a person on SARS eFiling.">
         <x-slot name="actions"><x-fx.button :href="route('tax.vat.review')" icon="list-checks">Review queue</x-fx.button></x-slot>
     </x-fx.page-head>
     @include('tax._tabs')
@@ -12,7 +12,7 @@
     @elseif (count($rows) === 0)
         <x-fx.empty title="No VAT periods yet.">Add the period category and registration date in the tax profile.</x-fx.empty>
     @else
-    <x-fx.panel title="Periods" meta="Category {{ $profile->vat_category }}, {{ $profile->vat_basis }} basis, {{ $profile->vat_filing_channel ?? 'eFiling (default)' }}" flush>
+    <x-fx.panel title="Periods" meta="{{ $profile->vat_basis === 'payments' ? 'VAT counted when money moves (payments basis)' : 'VAT counted when you invoice (invoice basis)' }}, filed through {{ $profile->vat_filing_channel ?? 'eFiling' }}. SARS period category {{ $profile->vat_category }}." flush>
         <x-fx.table caption="VAT periods, newest first">
             <thead><tr><th scope="col">Period</th><th scope="col">Due</th><th scope="col">Return</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
             <tbody>

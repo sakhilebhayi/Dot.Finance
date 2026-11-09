@@ -1,6 +1,6 @@
 <x-app-layout :title="$deadline->label()">
     @php $s = $deadline->displayStatus($today); @endphp
-    <x-fx.page-head :title="$deadline->label()" :sub="$deadline->period_label">
+    <x-fx.page-head :title="$deadline->label()" :sub="$deadline->periodText()">
         <x-slot name="actions">
             @if ($deadline->obligation === 'vat201')<x-fx.button :href="route('tax.vat.index')">VAT returns</x-fx.button>@endif
             @if ($deadline->obligation === 'emp201')<x-fx.button :href="route('tax.emp201.index')">Employer taxes</x-fx.button>@endif

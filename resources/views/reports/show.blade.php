@@ -8,9 +8,9 @@
 <x-fx.flash />
 <x-fx.errors />
 
-@include('reports._toolbar')
 @include('reports._header')
 @include('reports._checks')
+@include('reports._toolbar')
 
 @if ($result->empty)
 <x-fx.empty :title="$result->empty">Choose another period above, or record the entries this report reads. Nothing is shown that is not in the books.</x-fx.empty>

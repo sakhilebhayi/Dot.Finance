@@ -38,6 +38,7 @@ class CashController extends PlanningController
 
         return view('planning.cash', [
             'base' => $base, 'scenario' => $scenario, 'alt' => $alt, 'compare' => $alt ? $projection->compare($base, $alt) : null,
+            'noEffect' => $alt ? $projection->noEffectReason(Assumptions::normalise($scenario->assumptions), $base, $alt) : null,
             'scenarios' => Scenario::query()->orderBy('name')->get(), 'horizon' => $horizon, 'buffer' => $buffer, 'horizons' => CashProjection::HORIZONS,
         ]);
     }

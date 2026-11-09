@@ -18,13 +18,24 @@
 
 <section class="rp-answer" aria-labelledby="sc-answer">
     <h2 class="fx-section-title" id="sc-answer">Effect on cash <x-fx.pill>projected, not guaranteed</x-fx.pill></h2>
-    <p>The lowest projected balance goes from <x-fx.money :cents="$base['lowest']['balance_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['lowest']['balance_cents']" :currency="$cur" />, {{ $compare['lowest_diff_cents'] < 0 ? 'lower' : 'higher' }} by <x-fx.money :cents="abs($compare['lowest_diff_cents'])" :currency="$cur" />.
-        The balance at the end of the window goes from <x-fx.money :cents="$base['closing_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['closing_cents']" :currency="$cur" />.</p>
+    @if ($noEffect)
+    <p><strong>No effect on cash in this window.</strong> {{ $noEffect }}</p>
+    <p>The lowest projected balance stays at <x-fx.money :cents="$base['lowest']['balance_cents']" :currency="$cur" />, and the balance at the end of the window stays at <x-fx.money :cents="$base['closing_cents']" :currency="$cur" />. The scenario line is not drawn separately below because it would sit exactly on the base line.</p>
+    @else
+    @php
+        $dir = fn (int $diff) => $diff === 0 ? 'no change' : ($diff < 0 ? 'lower' : 'higher');
+    @endphp
+    <p>The lowest projected balance goes from <x-fx.money :cents="$base['lowest']['balance_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['lowest']['balance_cents']" :currency="$cur" /> ({{ $dir($compare['lowest_diff_cents']) }}@if ($compare['lowest_diff_cents'] !== 0) by <x-fx.money :cents="abs($compare['lowest_diff_cents'])" :currency="$cur" />@endif).
+        The balance at the end of the window goes from <x-fx.money :cents="$base['closing_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['closing_cents']" :currency="$cur" /> ({{ $dir($compare['closing_diff_cents']) }}@if ($compare['closing_diff_cents'] !== 0) by <x-fx.money :cents="abs($compare['closing_diff_cents'])" :currency="$cur" />@endif).</p>
+    @if ($compare['lowest_diff_cents'] === 0 && $compare['closing_diff_cents'] === 0 && $compare['between_diff_cents'] !== 0)
+    <p>Neither the lowest point nor the closing balance changes, so the headline figures above look the same. In between, the balance is up to <x-fx.money :cents="abs($compare['between_diff_cents'])" :currency="$cur" /> {{ $compare['between_diff_cents'] > 0 ? 'higher' : 'lower' }} at the end of {{ lcfirst($compare['between_label']) }}; the dotted line shows where.</p>
+    @endif
+    @endif
     <p>@if ($alt['shortage']) Under this scenario cash is projected to fall below zero on {{ \Carbon\CarbonImmutable::parse($alt['shortage']['date'])->format('j M Y') }}. @else Under this scenario no shortage is projected. @endif
        @if ($base['shortage'] && ! $alt['shortage']) The base projection does show one on {{ \Carbon\CarbonImmutable::parse($base['shortage']['date'])->format('j M Y') }}. @endif</p>
 </section>
 
-@include('planning._chart', ['base' => $base, 'alt' => $alt, 'buffer' => 0, 'currency' => $cur])
+@include('planning._chart', ['base' => $base, 'alt' => $noEffect ? null : $alt, 'buffer' => 0, 'currency' => $cur])
 <ul class="rp-notes">
     @foreach (array_merge($base['notes'], $base['excluded']) as $n)<li>{{ $n }}</li>@endforeach
     <li>{{ $base['source'] }}</li>

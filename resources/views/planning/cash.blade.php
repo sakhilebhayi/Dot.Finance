@@ -34,7 +34,11 @@
     </p>
 </section>
 
-@include('planning._chart', ['base' => $base, 'alt' => $alt, 'buffer' => $buffer, 'currency' => $cur])
+@if ($alt && $noEffect)
+<p class="fx-notice" role="note"><x-fx.icon name="info" /><span><strong>The scenario "{{ $scenario->name }}" changes nothing in this window.</strong> {{ $noEffect }} Its line is left off the chart because it would sit exactly on the base line.</span></p>
+@endif
+
+@include('planning._chart', ['base' => $base, 'alt' => $noEffect ? null : $alt, 'buffer' => $buffer, 'currency' => $cur])
 
 @if ($alt)
 <x-fx.panel :title="'Scenario: '.$scenario->name" meta="Projected, compared with the base projection" flush>

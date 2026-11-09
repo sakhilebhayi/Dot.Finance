@@ -100,7 +100,7 @@ class PurchasesServiceProvider extends ServiceProvider
 
             $unbalanced = $remember('ap-reconcile', fn () => ['ok' => app(ApLedger::class)->reconcile($ledger)] + ['accounting_on' => app(PurchaseLedger::class)->accountingEnabled($ledger)]);
             if ($unbalanced['accounting_on'] && ! $unbalanced['ok']['ok'] && ($url = fx_route(['purchases.ap.index']))) {
-                $items[] = ['key' => 'ap-out', 'tone' => 'variance', 'count' => 1, 'text' => 'The supplier ledger does not agree with the books', 'href' => $url];
+                $items[] = ['key' => 'ap-out', 'tone' => 'variance', 'count' => 1, 'text' => 'What you owe suppliers does not agree with the books', 'href' => $url];
             }
 
             return $items;

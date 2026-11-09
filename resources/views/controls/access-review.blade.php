@@ -41,7 +41,7 @@
                     <div class="fx-cell-sub">From InfoDot: {{ ucfirst($row['infodot_role']) }}</div>
                     <div class="fx-cell-sub">Local role: {{ $row['local_role']?->label() ?? 'None' }}@if ($row['granted_by']), set by {{ $row['granted_by'] }} on {{ $row['granted_at']?->toDateString() }}@endif</div>
                 </span></td>
-                <td data-label="Can do">{{ $row['capability_count'] }} of {{ count(\App\Enums\Capability::cases()) }} capabilities</td>
+                <td data-label="Can do">{{ $row['capability_count'] }} of {{ count(\App\Enums\Capability::cases()) }} actions</td>
                 <td data-label="Last activity"><span class="fx-cellbody">
                     <div>Session: {{ $row['last_session_activity']?->toDateTimeString() ?? 'No live session' }}</div>
                     <div class="fx-cell-sub">Last action here: {{ $row['last_action_here']?->toDateTimeString() ?? 'Nothing recorded' }}</div>

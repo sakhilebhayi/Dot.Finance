@@ -13,7 +13,7 @@
     @if ($error)
         <div class="fx-alert" role="alert"><x-fx.icon name="circle-alert" /><p>{{ $error }}</p></div>
     @elseif ($estimate)
-    <p class="tax-banner__line"><x-fx.pill>ESTIMATE, NOT A RETURN</x-fx.pill> Tax year {{ \Carbon\CarbonImmutable::parse($estimate->taxYearStart)->format('j M Y') }} to {{ \Carbon\CarbonImmutable::parse($estimate->taxYearEnd)->format('j M Y') }}{{ $estimate->yearComplete ? '' : ', year to date' }}. Source of profit: {{ $estimate->source }}. Rules confidence: {{ $estimate->confidence }}.</p>
+    <p class="tax-banner__line"><x-fx.pill>ESTIMATE, NOT A RETURN</x-fx.pill> Tax year {{ \Carbon\CarbonImmutable::parse($estimate->taxYearStart)->format('j M Y') }} to {{ \Carbon\CarbonImmutable::parse($estimate->taxYearEnd)->format('j M Y') }}{{ $estimate->yearComplete ? '' : ', year to date' }}. Profit is read from {{ $estimate->sourceText() }}. Rules confidence: {{ $estimate->confidence }}.</p>
 
     @foreach ($estimate->warnings as $w)<div class="fx-alert" role="status"><x-fx.icon name="info" /><p>{{ $w }}</p></div>@endforeach
 
@@ -38,6 +38,22 @@
                 </form>
             </x-slot>
             @endif
+        </x-fx.panel>
+
+        @php $parts = $estimate->bySource(); @endphp
+        <x-fx.panel title="Where the profit comes from" meta="Read from {{ $estimate->source === 'books' ? 'the books' : 'the cash ledger' }}">
+            @if ($estimate->source === 'books' && ($parts['income'] !== [] || $parts['expense'] !== []))
+            <x-fx.statement>
+                @foreach ($parts['income'] as $row)<x-fx.statement-row :label="'Income: '.$row['label']"><x-fx.money :cents="$row['cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>@endforeach
+                @foreach ($parts['expense'] as $row)<x-fx.statement-row :label="'Expenses: '.$row['label']"><x-fx.money :cents="-$row['cents']" currency="ZAR" /> <x-tax.basis basis="calculated" /></x-fx.statement-row>@endforeach
+            </x-fx.statement>
+            <p class="fx-hint">The tax estimate reads the books, so invoices and bills count when they are issued. The Transactions list holds only money that moved, so the two can show different totals for the same dates.</p>
+            @elseif ($estimate->source === 'books')
+            <p class="fx-hint">There are no income or expense entries in the books for this tax year to date.</p>
+            @else
+            <p class="fx-hint">Accounting is not switched on, so income and expenses are the ones recorded in the Transactions list.</p>
+            @endif
+            <x-slot name="foot"><a class="fx-link" href="{{ route('reports.profit-loss') }}">Open the Profit and loss report</a></x-slot>
         </x-fx.panel>
 
         <x-fx.panel title="Not in this estimate" meta="Ask your practitioner">
@@ -116,6 +132,7 @@
         <form method="POST" action="{{ route('tax.income.provision') }}" class="fx-form fx-stack">@csrf
             <input type="hidden" name="year_end" value="{{ $yearEnd->toDateString() }}">
             <x-fx.select name="expense_account_id" label="Income tax expense account" hint="Choose an expense account. Create one in the chart if you have none.">
+                @unless ($defaultExpense)<option value="" selected>Choose an account</option>@endunless
                 @foreach ($expenseAccounts as $a)<option value="{{ $a->id }}" @selected($defaultExpense?->id === $a->id)>{{ $a->label() }}</option>@endforeach
             </x-fx.select>
             <x-fx.check name="confirm">I confirm this provision is an estimate and should be posted</x-fx.check>

@@ -33,6 +33,24 @@ final class RunwayDetector implements Detector
 
             $months = (int) $r['months'];
 
+            if (! empty($r['no_reserves'])) {
+                $findings[] = new Finding(
+                    $this->kind(),
+                    'runway:'.$currency,
+                    $this->period($asOf),
+                    'critical',
+                    "{$currency} accounts hold no cash while money is going out",
+                    'The '.$currency.' checking, savings and cash accounts hold '.Money::format((int) $r['liquid_reserves_cents'], $currency).' and '.$currency.' spending averages '.Money::format((int) $r['avg_monthly_burn_cents'], $currency).' a month. '.$r['basis'],
+                    [
+                        ['label' => 'Liquid reserves', 'value' => Money::format((int) $r['liquid_reserves_cents'], $currency)],
+                        ['label' => 'Average monthly net spend', 'value' => Money::format((int) $r['avg_monthly_burn_cents'], $currency)],
+                    ],
+                    fx_route('forecast.index'),
+                );
+
+                continue;
+            }
+
             $findings[] = new Finding(
                 $this->kind(),
                 'runway:'.$currency,

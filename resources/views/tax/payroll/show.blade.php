@@ -13,7 +13,7 @@
             <x-fx.statement-row label="UIF, employer"><x-fx.money :cents="$run->uif_employer_cents" currency="ZAR" /></x-fx.statement-row>
             <x-fx.statement-row label="SDL"><x-fx.money :cents="$run->sdl_cents" currency="ZAR" /></x-fx.statement-row>
             <x-fx.statement-row label="ETI claimed"><x-fx.money :cents="$run->eti_claimed_cents" currency="ZAR" /></x-fx.statement-row>
-            <x-fx.statement-row label="Owed to SARS through the EMP201" kind="total"><x-fx.money :cents="$run->emp201LiabilityCents()" currency="ZAR" lead /></x-fx.statement-row>
+            <x-fx.statement-row label="Owed to SARS on the monthly employer return (EMP201)" kind="total"><x-fx.money :cents="$run->emp201LiabilityCents()" currency="ZAR" lead /></x-fx.statement-row>
         </x-fx.statement>
         <x-tax.basis :basis="$run->source === 'hr_import' ? 'calculated' : 'entered'" />
         @if ($run->notes)<p class="fx-hint">{{ $run->notes }}</p>@endif
@@ -21,7 +21,7 @@
 
     <x-fx.panel title="Employees" meta="Sensitive detail">
         @if (! $canDetail)
-            <p class="fx-hint">{{ $lineCount }} employee line(s) are held. Your role cannot see payroll detail, so names and individual amounts are not shown.</p>
+            <p class="fx-hint">{{ $lineCount }} {{ $lineCount === 1 ? 'employee line is' : 'employee lines are' }} held. Your role cannot see payroll detail, so names and individual amounts are not shown. Ask the owner if you need access.</p>
         @elseif ($lines->isEmpty())<p class="fx-hint">No per-employee lines were supplied: this is a summary only.</p>
         @else
         <x-fx.table caption="Per-employee payroll tax lines">
@@ -37,7 +37,7 @@
         @else
             <x-fx.table caption="Suggested payroll journal">
                 <thead><tr><th scope="col">Account</th><th scope="col">Debit</th><th scope="col">Credit</th></tr></thead>
-                <tbody>@foreach ($suggested as $l)<tr><td data-label="Account" class="is-lead">{{ str_replace('_', ' ', $l['account']) }}<span class="fx-cell-sub">{{ $l['label'] }}</span></td><td data-label="Debit" class="is-num">@if($l['debit_cents'])<x-fx.money :cents="$l['debit_cents']" currency="ZAR" />@endif</td><td data-label="Credit" class="is-num">@if($l['credit_cents'])<x-fx.money :cents="$l['credit_cents']" currency="ZAR" />@endif</td></tr>@endforeach</tbody>
+                <tbody>@foreach ($suggested as $l)<tr><td data-label="Account" class="is-lead">{{ ucfirst(str_replace('_', ' ', $l['account'])) }}<span class="fx-cell-sub">{{ $l['label'] }}</span></td><td data-label="Debit" class="is-num">@if($l['debit_cents'])<x-fx.money :cents="$l['debit_cents']" currency="ZAR" />@endif</td><td data-label="Credit" class="is-num">@if($l['credit_cents'])<x-fx.money :cents="$l['credit_cents']" currency="ZAR" />@endif</td></tr>@endforeach</tbody>
             </x-fx.table>
             <p class="fx-hint">Net pay is paid from the bank and is recorded as a bank transaction categorised to salaries. This journal adds the tax and UIF withheld and the employer's contributions, so salaries expense equals gross pay plus employer contributions. If you do not record net pay in the bank, salaries expense will be understated.</p>
             <x-tax.basis basis="suggestion" />

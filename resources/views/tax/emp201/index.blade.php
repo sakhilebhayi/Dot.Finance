@@ -1,5 +1,5 @@
 <x-app-layout title="Employer taxes">
-    <x-fx.page-head title="Employer taxes" sub="The monthly EMP201 (PAYE, SDL, UIF, ETI), prepared from the month's payroll summary. A person files it on eFiling.">
+    <x-fx.page-head title="Employer taxes" sub="The monthly employer return (EMP201) for PAYE, SDL, UIF and ETI, prepared from the month's payroll summary. A person files it on eFiling.">
         <x-slot name="actions"><x-fx.button :href="route('tax.payroll.index')" icon="users">Payroll summaries</x-fx.button></x-slot>
     </x-fx.page-head>
     @include('tax._tabs')
@@ -9,7 +9,7 @@
         <x-fx.empty title="No employer taxes: the profile says there are no employees.">If that has changed, update the tax profile.<x-slot name="action"><x-fx.button :href="route('tax.profile.edit')">Tax profile</x-fx.button></x-slot></x-fx.empty>
     @else
     <x-fx.panel title="Months" flush>
-        <x-fx.table caption="EMP201 by month, newest first">
+        <x-fx.table caption="Monthly employer returns (EMP201), newest first">
             <thead><tr><th scope="col">Month</th><th scope="col">Return</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
             <tbody>
             @foreach ($months as $m)

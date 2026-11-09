@@ -10,7 +10,7 @@ namespace App\Services\Reporting;
  * Row:    ['type' => 'section'|'line'|'subtotal'|'total'|'info', 'label' => string, 'depth' => int, 'cells' => [colKey => scalar|null],
  *          'drill' => [colKey => query-string params for /reports/drill], 'href' => ?string (a link for the label)].
  * Money cells are integers in minor units, percentages are basis points, nothing is a float.
- * Check:  ['key', 'label', 'ok' => bool, 'difference_cents' => int, 'detail' => string].
+ * Check:  ['key', 'label', 'ok' => bool, 'difference_cents' => int, 'detail' => string, optional 'currency' => ?string (the currency of the difference; null when it spans several)].
  */
 final class ReportResult
 {

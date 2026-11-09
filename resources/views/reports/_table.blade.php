@@ -1,9 +1,11 @@
-{{-- A report as a ruled table. Every money cell with a drill is a link to the journal lines behind it. --}}
+{{-- A report as a ruled table. Every money cell with a drill is a link to the journal lines behind it. It stays a table on a phone
+     (one column header per period, not a card per row that repeats the period); a wide one scrolls inside its panel with the
+     account names pinned. --}}
 @php
     $cur = $result->header['currency'] ?? null;
     $n = count($result->columns);
 @endphp
-<x-fx.table :caption="$result->title.', '.($result->header['period'] ?? '')" class="rp-table" :scroll="$n > 5">
+<x-fx.table :caption="$result->title.', '.($result->header['period'] ?? '')" class="rp-table" :keep="true">
     <thead>
         <tr>
             @foreach ($result->columns as $c)

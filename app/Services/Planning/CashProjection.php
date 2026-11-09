@@ -229,13 +229,72 @@ class CashProjection
     /** A summary of how a scenario's projection differs from the base projection. @return array<string, mixed> */
     public function compare(array $base, array $scenario): array
     {
+        // The biggest gap between the two projections at the end of any week (or month): a scenario can leave the lowest
+        // point and the closing balance exactly where they were and still change the balance in between.
+        $between = ['cents' => 0, 'label' => null];
+        foreach ($base['buckets'] as $i => $bucket) {
+            $diff = ($scenario['buckets'][$i]['closing_cents'] ?? $bucket['closing_cents']) - $bucket['closing_cents'];
+            if (abs($diff) > abs($between['cents'])) {
+                $between = ['cents' => $diff, 'label' => $bucket['label']];
+            }
+        }
+
         return [
+            'between_diff_cents' => $between['cents'], 'between_label' => $between['label'],
             'closing_diff_cents' => $scenario['closing_cents'] - $base['closing_cents'],
             'lowest_diff_cents' => $scenario['lowest']['balance_cents'] - $base['lowest']['balance_cents'],
             'inflow_diff_cents' => $scenario['inflow_cents'] - $base['inflow_cents'],
             'outflow_diff_cents' => $scenario['outflow_cents'] - $base['outflow_cents'],
             'base_shortage' => $base['shortage'], 'scenario_shortage' => $scenario['shortage'],
         ];
+    }
+
+    /**
+     * When a scenario leaves the projection exactly as it was, say why in plain words. Null when it does change something.
+     * The reasons come from the base projection's own items: how many invoices, bills and recurring items fall in the window,
+     * and whether the ones that do are already late (a late item is placed on tomorrow, whatever days a scenario adds).
+     *
+     * @param  list<array<string, mixed>>  $assumptions  from Assumptions::normalise()
+     */
+    public function noEffectReason(array $assumptions, array $base, array $scenario): ?string
+    {
+        $key = fn (array $p) => json_encode([$p['series'], array_map(fn ($e) => [$e['date'], $e['cents'], $e['label']], $p['events'])]);
+        if ($key($base) !== $key($scenario)) {
+            return null;
+        }
+
+        $of = fn (string $source) => array_values(array_filter($base['events'], fn ($e) => $e['source'] === $source));
+        $late = fn (array $rows) => count(array_filter($rows, fn ($e) => $e['overdue']));
+        $window = CarbonImmutable::parse($base['today'])->format('j M Y').' and '.CarbonImmutable::parse($base['end'])->format('j M Y');
+        $reasons = [];
+
+        foreach (array_unique(array_column($assumptions, 'type')) as $type) {
+            $reasons[] = match ($type) {
+                'collect_faster', 'delay_receipts' => (function () use ($of, $late, $window) {
+                    $rows = $of('invoice');
+
+                    return $rows === []
+                        ? "no invoice is expected to be paid between {$window}, so there is no payment to move"
+                        : ($late($rows) === count($rows) ? 'every open invoice is already overdue, and an overdue invoice is assumed paid tomorrow whatever days are added' : 'the invoices that are open land in the same days either way');
+                })(),
+                'delay_payment' => (function () use ($of, $late, $window) {
+                    $rows = $of('bill');
+
+                    return $rows === []
+                        ? "no supplier bill falls due between {$window}, so there is no payment to delay"
+                        : ($late($rows) === count($rows) ? 'every open bill is already overdue, and an overdue bill is assumed paid tomorrow whatever days are added' : 'the bills that are open land in the same days either way');
+                })(),
+                'change_recurring' => $of('recurring') === [] ? 'no recurring item falls in this window, so there is nothing to reprice' : 'the recurring items it changes are not in this window',
+                'new_cost', 'one_off' => 'what it adds falls outside the window',
+                default => null,
+            };
+        }
+
+        $reasons = array_values(array_filter($reasons));
+
+        return $reasons === []
+            ? 'It moves no money inside the window.'
+            : ucfirst(implode('; ', $reasons)).'.';
     }
 
     /** @return list<array<string, mixed>> */
