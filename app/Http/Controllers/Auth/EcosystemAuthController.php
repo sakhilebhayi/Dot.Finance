@@ -137,8 +137,13 @@ class EcosystemAuthController extends Controller
     private function userFromLocalToken(string $token): ?User
     {
         // Sanctum looks the id part up as a bigint; a non-numeric id ('|', 'x|y') is a database error on PostgreSQL, not a miss.
-        if (str_contains($token, '|') && ! ctype_digit(strstr($token, '|', true))) {
-            return null;
+        // The id part must be a number that fits the column: PostgreSQL also refuses a bigint that is too large (more than 18 digits is never an id).
+        if (str_contains($token, '|')) {
+            $id = strstr($token, '|', true);
+
+            if (! ctype_digit($id) || strlen($id) > 18) {
+                return null;
+            }
         }
 
         $accessToken = PersonalAccessToken::findToken($token);
