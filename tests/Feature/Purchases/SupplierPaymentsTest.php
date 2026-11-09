@@ -401,4 +401,38 @@ class SupplierPaymentsTest extends TestCase
         $this->assertSame(5_000, $reconcile['difference_cents']);
         $this->assertSame(5_000, $reconcile['unassigned_books_cents']);
     }
+
+    public function test_the_gap_to_the_books_is_listed_as_reconciling_items_that_add_up_to_it(): void
+    {
+        $this->postedBill();   // 115,000 in Purchases and in the books
+
+        LedgerContext::run($this->ctx, function () {
+            app(JournalPoster::class)->post(new PostingRequest(
+                CarbonImmutable::parse('2026-11-09'), 'bill', 9001, 1, 'Bill BILL-9001 Posted without a bill record',
+                [new PostingLine('ap', creditCents: 70_000), new PostingLine($this->gl('6190')->id, debitCents: 70_000)],
+            ));
+        });
+
+        $reconcile = app(ApLedger::class)->reconcile($this->ctx);
+
+        $this->assertFalse($reconcile['ok']);
+        $this->assertSame(70_000, $reconcile['difference_cents']);
+        $this->assertCount(1, $reconcile['items'], 'the bill recorded in Purchases is accounted for by its record; only the stray posting is listed');
+        $this->assertSame('bill', $reconcile['items'][0]['source']);
+        $this->assertSame(70_000, $reconcile['items'][0]['cents']);
+        $this->assertSame(0, $reconcile['remainder_cents']);
+
+        $this->inCompany($this->owner, $this->company)->get(route('purchases.ap.index'))->assertOk()
+            ->assertSee('What makes up the')->assertSee('Bills posted without a bill record')->assertSee('BILL-9001');
+    }
+
+    public function test_an_agreeing_supplier_ledger_has_no_reconciling_items(): void
+    {
+        $this->postedBill();
+
+        $reconcile = app(ApLedger::class)->reconcile($this->ctx);
+
+        $this->assertTrue($reconcile['ok']);
+        $this->assertSame([], $reconcile['items']);
+    }
 }

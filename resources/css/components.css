@@ -1397,3 +1397,40 @@ dialog.fx-command {
 .fx-pager .is-off {
     color: var(--ink-3);
 }
+
+/* ---- a file field with a drop target (x-fx.dropzone) ---------------------------------------------------------------
+   The browser's own file input is stretched over the whole box, so click, keyboard, screen readers and dropping a file
+   all work with nothing added. The box only makes it large and says what it takes. */
+.fx-drop {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 7.5rem;
+    padding: var(--s-4);
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--r-panel);
+    background: var(--sunk);
+    color: var(--ink-2);
+    text-align: center;
+}
+.fx-drop:hover { border-color: var(--ink-3); background: var(--sheet); }
+.fx-drop:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fx-drop.is-over { border-style: solid; border-color: var(--ink); background: var(--sheet); }
+.fx-drop__input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.fx-drop__input::file-selector-button { cursor: pointer; }
+.fx-drop__body { display: grid; justify-items: center; gap: var(--s-1); pointer-events: none; }
+.fx-drop__body .fx-icon { width: 1.5rem; height: 1.5rem; color: var(--ink-3); }
+.fx-drop__title { color: var(--ink); font-weight: 600; }
+.fx-drop__sub { font-size: var(--fs-small); color: var(--ink-3); }
+.fx-drop__name { font-family: var(--font-figure); font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
+.fx-drop__name:not(:empty) { margin-top: var(--s-1); padding: 0 var(--s-2); border: 1px solid var(--rule-strong); border-radius: var(--r-chip); background: var(--sheet); }
+
+/* ---- a reading of a document: the figures, how sure the reader was of each, and a cue when a person must look ---- */
+.pu-read { display: grid; gap: var(--s-2); min-width: 0; max-width: 34rem; }
+.pu-read__fields { display: grid; gap: var(--s-1); margin: 0; }
+.pu-read__row { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--s-2); align-items: baseline; }
+.pu-read__row dt { color: var(--ink-3); font-size: var(--fs-small); }
+.pu-read__row dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-2); }
+.pu-read__none { color: var(--ink-3); }
+.pu-read__check { margin: 0; font-size: var(--fs-small); color: var(--ink-2); }
+.pu-read__check .fx-pill { margin-right: var(--s-1); }

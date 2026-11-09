@@ -1,14 +1,4 @@
 <x-app-layout title="Audit log">
-@php
-    $fieldLabels = [
-        'amount_cents' => 'Amount', 'opening_balance_cents' => 'Opening balance', 'opening_balance_date' => 'Opening date',
-        'account_id' => 'Account', 'category_id' => 'Category', 'recurring_rule_id' => 'Recurring rule',
-        'transfer_direction' => 'Transfer direction', 'transfer_group' => 'Transfer', 'recurrence_type' => 'Repeats',
-        'recurrence_interval' => 'Every', 'next_occurrence_date' => 'Next occurrence', 'end_date' => 'Ends', 'start_date' => 'Starts',
-        'paused_at' => 'Paused', 'ended_at' => 'Ended',
-    ];
-@endphp
-
 <x-fx.page-head title="Audit log">
     <x-slot name="sub">
         @if($activeLedger?->isCompany())
@@ -57,7 +47,13 @@
         </thead>
         <tbody>
                     @foreach($entries as $entry)
-                    @php $changes = $entry->changes ?? []; $isImport = $entry->subject_type === 'import'; @endphp
+                    @php
+                        $changes = is_array($entry->changes) ? $entry->changes : [];
+                        $isImport = $entry->subject_type === 'import';
+                        $n = fn ($k) => is_numeric($changes[$k] ?? null) ? (int) $changes[$k] : 0;
+                        $t = fn ($k) => is_scalar($changes[$k] ?? null) ? (string) $changes[$k] : '?';
+                        $cur = is_string($changes['currency'] ?? null) ? $changes['currency'] : null;
+                    @endphp
                     <tr>
                         <td data-label="When" class="fx-fig">
                             {{ $entry->created_at->format('Y-m-d H:i') }}
@@ -79,41 +75,40 @@
                         </td>
                         <td data-label="What changed">
                             @if($isImport)
-                                <span class="fx-fig">{{ $changes['imported'] ?? 0 }}</span> imported,
-                                <span class="fx-fig">{{ $changes['skipped_duplicates'] ?? 0 }}</span> already imported,
-                                <span class="fx-fig">{{ $changes['skipped_invalid'] ?? 0 }}</span> unreadable,
-                                <span class="fx-fig">{{ $changes['skipped_by_user'] ?? 0 }}</span> skipped by you
-                                of <span class="fx-fig">{{ $changes['rows_total'] ?? 0 }}</span> rows.
-                                Income <x-money :cents="$changes['income_cents'] ?? 0" :currency="$changes['currency'] ?? null" />,
-                                spending <x-money :cents="$changes['expense_cents'] ?? 0" :currency="$changes['currency'] ?? null" />.
-                                <div class="fx-cell-sub">dates read as {{ $changes['date_format'] ?? '?' }}, amounts as {{ $changes['amount_locale'] ?? '?' }}</div>
+                                <span class="fx-fig">{{ $n('imported') }}</span> imported,
+                                <span class="fx-fig">{{ $n('skipped_duplicates') }}</span> already imported,
+                                <span class="fx-fig">{{ $n('skipped_invalid') }}</span> unreadable,
+                                <span class="fx-fig">{{ $n('skipped_by_user') }}</span> skipped by you
+                                of <span class="fx-fig">{{ $n('rows_total') }}</span> rows.
+                                Income <x-money :cents="$n('income_cents')" :currency="$cur" />,
+                                spending <x-money :cents="$n('expense_cents')" :currency="$cur" />.
+                                <div class="fx-cell-sub">dates read as {{ $t('date_format') }}, amounts as {{ $t('amount_locale') }}</div>
                             @else
-                                @forelse($changes as $field => $change)
+                                @php $view = $views[$entry->id] ?? ['lines' => [], 'working' => [], 'unreadable' => true]; @endphp
+                                @if($view['unreadable'])
+                                    <span class="fx-hint">This entry could not be shown in full. The record itself is intact.</span>
+                                @endif
+                                @forelse($view['lines'] as $line)
                                 <div>
-                                    <span class="fx-cell-main">{{ $fieldLabels[$field] ?? ucfirst(str_replace('_', ' ', $field)) }}</span>
-                                    @if(isset($change['changed']))
+                                    <span class="fx-cell-main">{{ $line['label'] }}</span>
+                                    @if($line['kind'] === 'changed')
                                         changed
+                                    @elseif($line['kind'] === 'pair')
+                                        <span class="fx-fig">{{ $line['before'] }}</span> &rarr; <span class="fx-fig">{{ $line['after'] }}</span>
+                                    @elseif($line['kind'] === 'was')
+                                        was <span class="fx-fig">{{ $line['before'] }}</span>
                                     @else
-                                        @php
-                                            $fmt = function ($v) use ($field, $entry, $names) {
-                                                if ($v === null) return '—';
-                                                if (isset($names[$field])) return $names[$field][(int) $v] ?? '#'.$v;
-                                                if (str_ends_with($field, '_cents')) return \App\Support\Money::format((int) $v, $entry->currency);
-                                                return is_scalar($v) ? (string) $v : json_encode($v);
-                                            };
-                                        @endphp
-                                        @if(array_key_exists('before', $change) && array_key_exists('after', $change))
-                                            <span class="fx-fig">{{ $fmt($change['before']) }}</span> &rarr; <span class="fx-fig">{{ $fmt($change['after']) }}</span>
-                                        @elseif(array_key_exists('after', $change))
-                                            <span class="fx-fig">{{ $fmt($change['after']) }}</span>
-                                        @else
-                                            was <span class="fx-fig">{{ $fmt($change['before'] ?? null) }}</span>
-                                        @endif
+                                        <span class="fx-fig">{{ $line['text'] }}</span>
                                     @endif
                                 </div>
                                 @empty
-                                    <span class="fx-hint">&mdash;</span>
+                                    @unless($view['unreadable'])<span class="fx-hint">&mdash;</span>@endunless
                                 @endforelse
+                                @if($view['working'] !== [])
+                                <details class="fx-cell-sub"><summary>Show working</summary>
+                                    @foreach($view['working'] as $w)<div>{{ $w['label'] }}: <span class="fx-fig">{{ $w['text'] }}</span></div>@endforeach
+                                </details>
+                                @endif
                             @endif
                         </td>
                     </tr>

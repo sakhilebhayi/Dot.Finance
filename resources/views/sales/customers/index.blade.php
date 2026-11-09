@@ -18,7 +18,7 @@
             <td data-label="Customer" class="is-lead"><a class="fx-cell-main fx-link" href="{{ route('sales.customers.show', $p) }}">{{ $p->name }}</a><div class="fx-cell-sub">{{ $p->email ?: 'No e-mail' }}</div></td>
             <td data-label="Terms">{{ $p->payment_terms_days !== null ? $p->payment_terms_days.' days' : '–' }}</td>
             <td data-label="Overdue" class="is-num">@if ($overdue)<x-fx.money :cents="$overdue" :currency="$base" variance />@else<span class="sx-dash">–</span>@endif</td>
-            <td data-label="Owing" class="is-num">@if ($total !== 0)<x-fx.money :cents="$total" :currency="$base" />@else<span class="sx-dash">–</span>@endif</td>
+            <td data-label="Owing" class="is-num">@if ($total > 0)<x-fx.money :cents="$total" :currency="$base" />@elseif ($total < 0)<span class="sx-credit">Credit <x-fx.money :cents="abs($total)" :currency="$base" /></span>@else<span class="sx-dash">–</span>@endif</td>
             <td data-label="Credit limit" class="is-num">@if ($p->credit_limit_cents)<x-fx.money :cents="$p->credit_limit_cents" :currency="$base" :variance="$total > $p->credit_limit_cents" />@else<span class="sx-dash">None</span>@endif</td>
         </tr>@endforeach</tbody>
     <tfoot><tr><th scope="row" colspan="2">Everyone</th><td class="is-num"><x-fx.money :cents="$totals['d30'] + $totals['d60'] + $totals['d90'] + $totals['d120'] + $totals['d120p']" :currency="$base" /></td><td class="is-num"><x-fx.money :cents="$totals['total']" :currency="$base" /></td><td></td></tr></tfoot>

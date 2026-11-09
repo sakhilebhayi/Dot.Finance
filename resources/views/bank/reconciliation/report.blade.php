@@ -10,7 +10,7 @@
 <div class="bk-report">
 <x-fx.page-head :title="'Bank reconciliation: '.$account->name" :sub="'As at '.$session->statement_date->toDateString().' in '.$cur.'. '.($report['live'] ? 'Draft: these figures are live and not final.' : 'Completed '.$session->completed_at?->toDayDateTimeString().'.')">
     <x-slot name="actions">
-        <span class="bk-noprint fx-cluster">
+        <span class="bk-noprint fx-cluster bk-report__head-actions">
             <x-fx.button type="button" icon="download" data-fx-print>Print or save as PDF</x-fx.button>
             @can('export-reports')<x-fx.button :href="route('bank.reconciliation.csv', $session)" icon="download">CSV</x-fx.button>@endcan
             <x-fx.button :href="route('bank.reconciliation.show', $session)">Back to the reconciliation</x-fx.button>

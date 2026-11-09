@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinanceAuditLog;
 use App\Models\User;
+use App\Support\Audit\AuditEntryView;
 use Illuminate\Http\Request;
 
 /**
@@ -42,13 +43,8 @@ class AuditController extends Controller
         // account_id / category_id are shown by name (deleted ones included).
         $ids = ['account_id' => [], 'category_id' => []];
         foreach ($entries as $entry) {
-            foreach (['account_id', 'category_id'] as $field) {
-                foreach (['before', 'after'] as $side) {
-                    $value = $entry->changes[$field][$side] ?? null;
-                    if ($value !== null) {
-                        $ids[$field][] = (int) $value;
-                    }
-                }
+            foreach (AuditEntryView::referencedIds($entry) as $field => $found) {
+                $ids[$field] = [...$ids[$field], ...$found];
             }
         }
 
@@ -57,13 +53,20 @@ class AuditController extends Controller
             'category_id' => Category::withTrashed()->whereIn('id', array_unique($ids['category_id']))->pluck('name', 'id')->all(),
         ];
 
+        // each row is turned into readable lines on its own; a row that cannot be read shows as such and never takes the page down
+        $presenter = new AuditEntryView($names);
+        $views = [];
+        foreach ($entries as $entry) {
+            $views[$entry->id] = $presenter->present($entry);
+        }
+
         // Only people who actually appear in THIS ledger's log are offered, so the filter never lists anyone else.
         $actors = $context->isCompany()
             ? User::query()->whereIn('id', FinanceAuditLog::query()->whereNotNull('actor_user_id')->distinct()->pluck('actor_user_id'))->orderBy('name')->get(['id', 'name'])
             : collect();
 
         return view('audit.index', [
-            'entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names,
+            'entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names, 'views' => $views,
             'actors' => $actors, 'actor' => $actor,
         ]);
     }

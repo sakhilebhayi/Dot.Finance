@@ -56,13 +56,27 @@
 
 /* The report: a sheet that prints as itself. */
 .bk-report {
-    max-width: 52rem;
+    display: grid;
+    gap: var(--gap);
+    align-content: start;
+    min-width: 0;
+}
+
+/* The proof and the lists take the width of the page, as the workspace does; only the printed sheet is held to the page. */
+.bk-report > .fx-panel,
+.bk-report > .fx-alert {
+    margin: 0;
+}
+
+.bk-report__head-actions {
+    row-gap: var(--s-2);
 }
 
 .bk-report__sign {
     display: grid;
     gap: var(--s-6);
-    margin-top: var(--s-7);
+    margin-top: var(--s-6);
+    padding-bottom: var(--s-6);
 }
 
 .bk-report__line {
@@ -129,4 +143,33 @@
 .fx-panel__body--flush .fx-grid > div > .fx-section-title {
     padding: var(--s-4) var(--s-5) var(--s-2);
     margin: 0;
+}
+
+/* The reason for the difference, at the same reading level as the difference itself. */
+.bk-why {
+    display: grid;
+    gap: var(--s-1);
+    margin: var(--s-2) 0 0;
+    color: var(--ink);
+}
+
+.bk-why__lead {
+    margin: 0;
+    font-size: var(--fs-body);
+    font-weight: 600;
+}
+
+.bk-why__list {
+    display: grid;
+    gap: var(--s-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-body);
+    color: var(--ink-2);
+}
+
+.bk-why__list .fx-figure {
+    color: var(--ink);
+    font-weight: 600;
 }

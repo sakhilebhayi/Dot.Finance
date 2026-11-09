@@ -16,6 +16,7 @@ use App\Services\Purchases\Extraction\ExtractorManager;
 use App\Services\Purchases\MissingDocuments;
 use App\Services\Purchases\PurchaseLedger;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Money;
 use App\Support\Ui\DashboardPanels;
 use App\Support\Ui\Navigation;
 use App\Support\Ui\StateLine;
@@ -100,7 +101,7 @@ class PurchasesServiceProvider extends ServiceProvider
 
             $unbalanced = $remember('ap-reconcile', fn () => ['ok' => app(ApLedger::class)->reconcile($ledger)] + ['accounting_on' => app(PurchaseLedger::class)->accountingEnabled($ledger)]);
             if ($unbalanced['accounting_on'] && ! $unbalanced['ok']['ok'] && ($url = fx_route(['purchases.ap.index']))) {
-                $items[] = ['key' => 'ap-out', 'tone' => 'variance', 'count' => 1, 'text' => 'What you owe suppliers does not agree with the books', 'href' => $url];
+                $items[] = ['key' => 'ap-out', 'tone' => 'variance', 'count' => 1, 'text' => 'The supplier ledger is '.Money::format(abs((int) $unbalanced['ok']['difference_cents'])).' away from the books', 'href' => $url.'#reconciling-items'];
             }
 
             return $items;

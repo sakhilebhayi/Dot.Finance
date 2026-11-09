@@ -25,7 +25,12 @@ class ChartController extends AccountingController
         $accounts = GlAccount::query()->orderBy('code')->get();
         $totals = $query->totals($this->ledger());
 
+        // Suspense should be nil. A balance on it sits in the asset section looking owned, so it is raised above the list.
+        $suspense = $accounts->firstWhere('system_key', 'suspense');
+        $suspenseBalance = $suspense === null ? 0 : (int) (($totals->get($suspense->id)->debits ?? 0) - ($totals->get($suspense->id)->credits ?? 0));
+
         return view('accounting.chart.index', [
+            'suspense' => $suspenseBalance !== 0 ? $suspense : null, 'suspenseBalance' => $suspenseBalance,
             'accounts' => $accounts->groupBy('class'),
             'balances' => $accounts->mapWithKeys(fn (GlAccount $a) => [$a->id => (($totals->get($a->id)->debits ?? 0)) - (($totals->get($a->id)->credits ?? 0))]),
             'canManage' => $this->access()->canManageChart(),
@@ -57,7 +62,11 @@ class ChartController extends AccountingController
             'description' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $account = $chart->create($context, $validated);
+        try {
+            $account = $chart->create($context, $validated);
+        } catch (AccountingException $e) {
+            return back()->withErrors(['name' => $e->getMessage()])->withInput();
+        }
         FinanceAudit::record($context->ownerAttributes(), 'created', 'gl_account', $account->id, $account->label(), ['code' => ['after' => $account->code], 'class' => ['after' => $account->class]]);
 
         return redirect()->route('accounting.chart.index')->with('status', "Account {$account->label()} added.");
@@ -95,7 +104,7 @@ class ChartController extends AccountingController
         try {
             $chart->update($glAccount, $validated);
         } catch (AccountingException $e) {
-            return back()->withErrors(['class' => $e->getMessage()])->withInput();
+            return back()->withErrors([str_contains($e->getMessage(), 'already') ? 'name' : 'class' => $e->getMessage()])->withInput();
         }
 
         $changes = [];

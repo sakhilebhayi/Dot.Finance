@@ -96,6 +96,28 @@
                 <ul class="sx-warnings" data-sx-warnings role="status"></ul>
             </x-fx.panel>
 
+            <x-fx.panel title="As the customer sees it" meta="Calculated by the server, from the same figures">
+                <div class="sx-paper" data-sx-paper>
+                    <p class="sx-paper__empty" data-sx-paper-empty>Choose a customer and type a line to see the {{ $kindName }} as it will be sent.</p>
+                    <div data-sx-paper-body hidden>
+                        <header class="sx-paper__head">
+                            <div><strong data-sx-p="from"></strong><div class="sx-muted" data-sx-p="vat_number"></div></div>
+                            <div class="sx-paper__title"><span data-sx-p="title"></span><div class="sx-muted" data-sx-p="number"></div></div>
+                        </header>
+                        <dl class="sx-paper__meta">
+                            <div><dt>To</dt><dd data-sx-p="to"></dd></div>
+                            <div><dt>Date</dt><dd data-sx-p="date"></dd></div>
+                            <div data-sx-p-row="due"><dt>Payable</dt><dd data-sx-p="due"></dd></div>
+                            <div data-sx-p-row="reference"><dt>Reference</dt><dd data-sx-p="reference"></dd></div>
+                        </dl>
+                        <ol class="sx-paper__lines" data-sx-p-lines></ol>
+                        <dl class="fx-statement sx-paper__totals" data-sx-p-totals></dl>
+                        <p class="sx-paper__note" data-sx-p="notes"></p>
+                        <p class="sx-paper__note sx-muted" data-sx-p="terms"></p>
+                    </div>
+                </div>
+            </x-fx.panel>
+
             <x-fx.panel title="{{ $profile->vat_registered && in_array($kind, ['tax_invoice', 'credit_note', 'debit_note']) ? 'Is it a valid tax invoice?' : 'Before you issue' }}" meta="{{ $profile->vat_registered ? 'From the VAT Act requirements' : '' }}">
                 <ul class="sx-checklist" data-sx-checklist></ul>
                 @unless ($profile->vat_registered)

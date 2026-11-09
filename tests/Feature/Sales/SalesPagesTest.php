@@ -114,6 +114,25 @@ class SalesPagesTest extends TestCase
         $this->assertStringContainsString('exchange rate', $bad['message']);
     }
 
+    public function test_the_calculation_endpoint_also_returns_the_document_as_the_customer_will_read_it(): void
+    {
+        $this->setUpSales();
+
+        $json = $this->as()->postJson(route('sales.calculate'), $this->invoiceBody(['notes' => 'Thank you for your order.', 'reference' => 'PO 4471']))->assertOk()->json();
+        $view = $json['customer_view'];
+
+        $this->assertSame('Tax invoice', $view['title']);
+        $this->assertSame('Acme Retail', $view['to']);
+        $this->assertSame('Seller', $view['from']);
+        $this->assertSame('VAT number 4123456789', $view['vat_number']);
+        $this->assertSame('Your reference PO 4471', $view['reference']);
+        $this->assertSame('Thank you for your order.', $view['notes']);
+        $this->assertSame('VAT 15% standard-rated', $view['lines'][0]['vat'], 'words, never ZA_VAT_STD');
+        $this->assertStringNotContainsString('ZA_VAT', json_encode($json));
+        $this->assertSame([['label' => 'Total before VAT', 'value' => 'ZAR 2,000.00'], ['label' => 'VAT', 'value' => 'ZAR 300.00'], ['label' => 'Total due', 'value' => 'ZAR 2,300.00', 'total' => true]], $view['totals']);
+        $this->assertSame($json['totals']['total'], $view['totals'][2]['value'], 'the preview and the totals panel are the same figure');
+    }
+
     public function test_the_calculation_ignores_any_total_the_browser_sends(): void
     {
         $this->setUpSales();

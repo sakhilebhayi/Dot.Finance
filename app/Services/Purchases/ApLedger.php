@@ -10,6 +10,7 @@ use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Shared\PaymentAllocation;
 use App\Services\Accounting\Chart;
+use App\Services\Accounting\GlQuery;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -32,7 +33,7 @@ final class ApLedger
 
     public const BUCKET_LABELS = ['current' => 'Not yet due', 'd1_30' => '1-30 days', 'd31_60' => '31-60 days', 'd61_90' => '61-90 days', 'd91_120' => '91-120 days', 'over_120' => 'Over 120 days'];
 
-    public function __construct(private readonly Chart $chart) {}
+    public function __construct(private readonly Chart $chart, private readonly GlQuery $gl) {}
 
     /**
      * Every open item, newest-owed first by due date.
@@ -136,7 +137,7 @@ final class ApLedger
         return LedgerContext::run($context, function () use ($context) {
             $ap = $this->apAccount($context);
             if ($ap === null) {
-                return ['ok' => true, 'books_cents' => 0, 'subledger_cents' => 0, 'difference_cents' => 0, 'suppliers' => [], 'unassigned_books_cents' => 0, 'accounting_on' => false];
+                return ['ok' => true, 'books_cents' => 0, 'subledger_cents' => 0, 'difference_cents' => 0, 'suppliers' => [], 'unassigned_books_cents' => 0, 'accounting_on' => false, 'items' => [], 'items_cents' => 0, 'remainder_cents' => 0];
             }
 
             // credit balance of the payable account, per supplier (journal lines carry the supplier)
@@ -169,13 +170,53 @@ final class ApLedger
 
             $booksTotal = array_sum($books);
             $subTotal = array_sum($sub);
+            $ok = $booksTotal === $subTotal && collect($suppliers)->every(fn ($s) => $s['ok']);
+            $items = $ok ? [] : $this->unexplainedEntries($context, $ap);
+            $itemsTotal = (int) array_sum(array_column($items, 'cents'));
 
             return [
-                'ok' => $booksTotal === $subTotal && collect($suppliers)->every(fn ($s) => $s['ok']),
+                'ok' => $ok,
                 'books_cents' => $booksTotal, 'subledger_cents' => $subTotal, 'difference_cents' => $booksTotal - $subTotal,
                 'suppliers' => $suppliers, 'unassigned_books_cents' => $books[0] ?? 0, 'accounting_on' => true,
+                // the reconciling items: journal entries on accounts payable that no bill, claim or payment in Purchases owns
+                'items' => $items, 'items_cents' => $itemsTotal, 'remainder_cents' => ($booksTotal - $subTotal) - $itemsTotal,
             ];
         });
+    }
+
+    /**
+     * Journal entries on the payable account that no bill, expense claim or payment recorded in Purchases accounts for (a journal
+     * typed straight to payables, a bill posted without a bill record). They are what makes the account differ from the supplier
+     * ledger. Credit-positive (owed to suppliers), largest first.
+     *
+     * @return list<array{entry_id: int, number: int, date: string, memo: string, source: string, party_id: ?int, party: string, cents: int}>
+     */
+    public function unexplainedEntries(LedgerContext $context, ?GlAccount $ap = null): array
+    {
+        $ap ??= $this->apAccount($context);
+        if ($ap === null) {
+            return [];
+        }
+
+        // the journal entries that Purchases itself wrote, read through the scoped models
+        $owners = collect()
+            ->merge(Bill::query()->forContext($context)->pluck('posted_entry_id'))->merge(Bill::query()->forContext($context)->pluck('void_entry_id'))
+            ->merge(ExpenseClaim::query()->forContext($context)->pluck('posted_entry_id'))->merge(ExpenseClaim::query()->forContext($context)->pluck('void_entry_id'))
+            ->merge(Payment::query()->forContext($context)->pluck('gl_entry_id'))
+            ->filter()->map(fn ($id) => (int) $id)->flip();
+
+        $rows = $this->gl->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+            ->where('l.gl_account_id', $ap->id)->groupBy('l.journal_entry_id', 'l.party_id', 'e.entry_number', 'e.entry_date', 'e.memo', 'e.source_type', 'e.reverses_entry_id')
+            ->selectRaw('l.journal_entry_id, l.party_id, e.entry_number, e.entry_date, e.memo, e.source_type, e.reverses_entry_id, SUM(l.credit_cents) - SUM(l.debit_cents) AS net')
+            ->get()->filter(fn ($r) => (int) $r->net !== 0 && ! $owners->has((int) $r->journal_entry_id) && ! ($r->reverses_entry_id !== null && $owners->has((int) $r->reverses_entry_id)));
+
+        $names = Party::query()->forContext($context)->withTrashed()->whereIn('id', $rows->pluck('party_id')->filter()->unique()->all())->pluck('name', 'id');
+
+        return $rows->map(fn ($r) => [
+            'entry_id' => (int) $r->journal_entry_id, 'number' => (int) $r->entry_number, 'date' => substr((string) $r->entry_date, 0, 10), 'memo' => (string) $r->memo,
+            'source' => (string) $r->source_type, 'party_id' => $r->party_id === null ? null : (int) $r->party_id,
+            'party' => $r->party_id === null ? 'Not tied to a supplier' : (string) ($names[$r->party_id] ?? 'Supplier #'.$r->party_id), 'cents' => (int) $r->net,
+        ])->sortByDesc(fn ($i) => abs($i['cents']))->values()->all();
     }
 
     public function apAccount(LedgerContext $context): ?GlAccount

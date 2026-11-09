@@ -12,7 +12,7 @@
 <x-fx.flash /><x-fx.errors />
 
 <section class="sx-strip" aria-label="Where this customer stands">
-    <div class="sx-strip__item"><span class="sx-strip__label">Owes you</span><x-fx.money :cents="$balanceBase" :currency="$base" lead :trace="route('sales.receivables.index')" trace-label="Show receivables" /></div>
+    <div class="sx-strip__item"><span class="sx-strip__label">{{ $balanceBase < 0 ? 'Credit with you' : 'Owes you' }}</span><x-fx.money :cents="abs($balanceBase)" :currency="$base" lead :trace="route('sales.receivables.index')" trace-label="Show receivables" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Of which overdue</span><x-fx.money :cents="$overdue" :currency="$base" :variance="$overdue > 0" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Invoiced in the last 12 months</span><x-fx.money :cents="$sinceYear" :currency="$base" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Credit limit</span>@if ($party->credit_limit_cents)<x-fx.money :cents="$party->credit_limit_cents" :currency="$base" :variance="$balanceBase > $party->credit_limit_cents" />@else<span class="sx-dash">None set</span>@endif</div>
@@ -67,7 +67,7 @@
         <x-fx.statement>
             @foreach (\App\Services\Sales\ReceivablesLedger::BUCKETS as $key => $label)<x-fx.statement-row label="{{ $label }}{{ $key === 'current' ? '' : ' days' }}"><x-fx.money :cents="$age[$key]" :currency="$base" :variance="$key !== 'current' && $age[$key] > 0" /></x-fx.statement-row>@endforeach
             @if ($age['on_account'])<x-fx.statement-row label="On account (credit)"><x-fx.money :cents="$age['on_account']" :currency="$base" /></x-fx.statement-row>@endif
-            <x-fx.statement-row label="Owes" kind="total"><x-fx.money :cents="$age['total']" :currency="$base" /></x-fx.statement-row>
+            <x-fx.statement-row :label="$age['total'] < 0 ? 'Credit with you' : 'Owes you'" kind="total"><x-fx.money :cents="abs($age['total'])" :currency="$base" /></x-fx.statement-row>
         </x-fx.statement>
     </x-fx.panel>
 

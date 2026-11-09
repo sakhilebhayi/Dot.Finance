@@ -14,6 +14,19 @@
         <x-fx.statement-row label="Difference" kind="total"><x-fx.money :cents="$reconcile['difference_cents']" :currency="$base" :ticked="$reconcile['ok']" :variance="! $reconcile['ok']" /></x-fx.statement-row>
     </x-fx.statement>
     @if (! $reconcile['ok'])
+    @php
+        $sourceWords = ['bill' => 'Bills posted without a bill record', 'payment' => 'Payments posted without a payment record', 'manual' => 'Journals typed to payables', 'adjustment' => 'Adjustments', 'opening_balance' => 'Opening balances'];
+        $groups = collect($reconcile['items'])->groupBy('source');
+    @endphp
+    <p id="reconciling-items"><strong>What makes up the {{ \App\Support\Money::format(abs($reconcile['difference_cents']), $base) }}.</strong> The payables account holds entries that no bill, claim or payment recorded in Purchases accounts for. They are listed here, not hidden.</p>
+    @if ($groups->isNotEmpty())
+    <x-fx.table caption="Entries on the payables account that Purchases does not account for, by kind"><thead><tr><th scope="col">Kind of entry</th><th scope="col" class="is-num">Entries</th><th scope="col" class="is-num">Owed to suppliers</th></tr></thead>
+        <tbody>@foreach ($groups as $source => $rows)<tr><td data-label="Kind of entry" class="is-lead">{{ $sourceWords[$source] ?? 'Entries from '.str_replace('_', ' ', $source) }}</td><td data-label="Entries" class="is-num">{{ $rows->count() }}</td><td data-label="Owed to suppliers" class="is-num"><x-fx.money :cents="$rows->sum('cents')" :currency="$base" /></td></tr>@endforeach
+        @if ($reconcile['remainder_cents'] !== 0)<tr><td class="is-lead" data-label="Kind of entry">Not traced to any entry</td><td class="is-num" data-label="Entries">–</td><td class="is-num" data-label="Owed to suppliers"><x-fx.money :cents="$reconcile['remainder_cents']" :currency="$base" variance /></td></tr>@endif</tbody>
+        <tfoot><tr><th scope="row" colspan="2">Difference</th><td class="is-num"><x-fx.money :cents="$reconcile['difference_cents']" :currency="$base" /></td></tr></tfoot></x-fx.table>
+    <details class="fx-hint"><summary>The {{ count($reconcile['items']) > 12 ? 'largest 12 of '.count($reconcile['items']) : count($reconcile['items']) }} entries</summary>
+        <ul>@foreach (array_slice($reconcile['items'], 0, 12) as $it)<li><a class="fx-link" href="{{ route('accounting.journals.show', $it['entry_id']) }}">Entry {{ $it['number'] }}</a>, {{ $it['date'] }}: {{ $it['memo'] }} ({{ $it['party'] }}) <x-fx.money :cents="$it['cents']" :currency="$base" /></li>@endforeach</ul></details>
+    @endif
     <x-fx.table caption="Suppliers where the ledger and the books differ"><thead><tr><th scope="col">Supplier</th><th scope="col" class="is-num">Books</th><th scope="col" class="is-num">Ledger</th><th scope="col" class="is-num">Difference</th></tr></thead>
         <tbody>@foreach (collect($reconcile['suppliers'])->where('ok', false) as $s)<tr>
             <td data-label="Supplier" class="is-lead">{{ $s['party'] }}</td>
@@ -21,7 +34,7 @@
             <td data-label="Ledger" class="is-num"><x-fx.money :cents="$s['subledger_cents']" :currency="$base" /></td>
             <td data-label="Difference" class="is-num"><x-fx.money :cents="$s['difference_cents']" :currency="$base" variance /></td>
         </tr>@endforeach</tbody></x-fx.table>
-    <p class="fx-hint">A difference usually means a manual journal was posted straight to accounts payable. Find it under Journals, or move it to a bill.</p>
+    <p class="fx-hint">The fix is in the books: post a correcting journal, or record the missing bill in Purchases. Dot.Finance never edits a posted entry.</p>
     @endif
 @endif
 </x-fx.panel>

@@ -79,6 +79,8 @@ class IntelligenceServiceProvider extends ServiceProvider
             $app->make(Detectors\MarginDropDetector::class),
             $app->make(Detectors\RunwayDetector::class),
             $app->make(Detectors\BooksVsCashDetector::class),
+            $app->make(Detectors\SuspenseBalanceDetector::class),
+            $app->make(Detectors\DuplicatePartyDetector::class),
         ]));
     }
 

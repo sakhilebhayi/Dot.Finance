@@ -2,6 +2,7 @@
 
 namespace App\Services\Intelligence\Handlers;
 
+use App\Contracts\Intelligence\DescribesReceivables;
 use App\Contracts\Intelligence\ReceivablesSource;
 use App\Models\User;
 use App\Services\Intelligence\Answer;
@@ -46,16 +47,38 @@ final class ReceivablesHandler extends Handler
         }
 
         $top = $owed[0];
+        $facts = [['label' => 'Total owed to you', 'value' => $this->money($total, $currency)]];
+        $position = $this->source instanceof DescribesReceivables ? $this->source->position($context) : null;
+
+        if ($position === null) {
+            // nothing but the general ledger to go on: say so
+            $notes = ['Worked out from the receivables account of the general ledger. It does not say which invoices are overdue.'];
+        } else {
+            // the same figure the Invoices, Customers and Receivables pages show; the sentence and the table must add up to it
+            $total = $position['total_cents'];
+            $facts = [['label' => 'Owed to you', 'value' => $this->money($total, $currency)]];
+            $notes = ['Worked out from '.$position['source'].', the same figure as the Invoices and Receivables pages.'];
+            $rowsTotal = array_sum(array_column($owed, 'owed_cents'));
+            if ($rowsTotal !== $total) {
+                $facts[] = ['label' => 'Customers who owe you', 'value' => $this->money($rowsTotal, $currency)];
+                $facts[] = ['label' => 'Held as customer credit', 'value' => $this->money($rowsTotal - $total, $currency)];
+                $notes[] = 'Customers who have paid ahead or hold a credit note are netted off: '.$this->money($rowsTotal - $total, $currency).' of credit is held for them.';
+            }
+            if (! $position['agrees']) {
+                $notes[] = 'The receivables account of the general ledger stands at '.$this->money($position['books_cents'], $currency).', which is '.$this->money(abs($position['gap_cents']), $currency).($position['gap_cents'] > 0 ? ' more' : ' less').' than that. '
+                    .($position['reconciling'] ? 'Reconciling items: '.implode('; ', $position['reconciling']).'. ' : '').'The Receivables page lists every one.';
+            }
+        }
 
         return new Answer(
             Intent::WhoOwesMe,
             Answer::ANSWERED,
             $this->plural(count($owed), 'customer owes', 'customers owe').' you '.$this->money($total, $currency).'; the most is '.$this->money($top['owed_cents'], $currency)." from {$top['party']}.",
-            [['label' => 'Total owed to you', 'value' => $this->money($total, $currency)]],
+            $facts,
             ['Customer', 'Owes you'],
             $rows,
-            $link,
-            notes: ['Worked out from the receivables account of the general ledger. It does not say which invoices are overdue.'],
+            $position === null ? $link : $this->sources(['Receivables', fx_route('sales.receivables.index')], ['Customers', fx_route('sales.customers.index')]),
+            notes: $notes,
         );
     }
 

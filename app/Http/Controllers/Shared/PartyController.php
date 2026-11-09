@@ -7,6 +7,7 @@ use App\Models\Shared\Currency;
 use App\Models\Shared\Party;
 use App\Rules\MoneyAmount;
 use App\Services\Shared\Attachments;
+use App\Services\Shared\PartyDuplicates;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -63,11 +64,19 @@ class PartyController extends Controller
         return view('parties.create', ['currencies' => $this->currencies(), 'party' => new Party(['type' => 'customer'])]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, PartyDuplicates $duplicates): RedirectResponse
     {
         $this->authorize('create', Party::class);
 
         $data = $this->validated($request);
+
+        // Say so before a second record of the same business is made; the person can still add it on purpose.
+        if (! $request->boolean('confirm_duplicate')) {
+            $similar = $duplicates->candidatesFor($data);
+            if ($similar !== []) {
+                return back()->withInput()->with('similar_parties', array_map(fn (array $c) => ['id' => $c['party']->id, 'name' => $c['party']->name, 'type' => $c['party']->type, 'reason' => $c['reason']], $similar));
+            }
+        }
 
         $party = Party::create($this->ledger()->ownerAttributes() + $data + ['status' => 'active']);
 

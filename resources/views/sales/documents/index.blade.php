@@ -1,4 +1,4 @@
-@php use App\Support\Money; $kindLabel = ['tax_invoice' => 'Invoice', 'debit_note' => 'Debit note', 'quote' => 'Quote', 'pro_forma' => 'Pro forma', 'credit_note' => 'Credit note']; @endphp
+@php use App\Support\Money; use Illuminate\Support\Str; $base = \App\Models\Accounting\LedgerSetting::query()->first()?->base_currency; $kindLabel = ['tax_invoice' => 'Invoice', 'debit_note' => 'Debit note', 'quote' => 'Quote', 'pro_forma' => 'Pro forma', 'credit_note' => 'Credit note']; @endphp
 <x-app-layout :title="$spec['title']">
 <x-fx.page-head :title="$spec['title']" :sub="$spec['sub']">
     <x-slot name="actions">
@@ -9,14 +9,13 @@
 @include('sales._tabs', ['active' => $group])
 <x-fx.flash />
 
-@if ($summary && $summary['open_count'] > 0)
+@if ($summary && ($summary['open_count'] > 0 || $summary['credit_base_cents'] > 0))
 <section class="sx-strip" aria-label="What is owed">
-    <div class="sx-strip__item"><span class="sx-strip__label">Owed to you</span><x-fx.money :cents="$summary['owed_base_cents']" lead /></div>
+    <div class="sx-strip__item"><span class="sx-strip__label">Owed to you</span><x-fx.money :cents="$summary['net_base_cents']" lead :currency="$base" />@if ($summary['credit_base_cents'] > 0)<span class="sx-strip__note">{{ Money::format($summary['owed_base_cents'], $base) }} on {{ $summary['open_count'] }} open {{ Str::plural('invoice', $summary['open_count']) }}, less {{ Money::format($summary['credit_base_cents'], $base) }} of customer credit</span>@endif</div>
     <div class="sx-strip__item"><span class="sx-strip__label">Overdue ({{ $summary['overdue_count'] }})</span><x-fx.money :cents="$summary['overdue_base_cents']" :variance="$summary['overdue_base_cents'] > 0" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Falls due in 7 days ({{ $summary['due_soon_count'] }})</span><x-fx.money :cents="$summary['due_soon_base_cents']" /></div>
     <div class="sx-strip__item sx-strip__item--proof">
-        @if ($summary['reconciles'])<x-fx.pill kind="ticked">Agrees with the books</x-fx.pill>@else<x-fx.pill kind="variance">Differs from the books</x-fx.pill>@endif
-        <a class="fx-link" href="{{ route('sales.receivables.index') }}">Receivables</a>
+        @include('sales._books-proof', ['summary' => $summary])
     </div>
 </section>
 @endif
