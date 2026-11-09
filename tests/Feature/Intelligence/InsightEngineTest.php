@@ -7,6 +7,7 @@ use App\Models\Intelligence\FinanceInsight;
 use App\Models\RecurringRule;
 use App\Models\Shared\Party;
 use App\Models\Transaction;
+use App\Services\Accounting\GlSweeper;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
 use App\Services\Accounting\PostingRequest;
@@ -17,6 +18,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\BuildsAccounting;
 use Tests\Concerns\BuildsIntelFixtures;
 use Tests\TestCase;
@@ -256,12 +258,12 @@ class InsightEngineTest extends TestCase
         $first = $this->findings(kind: 'books_vs_cash');
         $this->assertTrue($first->isNotEmpty(), 'the fixture sets the opening balance without posting it: the check sees that');
 
-        app(\App\Services\Accounting\GlSweeper::class)->run($this->b['context']);
+        app(GlSweeper::class)->run($this->b['context']);
         $this->scan();
         $this->assertSame(0, $this->findings(kind: 'books_vs_cash')->where('status', 'open')->count(), 'once the books have caught up, a ledger that ties raises nothing');
 
         // A row changed behind the books' back (a restore, a direct edit): the Transactions page and the books now differ.
-        \Illuminate\Support\Facades\DB::table('transactions')->where('id', $tx->id)->update(['amount_cents' => 95000]);
+        DB::table('transactions')->where('id', $tx->id)->update(['amount_cents' => 95000]);
 
         $this->scan();
         $found = $this->findings(kind: 'books_vs_cash')->where('status', 'open');
@@ -272,7 +274,7 @@ class InsightEngineTest extends TestCase
         $this->assertStringContainsString('Cheque', json_encode($f->evidence));
         $this->assertStringContainsString('Transactions', json_encode($f->evidence));
 
-        \Illuminate\Support\Facades\DB::table('transactions')->where('id', $tx->id)->update(['amount_cents' => 45000]);
+        DB::table('transactions')->where('id', $tx->id)->update(['amount_cents' => 45000]);
         $this->scan();
         $this->assertSame(0, $this->findings(kind: 'books_vs_cash')->where('status', 'open')->count(), 'it clears itself when they agree again');
     }

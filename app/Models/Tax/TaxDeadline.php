@@ -4,6 +4,7 @@ namespace App\Models\Tax;
 
 use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
+use App\Services\Tax\TaxLabels;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -103,6 +104,6 @@ class TaxDeadline extends Model
     /** The period in plain words (the stored label may carry a SARS category letter). */
     public function periodText(): string
     {
-        return \App\Services\Tax\TaxLabels::plainPeriod($this->period_label, $this->period_start, $this->period_end);
+        return TaxLabels::plainPeriod($this->period_label, $this->period_start, $this->period_end);
     }
 }

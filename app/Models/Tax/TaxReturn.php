@@ -5,6 +5,7 @@ namespace App\Models\Tax;
 use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
 use App\Models\Shared\Attachment;
+use App\Services\Tax\TaxLabels;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -139,6 +140,6 @@ class TaxReturn extends Model
     /** The period in plain words (the stored label may carry a SARS category letter). */
     public function periodText(): string
     {
-        return \App\Services\Tax\TaxLabels::plainPeriod($this->period_label, $this->period_start, $this->period_end);
+        return TaxLabels::plainPeriod($this->period_label, $this->period_start, $this->period_end);
     }
 }

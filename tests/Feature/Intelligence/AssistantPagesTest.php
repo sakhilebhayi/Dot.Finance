@@ -4,6 +4,7 @@ namespace Tests\Feature\Intelligence;
 
 use App\Models\Intelligence\AssistantDraft;
 use App\Models\Intelligence\AssistantMessage;
+use App\Services\Intelligence\Intent;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -93,12 +94,12 @@ class AssistantPagesTest extends TestCase
     {
         config(['intelligence.assistant.per_minute' => 60]);
         $this->asOwner();
-        foreach (\App\Services\Intelligence\Intent::suggestions() as $suggestion) {
+        foreach (Intent::suggestions() as $suggestion) {
             $this->post(route('intel.assistant.ask'), ['question' => $suggestion])->assertRedirectContains('#answer-');
         }
 
         $asked = $this->messages($this->b['owner'])->pluck('question')->all();
-        foreach (\App\Services\Intelligence\Intent::suggestions() as $suggestion) {
+        foreach (Intent::suggestions() as $suggestion) {
             $this->assertContains($suggestion, $asked);
         }
     }

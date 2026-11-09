@@ -2,6 +2,8 @@
 
 namespace App\Services\Tax;
 
+use Carbon\CarbonImmutable;
+
 /**
  * The words the tax pages use for states and rule keys, in one place so every page says the same thing in plain language.
  * Internal identifiers (rule keys, version numbers, hashes) are shown only behind a "Show working" disclosure, and then
@@ -48,7 +50,7 @@ final class TaxLabels
         if (! preg_match('/\s*\(category [A-F]\)/', $label) || $start === null || $end === null) {
             return $label;
         }
-        $months = (int) round(\Carbon\CarbonImmutable::parse($start)->diffInMonths(\Carbon\CarbonImmutable::parse($end)->addDay()));
+        $months = (int) round(CarbonImmutable::parse($start)->diffInMonths(CarbonImmutable::parse($end)->addDay()));
 
         return preg_replace('/\s*\(category [A-F]\)/', ' ('.self::months(max(1, $months)).' period)', $label) ?? $label;
     }

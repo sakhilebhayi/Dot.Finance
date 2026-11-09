@@ -162,7 +162,7 @@ class VatReturnIntegrationTest extends TestCase
 
         // the page and the working paper show the same figures
         $this->get(route('tax.returns.show', $submitted))->assertOk()->assertSee('3,210.00');
-        $this->get(route('tax.returns.workpaper', $submitted))->assertOk()->assertSee('3210.00')->assertSee('Output VAT: Tax invoice INV-00001', false);
+        $this->get(route('tax.returns.workpaper', $submitted))->assertOk()->assertSee('3,210.00')->assertSee('Output VAT: Tax invoice INV-00001', false);
     }
 
     public function test_a_vat_posting_with_no_tax_code_is_shown_and_blocks_the_return_until_it_is_dealt_with(): void
