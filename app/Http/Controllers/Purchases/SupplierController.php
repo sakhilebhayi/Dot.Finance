@@ -11,6 +11,7 @@ use App\Models\Shared\Payment;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\SupplierBankDetails;
 use App\Services\Purchases\SupplierStatement;
+use App\Support\FinanceAudit;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -132,6 +133,8 @@ class SupplierController extends PurchasesController
         $statement = $statements->forSupplier($party, $from, $to);
 
         if (($v['format'] ?? null) === 'csv') {
+            FinanceAudit::exported($this->ledger()->ownerAttributes(), 'Supplier statement (CSV)', ['report' => 'supplier-statement', 'format' => 'csv', 'party_id' => $party->id, 'from' => $from->toDateString(), 'to' => $to->toDateString()]);
+
             return Response::streamDownload(function () use ($statement) {
                 $out = fopen('php://output', 'w');
                 fputcsv($out, ['Supplier statement', $statement['party']->name, 'From '.$statement['from'], 'To '.$statement['to']]);

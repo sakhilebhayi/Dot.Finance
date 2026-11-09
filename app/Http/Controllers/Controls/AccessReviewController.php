@@ -6,6 +6,7 @@ use App\Enums\Capability;
 use App\Models\Controls\AccessReview;
 use App\Services\Controls\AccessReport;
 use App\Services\Controls\AccessReviews;
+use App\Support\FinanceAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -42,6 +43,7 @@ class AccessReviewController extends ControlsBaseController
         $this->authorizeAny(Capability::ViewAudit);
         $this->authorizeAny(Capability::ExportReports);
         $context = $this->ledger();
+        FinanceAudit::exported($context->ownerAttributes(), 'Access review (CSV)', ['report' => 'access-review', 'format' => 'csv']);
 
         return response($report->csv($context), 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',

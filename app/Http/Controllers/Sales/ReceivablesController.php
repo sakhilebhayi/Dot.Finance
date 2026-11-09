@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Sales;
 
 use App\Services\Sales\ReceivablesLedger;
+use App\Support\FinanceAudit;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -33,6 +34,7 @@ class ReceivablesController extends SalesController
         $this->allow('export-reports');
         $basis = $request->query('basis') === 'invoice' ? 'invoice' : 'due';
         $age = $ledger->ageing($this->ledger(), $basis);
+        FinanceAudit::exported($this->ledger()->ownerAttributes(), 'Receivables ageing (CSV)', ['report' => 'receivables', 'format' => 'csv', 'as_of' => $age['as_of'], 'basis' => $basis]);
         $safe = fn (string $v) => $v !== '' && in_array($v[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$v : $v;
         $money = fn (int $c) => Money::toDecimalString($c);
 

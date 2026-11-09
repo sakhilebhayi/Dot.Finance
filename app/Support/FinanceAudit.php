@@ -248,6 +248,23 @@ class FinanceAudit
     }
 
     /**
+     * Someone took figures out of the system (a download, a spreadsheet, a print): who, what, for which period. The file itself is not
+     * kept. $details are plain values such as the report key, the format and the period.
+     *
+     * @param  array{user_id: ?int, team_id: ?int}  $owner
+     * @param  array<string, scalar|null>  $details
+     */
+    public static function exported(array $owner, string $label, array $details = []): FinanceAuditLog
+    {
+        $changes = [];
+        foreach ($details as $field => $value) {
+            $changes[$field] = ['after' => $value];
+        }
+
+        return self::record($owner, 'exported', 'report_export', null, $label, $changes);
+    }
+
+    /**
      * A label for the audit page that never contains free text: accounts and
      * categories are named (the name is a label, not a memo); a transaction or
      * rule is described by its shape.

@@ -14,6 +14,7 @@ use App\Services\Sales\ReceivablesLedger;
 use App\Services\Sales\Reminders;
 use App\Services\Sales\ShareLinks;
 use App\Services\Sales\Statements;
+use App\Support\FinanceAudit;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -105,6 +106,7 @@ class CustomerController extends SalesController
         $this->allow('view-finance');
         [$from, $to] = $this->period($request);
         $rows = $statements->csv($statements->build($this->ledger(), $party, $from, $to));
+        FinanceAudit::exported($this->ledger()->ownerAttributes(), 'Customer statement (CSV)', ['report' => 'customer-statement', 'format' => 'csv', 'party_id' => $party->id, 'from' => $from->toDateString(), 'to' => $to->toDateString()]);
         $out = fopen('php://temp', 'r+');
         foreach ($rows as $row) {
             fputcsv($out, $row);

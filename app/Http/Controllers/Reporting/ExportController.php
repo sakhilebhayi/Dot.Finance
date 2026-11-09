@@ -9,6 +9,7 @@ use App\Services\Reporting\Export\XlsxWriter;
 use App\Services\Reporting\ExportService;
 use App\Services\Reporting\ReportRegistry;
 use App\Services\Reporting\ReportRunner;
+use App\Support\FinanceAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -66,6 +67,7 @@ class ExportController extends ReportingController
         }
 
         $name = $meta['report'].'-'.$built->period->to.'.'.$meta['format'];
+        FinanceAudit::exported($context->ownerAttributes(), $result->title.' ('.strtoupper($meta['format']).')', ['report' => $meta['report'], 'format' => $meta['format'], 'from' => $built->period->from, 'to' => $built->period->to]);
 
         if ($meta['format'] === 'csv') {
             return response()->streamDownload(function () use ($result) {

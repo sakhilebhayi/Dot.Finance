@@ -16,6 +16,7 @@ use App\Services\Bank\MatchingService;
 use App\Services\Bank\ReconciliationBalances;
 use App\Services\Bank\ReconciliationReport;
 use App\Services\Bank\ReconciliationService;
+use App\Support\FinanceAudit;
 use App\Support\Ledger\LedgerRule;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
@@ -168,6 +169,7 @@ class ReconciliationController extends BankController
 
         $rows = $report->csvRows($report->build($reconciliation->load('account')));
         $name = 'bank-reconciliation-'.$reconciliation->id.'-'.$reconciliation->statement_date->toDateString().'.csv';
+        FinanceAudit::exported($this->ledger()->ownerAttributes(), 'Bank reconciliation (CSV)', ['report' => 'bank-reconciliation', 'format' => 'csv', 'reconciliation_id' => $reconciliation->id, 'statement_date' => $reconciliation->statement_date->toDateString()]);
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
