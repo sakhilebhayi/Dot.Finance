@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Acceptance;
 
+use App\Models\Accounting\GlAccount;
+use App\Models\Accounting\JournalEntry;
+use App\Models\Category;
 use App\Models\FinanceAuditLog;
+use App\Models\Purchases\Bill;
 use App\Models\Tax\TaxReturn;
 use App\Services\Controls\ApprovalPolicies;
 use App\Services\Controls\ApprovalService;
@@ -80,7 +84,7 @@ class Acceptance30_AuditTrailTest extends AcceptanceCase
         $approver = $this->memberAs('approver');
         $this->asMember($bookkeeper)->post(route('purchases.bills.store'), ['party_id' => $this->paperCo->id, 'bill_date' => '2026-11-04', 'supplier_reference' => 'AUD-1', 'document_type' => 'tax_invoice', 'submit_now' => '1', 'client_token' => 'aud-1',
             'lines' => [['description' => 'x', 'gl_account_id' => $this->gl('6190')->id, 'quantity' => '1', 'unit_price' => '100.00', 'tax_code' => 'ZA_VAT_STD']]])->assertSessionHasNoErrors();
-        $bill = \App\Models\Purchases\Bill::query()->forContext($this->ledger)->where('supplier_reference', 'AUD-1')->firstOrFail();
+        $bill = Bill::query()->forContext($this->ledger)->where('supplier_reference', 'AUD-1')->firstOrFail();
         $request = app(ApprovalService::class)->latestFor($bill);
         $this->assertWhoWhatWhen($this->auditRows('requested', 'approval_request')->last(), $bookkeeper->id);
 
@@ -97,13 +101,13 @@ class Acceptance30_AuditTrailTest extends AcceptanceCase
     public function test_a_manual_journal_and_its_reversal_a_period_close_and_a_role_change_are_on_the_record(): void
     {
         $accountant = $this->memberAs('accountant');
-        [$a, $b] = \App\Models\Accounting\GlAccount::query()->forContext($this->ledger)->whereIn('class', ['expense', 'income'])->where('is_postable', true)->whereNull('system_key')->limit(2)->pluck('id')->all();
+        [$a, $b] = GlAccount::query()->forContext($this->ledger)->whereIn('class', ['expense', 'income'])->where('is_postable', true)->whereNull('system_key')->limit(2)->pluck('id')->all();
         $this->asMember($accountant)->post(route('accounting.journals.store'), ['entry_date' => '2026-11-10', 'memo' => 'Reclass', 'lines' => [['account_id' => $a, 'debit' => '10.00', 'credit' => ''], ['account_id' => $b, 'debit' => '', 'credit' => '10.00']]])->assertSessionHasNoErrors();
-        $entry = \App\Models\Accounting\JournalEntry::query()->forContext($this->ledger)->where('source_type', 'manual')->firstOrFail();
+        $entry = JournalEntry::query()->forContext($this->ledger)->where('source_type', 'manual')->firstOrFail();
         $this->assertSame($accountant->id, (int) $entry->posted_by_user_id, 'a journal says who posted it, on the entry itself and when');
         $this->assertNotNull($entry->posted_at);
         $this->asMember($accountant)->post(route('accounting.journals.reverse', $entry), ['reason' => 'Wrong accounts'])->assertSessionHasNoErrors();
-        $reversal = \App\Models\Accounting\JournalEntry::query()->forContext($this->ledger)->where('source_type', 'reversal')->firstOrFail();
+        $reversal = JournalEntry::query()->forContext($this->ledger)->where('source_type', 'reversal')->firstOrFail();
         $this->assertSame($accountant->id, (int) $reversal->posted_by_user_id);
         $this->assertNotNull($reversal->reverses_entry_id, 'and what it reversed');
 
@@ -188,7 +192,7 @@ class Acceptance30_AuditTrailTest extends AcceptanceCase
     public function test_free_text_typed_by_users_is_never_copied_into_the_log(): void
     {
         $this->asOwner()->post(route('categories.store'), ['name' => 'Travel', 'type' => 'expense']);
-        $category = \App\Models\Category::query()->forContext($this->ledger)->firstOrFail();
+        $category = Category::query()->forContext($this->ledger)->firstOrFail();
         $this->asOwner()->post(route('transactions.store'), ['account_id' => $this->bank->id, 'category_id' => $category->id, 'description' => 'SECRET-DESCRIPTION-9917 for the minister', 'notes' => 'SECRET-NOTE-4471', 'amount' => '10.00', 'type' => 'expense', 'date' => '2026-11-12'])->assertSessionHasNoErrors();
         $dump = DB::table('finance_audit_log')->where('team_id', $this->company->id)->get()->map(fn ($r) => json_encode($r))->implode("\n");
         $this->assertStringNotContainsString('SECRET-DESCRIPTION-9917', $dump);

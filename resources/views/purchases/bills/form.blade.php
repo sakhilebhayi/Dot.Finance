@@ -57,7 +57,7 @@
     </x-fx.panel>
 
     <x-fx.panel title="What was bought" flush>
-        <x-fx.table caption="Lines of the document" scroll>
+        <x-fx.table caption="Lines of the document">
             <thead><tr><th scope="col">Description</th><th scope="col">Charge to</th><th scope="col" class="is-num">Qty</th><th scope="col" class="is-num">Price</th><th scope="col" class="is-num">Disc. %</th><th scope="col">Tax code</th><th scope="col">Project or department</th></tr></thead>
             <tbody>
             @foreach ($rows as $i => $row)

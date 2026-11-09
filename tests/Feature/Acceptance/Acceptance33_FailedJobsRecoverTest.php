@@ -3,9 +3,9 @@
 namespace Tests\Feature\Acceptance;
 
 use App\Jobs\Reporting\GenerateReportExport;
-use App\Mail\SalesReminderMail;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
+use App\Models\Intelligence\FinanceNotification;
 use App\Models\Purchases\Bill;
 use App\Models\Purchases\RecurringBill;
 use App\Models\Reporting\ReportExport;
@@ -14,6 +14,7 @@ use App\Models\Sales\SalesRecurringTemplate;
 use App\Models\Sales\SalesReminder;
 use App\Models\Shared\Payment;
 use App\Models\Transaction;
+use App\Services\Accounting\GlVerifier;
 use App\Services\Purchases\RecurringBills;
 use App\Services\Reporting\ExportService;
 use App\Services\Sales\RecurringInvoices;
@@ -255,7 +256,7 @@ class Acceptance33_FailedJobsRecoverTest extends AcceptanceCase
             'account_id' => $this->bank->id, 'team_id' => $this->company->id, 'description' => 'Raw row', 'amount' => '12.34', 'amount_cents' => 1_234, 'currency' => 'ZAR', 'type' => 'expense', 'date' => '2026-11-12',
             'created_at' => now(), 'updated_at' => now(),
         ]);
-        $this->assertFalse(app(\App\Services\Accounting\GlVerifier::class)->verify($this->ledger)['ok'], 'verify notices the row with no posting');
+        $this->assertFalse(app(GlVerifier::class)->verify($this->ledger)['ok'], 'verify notices the row with no posting');
 
         $this->artisan('finance:gl:post-pending', ['--ledger' => $this->ledger->key()])->assertExitCode(0);
         $this->artisan('finance:gl:post-pending', ['--ledger' => $this->ledger->key()])->assertExitCode(0);
@@ -268,9 +269,9 @@ class Acceptance33_FailedJobsRecoverTest extends AcceptanceCase
         Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
         $this->issueInvoice($this->acme, [['description' => 'Late job', 'quantity' => '1', 'unit_cents' => 100_000, 'tax_code' => 'ZA_VAT_STD']], '2026-09-01');
         $this->artisan('finance:notifications:run')->assertExitCode(0);
-        $count = \App\Models\Intelligence\FinanceNotification::query()->forContext($this->ledger)->count();
+        $count = FinanceNotification::query()->forContext($this->ledger)->count();
         $this->artisan('finance:notifications:run')->assertExitCode(0);
-        $this->assertSame($count, \App\Models\Intelligence\FinanceNotification::query()->forContext($this->ledger)->count(), 'the second run adds none');
+        $this->assertSame($count, FinanceNotification::query()->forContext($this->ledger)->count(), 'the second run adds none');
         $this->assertGreaterThan(0, $count);
     }
 }

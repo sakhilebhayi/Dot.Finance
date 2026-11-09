@@ -128,7 +128,7 @@
 }
 
 .fx-budgetrow__fig {
-    font-size: var(--fs-small);
+    font-size: var(--fs-cell);
     color: var(--ink-2);
 }
 
@@ -909,6 +909,7 @@
 }
 .tax-banner {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: var(--s-3);
     padding: var(--s-3) var(--s-4);
@@ -917,6 +918,8 @@
     background: var(--sheet);
 }
 .tax-banner p {
+    flex: 1 1 14rem;
+    min-width: 0;
     margin: 0;
 }
 .tax-banner__line {
@@ -1008,6 +1011,8 @@
     border-bottom: 1px solid #d6dae1;
     text-align: left;
     vertical-align: top;
+    /* long rule keys and source addresses wrap, so the sheet never scrolls sideways on a phone */
+    overflow-wrap: anywhere;
 }
 .tax-sheet__table .num {
     text-align: right;
@@ -1061,4 +1066,10 @@
         text-align: right;
         max-width: 100%;
     }
+}
+
+/* The rule versions list names long keys and source addresses: they wrap instead of widening the page. */
+.tax-rules td,
+.tax-rules th {
+    overflow-wrap: anywhere;
 }

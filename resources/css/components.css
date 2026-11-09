@@ -1397,3 +1397,86 @@ dialog.fx-command {
 .fx-pager .is-off {
     color: var(--ink-3);
 }
+
+/* ---- Touch targets on a phone (R-44 acceptance QA, criterion 32) ------------------------------------------------
+   Everything a thumb has to hit is at least 44 by 44 CSS px at phone widths. Inline links inside a sentence are left alone;
+   standalone links, tabs, buttons-as-links, controls and the small "trace" icon links get the room. The trace icon keeps its
+   drawn size and grows its hit area with a pseudo-element, so the figures beside it do not move. */
+@media (max-width: 759.98px) {
+    :root {
+        --control-h: 2.75rem;
+    }
+
+    .fx-top__brand,
+    .fx-tab,
+    .fx-linkbtn,
+    a.fx-link:not(p a, .fx-hint a, .fx-sub a, .fx-cell-sub a, dd a, li > a:only-child) {
+        display: inline-flex;
+        align-items: center;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    .sx-lead > a.fx-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
+    }
+
+    .fx-tab {
+        flex: none;
+        justify-content: center;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .fx-trace {
+        position: relative;
+    }
+
+    .fx-trace::after {
+        content: '';
+        position: absolute;
+        inset: -0.75rem;
+    }
+
+    .fx-check {
+        min-height: 2.75rem;
+        align-items: center;
+    }
+
+    .fx-check input {
+        margin: 0;
+    }
+
+    .tax-drill > summary,
+    .tax-rules > summary,
+    .intel-evidence > summary {
+        display: flex;
+        align-items: center;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    .fx-pill .fx-money {
+        font-size: var(--fs-small);
+    }
+
+    /* the small second line under a figure is still money someone has to read */
+    .fx-cell-sub .fx-money,
+    .fx-cell-sub .fx-fig {
+        font-size: var(--fs-cell);
+    }
+}
+
+/* A line editor row in card mode (bill lines, claim receipts, repeating bills): each field is its own full-width row with its
+   label above it, so the fields line up instead of shrinking to their content beside a label. */
+@container fxt (max-width: 759.98px) {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:has(> .fx-input, > .fx-select) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--s-1);
+        padding: var(--s-2) 0;
+        text-align: left;
+    }
+}

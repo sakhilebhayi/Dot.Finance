@@ -3,14 +3,17 @@
 namespace Tests\Feature\Acceptance;
 
 use App\Models\Account;
+use App\Models\Accounting\GlAccount;
 use App\Models\Purchases\Bill;
 use App\Models\Sales\SalesDocument;
 use App\Models\Shared\FxRate;
 use App\Models\Shared\Payment;
+use App\Models\Shared\PaymentAllocation;
 use App\Services\Reporting\ReportRunner;
 use App\Services\Shared\FxMath;
 use App\Services\Shared\FxService;
 use App\Support\Ledger\LedgerContext;
+use Carbon\CarbonImmutable;
 
 /**
  * Owner criterion 29: currency calculations are consistent. A USD invoice and a USD bill are booked at the stored rate of their date,
@@ -104,20 +107,20 @@ class Acceptance29_CurrencyTest extends AcceptanceCase
         $this->assertSame('paid', $bill->fresh()->status);
         $this->assertSame(0, $this->balance('ap'));
         $this->assertSame(-50_000, $this->gain(), 'carried at R9,000.00, paid at the 6 November rate of 19.00 = R9,500.00: a loss of R500.00');
-        $this->assertSame(-50_000, (int) \App\Models\Shared\PaymentAllocation::query()->forContext($this->ledger)->value('fx_diff_cents'));
+        $this->assertSame(-50_000, (int) PaymentAllocation::query()->forContext($this->ledger)->value('fx_diff_cents'));
         $this->assertBooksVerify();
     }
 
     public function test_base_currency_totals_net_the_gain_and_loss_and_the_reports_and_trial_balance_are_in_rand(): void
     {
         $this->test_a_foreign_receipt_realises_the_difference_between_the_invoice_rate_and_the_payment_rate();
-        $pl = app(ReportRunner::class)->run($this->ledger, 'profit-loss', ['from' => '2026-11-01', 'to' => '2026-11-30'], \Carbon\CarbonImmutable::parse('2026-11-30'));
+        $pl = app(ReportRunner::class)->run($this->ledger, 'profit-loss', ['from' => '2026-11-01', 'to' => '2026-11-30'], CarbonImmutable::parse('2026-11-30'));
         $this->assertSame('ZAR', $pl->header['currency']);
         $this->assertSame(1_800_000, $pl->cell('Total income', 'total'), 'the invoice, in rand, at its own rate');
         $this->assertSame(1_950_000, $pl->cell('Net profit', 'total'), 'R18,000.00 of sales plus the R1,500.00 realised gain');
-        $tb = app(ReportRunner::class)->run($this->ledger, 'trial-balance', ['to' => '2026-11-30'], \Carbon\CarbonImmutable::parse('2026-11-30'));
+        $tb = app(ReportRunner::class)->run($this->ledger, 'trial-balance', ['to' => '2026-11-30'], CarbonImmutable::parse('2026-11-30'));
         $this->assertSame($tb->cell('Total', 'debit'), $tb->cell('Total', 'credit'));
-        $bs = app(ReportRunner::class)->run($this->ledger, 'balance-sheet', ['to' => '2026-11-30'], \Carbon\CarbonImmutable::parse('2026-11-30'));
+        $bs = app(ReportRunner::class)->run($this->ledger, 'balance-sheet', ['to' => '2026-11-30'], CarbonImmutable::parse('2026-11-30'));
         $this->assertSame($bs->cell('Total assets', 'total'), $bs->cell('Total liabilities and equity', 'total'));
         $this->assertStringContainsString('Foreign currency balances are shown in the base currency at the rate posted', implode(' ', $bs->notes), 'the balance sheet says it does not revalue');
     }
@@ -177,6 +180,6 @@ class Acceptance29_CurrencyTest extends AcceptanceCase
 
     private function glOfAccount(Account $account): string
     {
-        return (string) \App\Models\Accounting\GlAccount::query()->forContext($this->ledger)->findOrFail($account->fresh()->gl_account_id)->code;
+        return (string) GlAccount::query()->forContext($this->ledger)->findOrFail($account->fresh()->gl_account_id)->code;
     }
 }

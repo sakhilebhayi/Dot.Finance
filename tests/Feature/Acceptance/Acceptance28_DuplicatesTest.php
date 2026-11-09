@@ -6,10 +6,12 @@ use App\Models\Account;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Bank\BankStatement;
 use App\Models\Bank\BankStatementLine;
+use App\Models\Category;
 use App\Models\Purchases\Bill;
 use App\Models\RecurringRule;
 use App\Models\Sales\SalesDocument;
 use App\Models\Shared\Payment;
+use App\Models\Shared\PaymentAllocation;
 use App\Models\Transaction;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
@@ -53,7 +55,7 @@ class Acceptance28_DuplicatesTest extends AcceptanceCase
         $this->assertSame(1, Payment::query()->forContext($this->ledger)->where('idempotency_key', 'double-click-1')->count());
         $this->assertSame($entries, $this->entryCount(), 'no second posting');
         $this->assertSame(1, Transaction::query()->forContext($this->ledger)->where('settlement_ref', 'like', 'payment:%')->count(), 'one cash row');
-        $this->assertSame(100_000, (int) \App\Models\Shared\PaymentAllocation::query()->forContext($this->ledger)->sum('amount_cents'), 'allocated once');
+        $this->assertSame(100_000, (int) PaymentAllocation::query()->forContext($this->ledger)->sum('amount_cents'), 'allocated once');
         $this->assertSame(230_000 - 100_000, $this->balance('ar') - 0);
         $this->assertBooksVerify();
     }
@@ -193,7 +195,7 @@ class Acceptance28_DuplicatesTest extends AcceptanceCase
 
     public function test_recurring_entries_generated_twice_for_the_same_date_are_one_entry(): void
     {
-        $category = \App\Models\Category::factory()->forCompany($this->company)->create(['name' => 'Rent', 'type' => 'expense']);
+        $category = Category::factory()->forCompany($this->company)->create(['name' => 'Rent', 'type' => 'expense']);
         $this->asOwner()->post(route('transactions.store'), ['account_id' => $this->bank->id, 'category_id' => $category->id, 'description' => 'Office rent', 'amount' => '5000.00', 'type' => 'expense', 'date' => '2026-10-15', 'recurrence_type' => 'monthly', 'recurrence_interval' => 1])->assertSessionHasNoErrors();
         $this->assertSame(1, RecurringRule::query()->forContext($this->ledger)->count());
 

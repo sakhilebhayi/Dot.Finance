@@ -2,15 +2,21 @@
 
 namespace Tests\Feature\Acceptance;
 
+use App\Models\Accounting\JournalEntry;
 use App\Models\Integrations\EmallSaleLine;
+use App\Models\Intelligence\FinanceNotification;
 use App\Models\Tax\TaxPayrollRun;
 use App\Services\Integrations\IntegrationStatus;
+use App\Services\Integrations\NotifyClient;
 use App\Services\Integrations\SignedRequest;
+use App\Services\Intelligence\FinanceNotifier;
 use App\Support\Ledger\LedgerAccess;
-use App\Support\Ledger\LedgerContext;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * Owner criterion 31: ecosystem integrations. Tests what exists and states, from the running code, which platforms are connected, which
@@ -31,7 +37,7 @@ class Acceptance31_EcosystemTest extends AcceptanceCase
         $this->setUpIntegration();
     }
 
-    private function signed(string $uri, array $payload, string $secret, ?int $at = null): \Illuminate\Testing\TestResponse
+    private function signed(string $uri, array $payload, string $secret, ?int $at = null): TestResponse
     {
         $body = json_encode($payload);
         $at ??= time();
@@ -92,12 +98,12 @@ class Acceptance31_EcosystemTest extends AcceptanceCase
         Http::assertNothingSent();
 
         config(['integrations.notify.url' => 'https://notify.test/webhooks/finance', 'integrations.notify.secret' => 'n-secret']);
-        app()->forgetInstance(\App\Services\Integrations\NotifyClient::class);
-        app()->forgetInstance(\App\Services\Intelligence\FinanceNotifier::class);
+        app()->forgetInstance(NotifyClient::class);
+        app()->forgetInstance(FinanceNotifier::class);
         $this->issueInvoice($this->acme, [['description' => 'Late job', 'quantity' => '1', 'unit_cents' => 100_000, 'tax_code' => 'ZA_VAT_STD']], '2026-09-01');   // due 1 October: overdue
         $this->asOwner()->post(route('tax.calendar.generate'));
         // the person chooses, per kind of message, to have it forwarded to Dot.Notify too (off by default)
-        $kinds = collect(array_keys(\App\Models\Intelligence\FinanceNotification::KINDS))->mapWithKeys(fn ($k) => [$k => ['in_app' => 1, 'email' => 1, 'notify' => 1]])->all();
+        $kinds = collect(array_keys(FinanceNotification::KINDS))->mapWithKeys(fn ($k) => [$k => ['in_app' => 1, 'email' => 1, 'notify' => 1]])->all();
         $this->asOwner()->put(route('intel.notifications.preferences.update'), ['kinds' => $kinds])->assertSessionHasNoErrors();
         $this->artisan('finance:notifications:run')->assertExitCode(0);
 
@@ -114,7 +120,7 @@ class Acceptance31_EcosystemTest extends AcceptanceCase
     public function test_the_emall_contract_stages_signed_sales_for_review_and_posts_nothing_by_itself(): void
     {
         config(['integrations.emall.secret' => 'emall-secret']);
-        $entries = \App\Models\Accounting\JournalEntry::query()->forContext($this->ledger)->count();
+        $entries = JournalEntry::query()->forContext($this->ledger)->count();
         $delivery = ['delivery_id' => 'emall-9', 'company_uuid' => $this->company->infodot_team_uuid, 'currency' => 'ZAR', 'lines' => [[
             'order_item_id' => 'oi-1', 'order_ref' => 'ORD-1', 'sold_on' => '2026-11-12', 'description' => 'Basket', 'quantity' => 2, 'unit_price_cents' => 11500, 'discount_cents' => 0, 'total_cents' => 23000, 'tax_code' => 'ZA_VAT_STD', 'vat_cents' => 3000, 'fee_cents' => 2300,
         ]]];
@@ -123,7 +129,7 @@ class Acceptance31_EcosystemTest extends AcceptanceCase
         $this->signed('/api/integrations/emall/sales', $delivery, 'emall-secret')->assertStatus(201)->assertJson(['status' => 'stored', 'staged' => 1]);
         $this->signed('/api/integrations/emall/sales', $delivery, 'emall-secret')->assertStatus(200)->assertJson(['status' => 'replayed']);
         $this->assertSame(1, EmallSaleLine::query()->forContext($this->ledger)->count());
-        $this->assertSame($entries, \App\Models\Accounting\JournalEntry::query()->forContext($this->ledger)->count(), 'staged, not posted');
+        $this->assertSame($entries, JournalEntry::query()->forContext($this->ledger)->count(), 'staged, not posted');
 
         $this->asOwner()->get(route('intel.integrations.emall.index'))->assertOk()->assertSee('Basket');
         $this->asMember($this->memberAs('viewer'))->get(route('intel.integrations.emall.index'))->assertOk();
@@ -157,9 +163,9 @@ class Acceptance31_EcosystemTest extends AcceptanceCase
         $this->artisan('finance:publish-metrics')->assertExitCode(0);
         Http::assertNothingSent();
 
-        $out = new \Symfony\Component\Console\Output\BufferedOutput;
-        \Illuminate\Support\Facades\Artisan::call('finance:publish-metrics', ['--dry-run' => true], $out);
-        $dry = $out->fetch().\Illuminate\Support\Facades\Artisan::output();
+        $out = new BufferedOutput;
+        Artisan::call('finance:publish-metrics', ['--dry-run' => true], $out);
+        $dry = $out->fetch().Artisan::output();
         $this->assertStringNotContainsString('Acme Retail', $dry, 'no customer names ever leave');
         $this->assertStringNotContainsString($this->owner->email, $dry);
         Http::assertNothingSent();

@@ -128,7 +128,7 @@ final class BackupRestoreDrill
 
             // 5. the verifier is not a rubber stamp: change one cent in the restored copy and it must object
             $tamper = $this->driver === 'sqlite'
-                ? "DROP TRIGGER IF EXISTS journal_lines_no_update; UPDATE journal_lines SET debit_cents = debit_cents + 1 WHERE id = (SELECT MIN(id) FROM journal_lines WHERE debit_cents > 0)"
+                ? 'DROP TRIGGER IF EXISTS journal_lines_no_update; UPDATE journal_lines SET debit_cents = debit_cents + 1 WHERE id = (SELECT MIN(id) FROM journal_lines WHERE debit_cents > 0)'
                 : 'ALTER TABLE journal_lines DISABLE TRIGGER USER; UPDATE journal_lines SET debit_cents = debit_cents + 1 WHERE id = (SELECT MIN(id) FROM journal_lines WHERE debit_cents > 0); ALTER TABLE journal_lines ENABLE TRIGGER USER';
             if ($this->driver === 'sqlite') {
                 $pdo = new \PDO('sqlite:'.$restored);
