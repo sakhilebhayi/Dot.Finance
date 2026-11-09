@@ -10,9 +10,11 @@ use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Shared\PaymentAllocation;
 use App\Services\Accounting\Chart;
+use App\Services\Accounting\GlQuery;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Receivables, worked out from the documents and the applications, never from the journal: open items, what
@@ -33,7 +35,7 @@ final class ReceivablesLedger
     /** Bucket keys in order. Days past the due date (or past the invoice date, on the other basis). */
     public const BUCKETS = ['current' => 'Current', 'd30' => '1 to 30', 'd60' => '31 to 60', 'd90' => '61 to 90', 'd120' => '91 to 120', 'd120p' => 'Over 120'];
 
-    public function __construct(private readonly Chart $chart) {}
+    public function __construct(private readonly Chart $chart, private readonly GlQuery $gl) {}
 
     /**
      * Every invoice and debit note that still owes something.
@@ -117,14 +119,25 @@ final class ReceivablesLedger
             $allocated = PaymentAllocation::query()->forContext($context)->whereIn('payment_id', $ids)->whereNull('released_at')
                 ->selectRaw('payment_id, SUM(amount_cents) as cents')->groupBy('payment_id')->pluck('cents', 'payment_id');
             $usedBase = SalesApplication::query()->forContext($context)->whereIn('payment_id', $ids)->whereNull('released_at')
-                ->selectRaw('payment_id, SUM(source_base_cents) as cents')->groupBy('payment_id')->pluck('cents', 'payment_id');
+                ->selectRaw('payment_id, SUM(source_base_cents) as cents')->groupBy('payment_id')->get()->keyBy('payment_id');
+            // money applied through allocations that are neither a sales application nor a refund (a refund has its own base column)
+            $foreign = PaymentAllocation::query()->forContext($context)->whereIn('payment_id', $ids)->whereNull('released_at')
+                ->whereNotIn('allocatable_type', [(new SalesRefund)->getMorphClass(), (new SalesDocument)->getMorphClass()])
+                ->selectRaw('payment_id, SUM(amount_cents) as cents')->groupBy('payment_id')->pluck('cents', 'payment_id');
             $refundedBase = SalesRefund::query()->forContext($context)->whereIn('source_payment_id', $ids)->where('status', 'recorded')
                 ->selectRaw('source_payment_id, SUM(source_base_cents) as cents')->groupBy('source_payment_id')->pluck('cents', 'source_payment_id');
 
             foreach ($payments as $p) {
                 $left = (int) $p->amount_cents - (int) ($allocated[$p->id] ?? 0);
                 $total = $p->base_amount_cents !== null ? (int) $p->base_amount_cents : (int) $p->amount_cents;
-                $leftBase = $total - (int) ($usedBase[$p->id] ?? 0) - (int) ($refundedBase[$p->id] ?? 0);
+                $leftBase = $total - (int) ($usedBase[$p->id]->cents ?? 0) - (int) ($refundedBase[$p->id] ?? 0);
+                // Money applied through a payment allocation that is not a sales application (an invoice held outside the sales
+                // documents, a migrated or journal-only invoice) leaves no base figure of its own. Its base is the same share of
+                // the payment's base amount as its share of the payment, so a fully allocated payment is never customer credit.
+                if ((int) ($foreign[$p->id] ?? 0) > 0 && (int) $p->amount_cents > 0) {
+                    $shareBase = intdiv($total * (int) $foreign[$p->id] + intdiv((int) $p->amount_cents, 2), (int) $p->amount_cents);
+                    $leftBase -= $shareBase;
+                }
                 if ($left > 0 || $leftBase > 0) {
                     $out->push(['kind' => 'payment', 'id' => $p->id, 'label' => 'Payment received '.$p->paid_on->toDateString().($p->reference ? ' ('.$p->reference.')' : ''), 'date' => CarbonImmutable::parse($p->paid_on->toDateString()),
                         'party_id' => (int) $p->party_id, 'currency' => $p->currency, 'cents' => $left, 'base_cents' => $leftBase, 'model' => $p]);
@@ -261,16 +274,60 @@ final class ReceivablesLedger
 
         $documents = (int) array_sum($subledger);
         $ledger = $this->glBalance($context);
+        $difference = $ledger - $documents;
+        $items = $difference === 0 && $parties === [] ? [] : $this->unexplainedEntries($context);
+        $explained = (int) array_sum(array_column($items, 'cents'));
 
         return [
-            'ok' => $documents === $ledger, 'documents_cents' => $documents, 'ledger_cents' => $ledger, 'difference_cents' => $ledger - $documents,
+            'ok' => $documents === $ledger, 'documents_cents' => $documents, 'ledger_cents' => $ledger, 'difference_cents' => $difference,
             'parties' => $parties, 'unattributed_cents' => (int) ($gl[0] ?? 0),
+            // the reconciling items: journal entries on the receivables account that no invoice, credit note, payment, refund or
+            // write-off in Sales accounts for, and what is left of the difference after them
+            'items' => $items, 'items_cents' => $explained, 'remainder_cents' => $difference - $explained,
         ];
     }
 
     /**
-     * Figures for the Command centre panel: what is owed, what is overdue, what falls due this week, and whether
-     * the receivables account agrees.
+     * Journal entries that touch the receivables account but that no sales document, payment (or refund), write-off or
+     * exchange-difference entry owns: a journal typed straight to receivables, an invoice posted without a sales document,
+     * a migrated opening balance. These are what makes the account differ from the documents. Largest first.
+     *
+     * @return list<array{entry_id: int, number: int, date: string, memo: string, source: string, party_id: int, party: string, cents: int}>
+     */
+    public function unexplainedEntries(LedgerContext $context): array
+    {
+        $ar = $this->chart->systemIds($context)['ar'] ?? null;
+        if ($ar === null) {
+            return [];
+        }
+
+        $owned = fn (string $table) => $context->isCompany() ? DB::table($table)->where('team_id', $context->teamId) : DB::table($table)->where('user_id', $context->userId)->whereNull('team_id');
+
+        $owners = collect()
+            ->merge($owned('sales_documents')->pluck('gl_entry_id'))->merge($owned('sales_documents')->pluck('void_entry_id'))
+            ->merge($owned('payments')->pluck('gl_entry_id'))->merge($owned('sales_write_offs')->pluck('gl_entry_id'))
+            ->merge($owned('sales_applications')->pluck('fx_entry_id'))
+            ->filter()->map(fn ($id) => (int) $id)->flip();
+
+        $lines = $this->gl->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+            ->where('l.gl_account_id', $ar)->groupBy('l.journal_entry_id', 'l.party_id', 'e.entry_number', 'e.entry_date', 'e.memo', 'e.source_type', 'e.reverses_entry_id')
+            ->selectRaw('l.journal_entry_id, l.party_id, e.entry_number, e.entry_date, e.memo, e.source_type, e.reverses_entry_id, SUM(l.debit_cents) - SUM(l.credit_cents) AS net')
+            ->get()->filter(fn ($r) => (int) $r->net !== 0 && ! $owners->has((int) $r->journal_entry_id) && ! ($r->reverses_entry_id !== null && $owners->has((int) $r->reverses_entry_id)));
+
+        $names = Party::query()->forContext($context)->withTrashed()->whereIn('id', $lines->pluck('party_id')->filter()->unique()->all())->pluck('name', 'id');
+
+        return $lines->map(fn ($r) => [
+            'entry_id' => (int) $r->journal_entry_id, 'number' => (int) $r->entry_number, 'date' => substr((string) $r->entry_date, 0, 10), 'memo' => (string) $r->memo,
+            'source' => (string) $r->source_type, 'party_id' => (int) $r->party_id, 'party' => $r->party_id === null ? 'No customer on it' : (string) ($names[$r->party_id] ?? 'Customer #'.$r->party_id),
+            'cents' => (int) $r->net,
+        ])->sortByDesc(fn ($i) => abs($i['cents']))->values()->all();
+    }
+
+    /**
+     * Figures for the Command centre panel, the Invoices page and the Receivables page: what is owed, what is overdue, what
+     * falls due this week, and whether the receivables account agrees. This is the ONE place "owed to you" is worked out:
+     * `net_base_cents` (open invoices less customer credit) is the figure every page headlines, and it is the figure the
+     * receivables account of the ledger is compared with. `reconcile` carries the gap and its reconciling items.
      *
      * @return array<string, mixed>
      */
@@ -295,6 +352,8 @@ final class ReceivablesLedger
             'open_count' => $items->count(),
             'reconciles' => $reconcile['ok'],
             'difference_cents' => $reconcile['difference_cents'],
+            'gl_cents' => $reconcile['ledger_cents'],
+            'reconcile' => $reconcile,
             'oldest_overdue_days' => $overdue->isEmpty() ? 0 : (int) $overdue->map(fn ($i) => (int) CarbonImmutable::parse($i['document']->due_date->toDateString())->diffInDays($today))->max(),
         ];
     }

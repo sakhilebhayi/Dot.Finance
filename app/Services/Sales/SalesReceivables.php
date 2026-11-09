@@ -2,11 +2,13 @@
 
 namespace App\Services\Sales;
 
+use App\Contracts\Intelligence\DescribesReceivables;
 use App\Contracts\Intelligence\ReceivablesSource;
 use App\Models\Accounting\LedgerSetting;
 use App\Models\Sales\SalesDocument;
 use App\Services\Intelligence\Sources\GlReceivables;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /**
@@ -14,7 +16,7 @@ use Carbon\CarbonImmutable;
  * invoices; before that the general ledger's receivables account answers, as it did. Amounts are in the ledger's base
  * currency, the way the receivables account is kept.
  */
-final class SalesReceivables implements ReceivablesSource
+final class SalesReceivables implements DescribesReceivables, ReceivablesSource
 {
     public function __construct(private readonly ReceivablesLedger $ledger, private readonly GlReceivables $fallback) {}
 
@@ -48,6 +50,32 @@ final class SalesReceivables implements ReceivablesSource
         usort($rows, fn ($a, $b) => $b['owed_cents'] <=> $a['owed_cents']);
 
         return $rows;
+    }
+
+    /**
+     * The one figure: the same summary the Invoices, Customers and Receivables pages use. `source` says plainly what it was
+     * worked out from; `gap_cents` is how far the receivables account of the general ledger stands from it, with the reasons.
+     */
+    public function position(LedgerContext $context): ?array
+    {
+        if (! $this->hasInvoices($context)) {
+            return null;
+        }
+
+        $summary = $this->ledger->summary($context);
+        $rec = $summary['reconcile'];
+        $reasons = [];
+        foreach (collect($rec['items'])->groupBy('source') as $source => $rows) {
+            $reasons[] = $rows->count().' '.($rows->count() === 1 ? 'entry' : 'entries').' of '.str_replace('_', ' ', (string) $source).' type posted to receivables without a matching record in Sales, '.Money::format((int) $rows->sum('cents'), $this->currency($context));
+        }
+        if ($rec['remainder_cents'] !== 0) {
+            $reasons[] = Money::format(abs((int) $rec['remainder_cents']), $this->currency($context)).' that no entry explains';
+        }
+
+        return [
+            'source' => 'your invoices, credit notes and payments recorded in Sales', 'total_cents' => (int) $summary['net_base_cents'], 'credit_cents' => (int) $summary['credit_base_cents'],
+            'currency' => $this->currency($context), 'books_cents' => (int) $rec['ledger_cents'], 'gap_cents' => (int) $rec['difference_cents'], 'agrees' => (bool) $rec['ok'], 'reconciling' => $reasons,
+        ];
     }
 
     public function overdueInvoices(LedgerContext $context, CarbonImmutable $asOf): ?array

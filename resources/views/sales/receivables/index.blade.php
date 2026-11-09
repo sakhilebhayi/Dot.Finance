@@ -15,9 +15,25 @@
             <x-fx.statement-row label="Difference" kind="subtotal"><x-fx.money :cents="$reconcile['difference_cents']" :currency="$base" :variance="! $reconcile['ok']" /></x-fx.statement-row>
         </x-fx.statement>
         @unless ($reconcile['ok'])
-            <p>The difference is usually a journal typed straight to receivables.</p>
+            @php
+                $sourceWords = ['invoice' => 'Invoices posted without a sales invoice', 'credit_note' => 'Credit notes posted without a sales credit note', 'payment' => 'Receipts and refunds posted without a payment record', 'manual' => 'Journals typed to receivables', 'adjustment' => 'Adjustments', 'opening_balance' => 'Opening balances'];
+                $groups = collect($reconcile['items'])->groupBy('source');
+            @endphp
+            <p id="reconciling-items"><strong>What makes up the {{ Money::format(abs($reconcile['difference_cents']), $base) }}.</strong> The receivables account holds entries that no invoice, credit note, payment or write-off recorded in Sales accounts for. Nothing is hidden: they are listed here.</p>
+            @if ($groups->isNotEmpty())
+            <x-fx.table caption="Entries on the receivables account that Sales does not account for, by kind">
+                <thead><tr><th scope="col">Kind of entry</th><th scope="col" class="is-num">Entries</th><th scope="col" class="is-num">Net effect on receivables</th></tr></thead>
+                <tbody>@foreach ($groups as $source => $rows)<tr><td data-label="Kind of entry" class="is-lead">{{ $sourceWords[$source] ?? 'Entries from '.str_replace('_', ' ', $source) }}</td><td data-label="Entries" class="is-num">{{ $rows->count() }}</td><td data-label="Net effect" class="is-num"><x-fx.money :cents="$rows->sum('cents')" :currency="$base" /></td></tr>@endforeach
+                @if ($reconcile['remainder_cents'] !== 0)<tr><td class="is-lead" data-label="Kind of entry">Not traced to any entry</td><td class="is-num" data-label="Entries">–</td><td class="is-num" data-label="Net effect"><x-fx.money :cents="$reconcile['remainder_cents']" :currency="$base" :variance="true" /></td></tr>@endif</tbody>
+                <tfoot><tr><th scope="row" colspan="2">Difference</th><td class="is-num"><x-fx.money :cents="$reconcile['difference_cents']" :currency="$base" /></td></tr></tfoot>
+            </x-fx.table>
+            <details class="sx-reconcile__list">
+                <summary>The {{ count($reconcile['items']) > 12 ? 'largest 12 of '.count($reconcile['items']) : count($reconcile['items']) }} entries</summary>
+                <ul>@foreach (array_slice($reconcile['items'], 0, 12) as $it)<li><a class="fx-link" href="{{ route('accounting.journals.show', $it['entry_id']) }}">Entry {{ $it['number'] }}</a>, {{ $it['date'] }}: {{ $it['memo'] }} ({{ $it['party'] }}) <x-fx.money :cents="$it['cents']" :currency="$base" /></li>@endforeach</ul>
+            </details>
+            @endif
             @if ($reconcile['unattributed_cents'])<p>{{ Money::format($reconcile['unattributed_cents'], $base) }} sits on receivables with no customer on it.</p>@endif
-            <ul>@foreach ($reconcile['parties'] as $r)@if ($r['difference_cents'])<li><a class="fx-link" href="{{ route('sales.customers.show', $r['party_id']) }}">{{ $r['name'] }}</a>: books {{ Money::format($r['ledger_cents'], $base) }}, documents {{ Money::format($r['documents_cents'], $base) }}</li>@endif @endforeach</ul>
+            <p class="sx-hint">The fix is in the books, not here: post a correcting journal, or issue the missing invoice in Sales. Dot.Finance never edits a posted entry.</p>
         @endunless
         <a class="fx-link" href="{{ route('accounting.general-ledger') }}">General ledger</a>
     </div>

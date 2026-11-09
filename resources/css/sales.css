@@ -118,3 +118,10 @@ form[data-sx-editor] .sx-checklist .is-bad .sx-checklist__mark { color: var(--pe
 /* A panel holding a scrolling table must not widen the page on a phone: it shrinks, and the table scrolls inside it. */
 .fx-page > .fx-panel, .fx-page > .fx-grid > .fx-panel, .fx-page > .fx-grid > .fx-stack, .fx-page > .fx-grid > aside { min-width: 0; max-width: 100%; }
 .fx-panel__body--flush { min-width: 0; }
+
+/* ---- one definition of "owed to you": the note under the headline, and the reconciling items ------------------- */
+.sx-strip__note { font-size: var(--fs-small); color: var(--ink-3); }
+.sx-reconcile__list { margin: 0 0 var(--s-2); font-size: var(--fs-small); }
+.sx-reconcile__list > summary { cursor: pointer; color: var(--ink-2); }
+.sx-reconcile .fx-table, .sx-reconcile table { margin: var(--s-2) 0; }
+.sx-credit { color: var(--ink-2); white-space: nowrap; }
