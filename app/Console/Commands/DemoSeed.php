@@ -6,10 +6,18 @@ use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
+use App\Models\Intelligence\AssistantDraft;
+use App\Models\Intelligence\AssistantMessage;
+use App\Models\Intelligence\FinanceInsight;
+use App\Models\Intelligence\FinanceNotification;
+use App\Models\Intelligence\NotificationPreference;
 use App\Models\RecurringRule;
 use App\Models\Team;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Intelligence\FinanceAssistant;
+use App\Services\Intelligence\InsightEngine;
+use App\Services\Intelligence\NotificationRules;
 use App\Services\TransferService;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Console\Attributes\Description;
@@ -87,6 +95,7 @@ class DemoSeed extends Command
 
             LedgerContext::run(LedgerContext::company($company), fn () => $this->company($company, $user, $transfers));
             LedgerContext::run(LedgerContext::personal($user), fn () => $this->personal($user));
+            $this->intelligence(LedgerContext::company($company), $user);
         });
 
         $this->info('Demo ledger created: '.self::COMPANY.' (company) and a small personal ledger.');
@@ -100,7 +109,7 @@ class DemoSeed extends Command
     {
         LedgerContext::run($context, function (): void {
             // Children before parents. Removed for good: this is demo data in a local database.
-            foreach ([Transaction::class, RecurringRule::class, Budget::class, Category::class, Account::class, Insight::class] as $model) {
+            foreach ([AssistantDraft::class, AssistantMessage::class, FinanceNotification::class, NotificationPreference::class, FinanceInsight::class, Transaction::class, RecurringRule::class, Budget::class, Category::class, Account::class, Insight::class] as $model) {
                 $query = in_array(SoftDeletes::class, class_uses_recursive($model), true) ? $model::withTrashed() : $model::query();
                 $query->forceDelete();
             }
@@ -234,6 +243,40 @@ class DemoSeed extends Command
         $rule('Salaries', 'expense', 4_680_000, $cheque, $c['salaries'], 'monthly', $today->copy()->addDays(13));
         $rule('Standing wholesale order: Gardens Pantry', 'income', 1_450_000, $cheque, $c['wholesale'], 'weekly', $today->copy()->addDays(2));
         $rule('Courier account debit order', 'expense', 62_000, $cheque, $c['fuel'], 'weekly', $today->copy()->subDays(3));
+    }
+
+    /**
+     * R-44 intelligence on the demo company: two things the detectors should notice (an entry made twice, an unusual
+     * round amount), then the real scan, three real questions put to the real assistant (one of them a draft, left
+     * pending) and the real notification rules. Nothing is typed in by hand: every row is made by the services.
+     */
+    private function intelligence(LedgerContext $context, User $user): void
+    {
+        LedgerContext::run($context, function () use ($context, $user): void {
+            $cheque = Account::query()->where('name', 'Business Cheque')->firstOrFail();
+            $fuel = Category::query()->where('name', 'Fuel and deliveries')->firstOrFail();
+            $day = now()->startOfDay();
+
+            foreach ([2, 1] as $back) {
+                Transaction::create($context->ownerAttributes() + [
+                    'account_id' => $cheque->id, 'category_id' => $fuel->id, 'description' => 'Courier: wholesale parcel to Stellenbosch', 'amount_cents' => 86_500,
+                    'currency' => 'ZAR', 'type' => 'expense', 'date' => $day->copy()->subDays($back)->toDateString(),
+                ]);
+            }
+            Transaction::create($context->ownerAttributes() + [
+                'account_id' => $cheque->id, 'category_id' => $fuel->id, 'description' => 'Delivery van repairs, cash', 'amount_cents' => 1_000_000,
+                'currency' => 'ZAR', 'type' => 'expense', 'date' => $day->copy()->subDays(3)->toDateString(),
+            ]);
+
+            app(InsightEngine::class)->scan($context);
+
+            $assistant = app(FinanceAssistant::class);
+            foreach (['How much did I spend this month?', 'Which expenses increased the most?', 'Add an expense of R350 for printer paper'] as $question) {
+                $assistant->ask($user, $context, $question);
+            }
+
+            app(NotificationRules::class)->run($context);
+        });
     }
 
     private function personal(User $user): void

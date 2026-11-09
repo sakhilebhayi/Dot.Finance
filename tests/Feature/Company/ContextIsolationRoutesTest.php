@@ -9,6 +9,11 @@ use App\Models\Accounting\JournalEntry;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
+use App\Models\Integrations\EmallSaleLine;
+use App\Models\Intelligence\AssistantDraft;
+use App\Models\Intelligence\AssistantMessage;
+use App\Models\Intelligence\FinanceInsight;
+use App\Models\Intelligence\FinanceNotification;
 use App\Models\RecurringRule;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
@@ -49,10 +54,12 @@ class ContextIsolationRoutesTest extends TestCase
         'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments',
         // R-44 accounting tables
         'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+        // R-44 intelligence and integrations tables
+        'assistant_messages', 'assistant_drafts', 'finance_insights', 'finance_notifications', 'notification_preferences', 'integration_inbound_events', 'emall_sale_lines',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'message' => 'message', 'draft' => 'draft', 'insight' => 'insight', 'notification' => 'notification', 'line' => 'line'];
 
     private User $me;
 
@@ -110,6 +117,14 @@ class ContextIsolationRoutesTest extends TestCase
             app(TransferService::class)->create($company->owner, $account, $other, 100, null, now(), "Sentinel transfer {$label}", null);
         }
 
+        // R-44 intelligence and integrations rows, owned by the context's own person (the company's owner for a company).
+        $asker = $company === null ? User::findOrFail($owner['user_id']) : $company->owner;
+        $message = AssistantMessage::create($owner + ['asker_id' => $asker->id, 'question' => "Sentinel question {$label}", 'intent' => 'spend', 'status' => 'answered', 'answer_text' => 'x', 'answer' => [], 'basis' => 'calculated']);
+        $draft = AssistantDraft::create($owner + ['asker_id' => $asker->id, 'message_id' => $message->id, 'kind' => 'categorise', 'payload' => ['items' => []], 'summary' => "Sentinel draft {$label}", 'status' => 'pending', 'expires_at' => now()->addDay()]);
+        $insight2 = FinanceInsight::create($owner + ['kind' => 'duplicate', 'subject_key' => 'sentinel', 'period_key' => '2026-11', 'severity' => 'notice', 'title' => "Sentinel finding {$label}", 'body' => 'x', 'evidence' => [], 'status' => 'open', 'first_seen_at' => now(), 'last_seen_at' => now()]);
+        $notification = FinanceNotification::create($owner + ['recipient_id' => $asker->id, 'kind' => 'system', 'title' => "Sentinel notification {$label}", 'body' => 'x', 'dedupe_key' => 'sentinel']);
+        $line = EmallSaleLine::create($owner + ['order_item_id' => "sentinel-{$label}", 'order_ref' => "Sentinel line {$label}", 'sold_on' => now()->toDateString(), 'currency' => 'ZAR', 'description' => "Sentinel line {$label}", 'gross_cents' => 100, 'claimed' => [], 'status' => 'staged']);
+
         // Accounting on for the context, so there are journal entries, a chart and a period to smuggle too.
         $ledger = $company === null ? LedgerContext::personal((int) $owner['user_id']) : LedgerContext::company($company);
         LedgerContext::run($ledger, function () use ($ledger, $company) {
@@ -124,7 +139,7 @@ class ContextIsolationRoutesTest extends TestCase
             AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
         ]);
 
-        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id, 'message' => $message->id, 'draft' => $draft->id, 'insight' => $insight2->id, 'notification' => $notification->id, 'line' => $line->id];
     }
 
     private function keyFor(array $owner): string
@@ -272,7 +287,8 @@ class ContextIsolationRoutesTest extends TestCase
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
         $pages = ['dashboard', 'parties.index', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create',
-            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create'];
+            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create',
+            'intel.assistant.index', 'intel.attention.index', 'intel.notifications.index', 'intel.notifications.preferences', 'intel.integrations.index', 'intel.integrations.emall.index'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -287,7 +303,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'question', 'finding', 'notification', 'line', 'draft'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }

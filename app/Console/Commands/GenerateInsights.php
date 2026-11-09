@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Insight;
+use App\Services\Intelligence\WeeklyDigest;
 use App\Services\ReserveRunwayCalculator;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
@@ -10,6 +11,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Log;
 
 #[Signature('finance:generate-insights')]
 #[Description('Write each ledger\'s weekly rule-based summary (plain arithmetic on a person\'s or a company\'s ledger, not AI); at most one per ledger per ISO week')]
@@ -62,18 +64,40 @@ class GenerateInsights extends Command
             $sentences[] = $this->warningInsightText($result, $company);
         }
 
+        // R-44: the same weekly row also says what needs attention (the anomaly detectors are refreshed first). It is the
+        // one row per ledger per ISO week it always was; a failure here must never cost a ledger its weekly summary.
+        $digest = [];
+        try {
+            $digest = app(WeeklyDigest::class)->prepare($context);
+        } catch (\Throwable $e) {
+            report($e);
+            Log::warning('The weekly digest could not be prepared.', ['error' => class_basename($e)]);
+        }
+
+        $runwayOnly = $sentences;
+        $sentences = array_merge($sentences, $digest);
+
         if ($sentences === []) {
             return;
         }
 
         try {
-            Insight::create($context->ownerAttributes() + [
-                'type' => $warning ? 'reserve_runway_warning' : 'reserve_runway_healthy',
+            $insight = Insight::create($context->ownerAttributes() + [
+                'type' => $runwayOnly === [] ? 'weekly_digest' : ($warning ? 'reserve_runway_warning' : 'reserve_runway_healthy'),
                 'insight' => implode(' ', $sentences),
                 'iso_week' => $week,
             ]);
         } catch (UniqueConstraintViolationException) {
             // another run wrote this week's summary between the check and the insert
+            return;
+        }
+
+        if ($digest !== []) {
+            try {
+                app(WeeklyDigest::class)->notify($context, $week, implode(' ', $digest));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 

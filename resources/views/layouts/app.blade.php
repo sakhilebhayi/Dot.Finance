@@ -121,6 +121,7 @@
                 <x-fx.state-line :items="$fxState" />
 
                 <div class="fx-top__tools">
+                    @includeIf('intel.partials.bell')
                     @if (fx_route_exists('transactions.index'))
                     <form class="fx-search" role="search" method="GET" action="{{ route('transactions.index') }}">
                         <x-fx.icon name="search" />

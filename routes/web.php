@@ -117,6 +117,10 @@ if (! Features::enabled(Features::registration())) {
     Route::redirect('/register', '/login')->name('register');
 }
 
+// --- intel ---
+require __DIR__.'/intel.php';
+// --- end intel ---
+
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---

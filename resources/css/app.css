@@ -5,6 +5,7 @@
 @import './components.css';
 @import './pages.css';
 @import './ledger.css';
+@import './intel.css';
 
 /* Tailwind: utilities only (preflight is off in tailwind.config.js). The design lives in the files above. */
 @tailwind base;
