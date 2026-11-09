@@ -9,9 +9,10 @@ use Carbon\CarbonImmutable;
  * Turns the due-date rules (rows in the rule book) into dates, with business-day handling from the holiday table.
  * Every result says what it did ("the 25th is a Sunday: the Friday before is used") and how sure it is.
  *
- * Direction of the business-day rule: for VAT and EMP201 the sources say the PREVIOUS business day. For provisional
- * tax and the ITR14 the sources say a convention applies but do not record its direction; the earlier date is shown
- * (safe: it can only be early) and the note says so.
+ * Direction of the business-day rule: for VAT, EMP201 and provisional tax the sources say the PREVIOUS business day (provisional
+ * tax: SARS provisional tax page and guide GEN-PT-01-G01 rev 28 para 10(j), "the last business day before"; confirmed in QA, D-1302).
+ * For the ITR14, EMP501 and COIDA the sources do not record the direction; the earlier date is shown (safe: it can only be
+ * early) and the note says so.
  */
 final class DueDates
 {
@@ -80,7 +81,7 @@ final class DueDates
         if ($period === 3) {
             $notes[] = 'The third payment is optional (a top-up) and carries no underestimation penalty.';
         }
-        [$due, $moved] = $this->previousBusinessDay($base, $notes, 'The statutory date', unconfirmed: true);
+        [$due, $moved] = $this->previousBusinessDay($base, $notes, 'The statutory date');
 
         return $this->finish($base, $due, null, $notes, $rule->confidence, $moved);
     }

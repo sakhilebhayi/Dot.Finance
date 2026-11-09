@@ -99,10 +99,10 @@ class CalendarTest extends TestCase
         $this->assertSame('2026-05-31', $this->due->provisional($this->rules, $may[0], $may[1], 2)->base->toDateString());
         $this->assertSame('2026-11-30', $this->due->provisional($this->rules, $may[0], $may[1], 3)->base->toDateString(), '6 months after any other year end');
 
-        // weekend dates show the earlier business day and say the direction is unconfirmed
+        // weekend dates show the business day before (SARS provisional tax guide para 10(j): "the last working day prior"); QA D-1302
         $sun = $this->due->provisional($this->rules, $this->d('2026-03-01'), $this->d('2027-02-28'), 2);
         $this->assertSame('2027-02-26', $sun->due->toDateString());
-        $this->assertStringContainsString('not recorded', $sun->note());
+        $this->assertStringContainsString('the business day before, 26 February 2027, is used', $sun->note());
     }
 
     public function test_itr14_is_twelve_months_after_the_year_end(): void
