@@ -108,7 +108,7 @@ class AttachmentsTest extends TestCase
             'run.php' => '<?php echo 1;',
             'run.sh' => "#!/bin/sh\necho hi\n",
             'data.json' => '{"a":1}',
-            'blob.bin' => random_bytes(64),
+            'blob.bin' => "\x00\x01\x02\x03\xfe\xff".str_repeat("\x00\x9f\x80", 20), // fixed bytes: random ones are sometimes sniffed as text and accepted (flaky)
         ];
 
         foreach ($bad as $name => $content) {

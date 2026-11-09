@@ -6,12 +6,14 @@ use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
 use App\Models\Purchases\ExpenseClaimLine;
 use App\Models\Tax\TaxReturn;
+use App\Services\Accounting\JournalPoster;
+use App\Services\Accounting\PostingLine;
+use App\Services\Accounting\PostingRequest;
 use App\Services\Tax\TaxProfiles;
 use App\Services\Tax\TaxReturnService;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\Concerns\RunsAMonth;
 use Tests\TestCase;
 
@@ -168,9 +170,9 @@ class VatReturnIntegrationTest extends TestCase
         $this->runMonth(bank: false);
 
         // a manual journal straight onto the VAT output account, with no tax code: the books now carry 50.00 that no box knows about
-        LedgerContext::run($this->ledger, fn () => app(\App\Services\Accounting\JournalPoster::class)->post(new \App\Services\Accounting\PostingRequest(
+        LedgerContext::run($this->ledger, fn () => app(JournalPoster::class)->post(new PostingRequest(
             CarbonImmutable::parse('2026-11-25'), 'manual', 'tamper-1', 1, 'Untagged VAT adjustment',
-            [new \App\Services\Accounting\PostingLine('vat_output', creditCents: 5_000), new \App\Services\Accounting\PostingLine('suspense', debitCents: 5_000)],
+            [new PostingLine('vat_output', creditCents: 5_000), new PostingLine('suspense', debitCents: 5_000)],
         )));
 
         $return = $this->newReturn();

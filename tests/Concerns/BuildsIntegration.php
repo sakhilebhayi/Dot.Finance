@@ -15,11 +15,11 @@ use App\Models\User;
 use App\Services\Accounting\Chart;
 use App\Services\Accounting\GlVerifier;
 use App\Services\Purchases\BillWorkflow;
-use App\Services\Shared\Attachments;
 use App\Services\Sales\DocumentDrafts;
 use App\Services\Sales\DocumentIssuer;
 use App\Services\Sales\ReceiptService;
 use App\Services\Sales\SalesProfiles;
+use App\Services\Shared\Attachments;
 use App\Services\Tax\TaxProfiles;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
@@ -129,6 +129,7 @@ trait BuildsIntegration
             $draft = app(DocumentDrafts::class)->create($this->ledger, $this->owner, [
                 'kind' => 'credit_note', 'party_id' => $invoice->party_id, 'parent_id' => $invoice->id, 'currency' => 'ZAR', 'issue_date' => $issueDate, 'reason' => $reason,
             ], [['description' => 'Credit: '.$line->description, 'quantity' => '1', 'unit_cents' => $netCents, 'tax_code' => $code, 'income_account_id' => $line->income_account_id, 'parent_line_id' => $line->id]]);
+
             // a credit note against an invoice is applied to it when it is issued (DocumentIssuer)
             return app(DocumentIssuer::class)->issue($draft, $this->owner)['document'];
         });

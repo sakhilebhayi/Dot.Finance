@@ -75,7 +75,7 @@ class SalesServiceProvider extends ServiceProvider
         $this->navigation();
 
         DashboardPanels::add('sales.dashboard-panel', order: 20);
-        StateLine::extend(fn (?LedgerContext $ledger) => $this->stateItems($ledger));
+        StateLine::extend(fn (?LedgerContext $ledger) => $this->stateItems($ledger), 'sales');
 
         if ($this->app->runningInConsole()) {
             $this->commands([

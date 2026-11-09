@@ -101,7 +101,7 @@ final class TaxObligationsForPlanning implements PayrollCommitmentsProvider, Tax
         }
 
         try {
-            $computed = $this->vat->build($context, $d->period_start, $d->period_end);
+            $computed = $this->vat->build($context, CarbonImmutable::parse($d->period_start->toDateString()), CarbonImmutable::parse($d->period_end->toDateString()));
         } catch (NoValidTaxRule|TaxException) {
             return [0, 'estimate'];
         }

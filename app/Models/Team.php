@@ -79,6 +79,18 @@ class Team extends JetstreamTeam
         'tax_payroll_runs', 'tax_profiles', 'tax_provisional_payments', 'tax_reminders', 'tax_return_adjustments', 'tax_returns', 'tax_review_resolutions',
     ];
 
+    /** Whether this person's personal ledger holds any row in a table that restricts deleting them (USER_RESTRICTED_TABLES). */
+    public static function personHasRestrictedData(User $user): bool
+    {
+        foreach (self::USER_RESTRICTED_TABLES as $table) {
+            if (DB::table($table)->where('user_id', $user->id)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Whether this company has any ledger rows here. A company's books are never deleted along
      * with a team or a person (the database refuses it too: the team_id keys restrict deletes).

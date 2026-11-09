@@ -8,7 +8,7 @@ use App\Models\Bank\BankStatementLine;
 use App\Models\Sales\SalesDocument;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Services\Bank\MatchText;
+use App\Services\Bank\DocumentNumbers;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Shared\Exceptions\AllocationRejected;
 
@@ -50,12 +50,11 @@ final class SalesOpenDocuments implements OpenDocumentSource
                 }
 
                 $number = $doc->number ?? '';
-                $key = $number !== '' ? (MatchText::docs($number)[0] ?? null) : null;
                 $name = mb_strtolower((string) ($doc->party?->name ?? ''));
                 $why = null;
                 $rank = null;
 
-                if ($key !== null && in_array($key, $line['docs'], true)) {
+                if (DocumentNumbers::mentioned($line['text'], $number, $line['docs'])) {
                     [$rank, $why] = [0, "the narrative mentions {$number}"];
                 } elseif ($row['open_cents'] === $line['cents']) {
                     [$rank, $why] = [1, "the amount is exactly what {$number} still owes"];

@@ -4,6 +4,7 @@ namespace Tests\Feature\Integration;
 
 use Carbon\CarbonImmutable;
 use Cron\CronExpression;
+use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,7 +14,7 @@ class ScheduleTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @return list<\Illuminate\Console\Scheduling\Event> */
+    /** @return list<Event> */
     private function events(): array
     {
         return app(Schedule::class)->events();

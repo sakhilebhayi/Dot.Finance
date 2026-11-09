@@ -10,6 +10,7 @@
  */
 
 use App\Models\Account;
+use App\Models\Accounting\GlAccount;
 use App\Models\Purchases\PurchaseSetting;
 use App\Models\Shared\Party;
 use App\Models\Team;
@@ -45,7 +46,7 @@ if ($mode === 'setup') {
         $backfill->enable($ctx);
         PurchaseSetting::query()->create($ctx->ownerAttributes() + ['vat_registered' => true]);
         $party = Party::factory()->forCompany($team)->supplier()->create(['tax_number' => '4123456789']);
-        $expense = \App\Models\Accounting\GlAccount::query()->where('code', '6190')->firstOrFail();
+        $expense = GlAccount::query()->where('code', '6190')->firstOrFail();
         $workflow = app(BillWorkflow::class);
         $bill = $workflow->submit($user, $workflow->saveDraft($ctx, $user, [
             'party_id' => $party->id, 'bill_date' => '2026-11-02', 'document_type' => 'tax_invoice', 'supplier_reference' => 'C-1',

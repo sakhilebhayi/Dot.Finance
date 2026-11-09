@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Account;
-use App\Models\Bank\BankReconciliationEvent;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Bank\BankReconciliationEvent;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;

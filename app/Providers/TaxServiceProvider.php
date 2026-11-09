@@ -57,7 +57,7 @@ class TaxServiceProvider extends ServiceProvider
             }
 
             return $items;
-        });
+        }, 'tax');
 
         DashboardPanels::add('tax.dashboard', order: 30);
 

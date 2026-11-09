@@ -51,7 +51,7 @@ class BankServiceProvider extends ServiceProvider
                 'text' => $count === 1 ? '1 bank statement line needs a decision' : "{$count} bank statement lines need a decision",
                 'href' => fx_route('bank.reconciliation.index'),
             ];
-        });
+        }, 'bank');
 
         DashboardPanels::add('bank.dashboard-panel', order: 40);
 

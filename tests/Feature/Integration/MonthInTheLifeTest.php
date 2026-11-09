@@ -4,6 +4,7 @@ namespace Tests\Feature\Integration;
 
 use App\Models\Account;
 use App\Models\Accounting\JournalLine;
+use App\Models\Accounting\LedgerSetting;
 use App\Services\Accounting\GlVerifier;
 use App\Services\Accounting\Periods;
 use App\Services\Accounting\TrialBalance;
@@ -178,7 +179,7 @@ class MonthInTheLifeTest extends TestCase
 
         $this->assertSame($before, $this->report('trial-balance')->rows);
         $this->assertBooksVerify();
-        $this->assertSame('2026-11-30', LedgerContext::run($this->ledger, fn () => \App\Models\Accounting\LedgerSetting::query()->forContext($this->ledger)->value('books_closed_through'))?->toDateString());
+        $this->assertSame('2026-11-30', LedgerContext::run($this->ledger, fn () => LedgerSetting::query()->forContext($this->ledger)->value('books_closed_through'))?->toDateString());
 
         // a late invoice dated inside the closed period is refused and nothing is written
         $journalLines = JournalLine::query()->forContext($this->ledger)->count();

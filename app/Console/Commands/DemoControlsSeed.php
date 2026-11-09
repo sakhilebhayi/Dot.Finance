@@ -20,6 +20,7 @@ use App\Services\Controls\ApprovalPresets;
 use App\Services\Controls\LedgerRoles;
 use App\Services\Controls\SpendLimits;
 use App\Services\Shared\Attachments;
+use App\Services\Shared\FxService;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
@@ -62,7 +63,7 @@ class DemoControlsSeed extends Command
         // The demo company keeps one USD account. The posting engine converts at a rate on record (FxServiceRateProvider, the one
         // binding), so the demo records a user-provided USD/ZAR rate every week for the last 14 months: clearly a local stand-in,
         // entered through the real exchange-rate service as a ledger rate, never a published one.
-        $fx = app(\App\Services\Shared\FxService::class);
+        $fx = app(FxService::class);
         for ($day = CarbonImmutable::today()->subDays(430); $day->lte(CarbonImmutable::today()); $day = $day->addDays(7)) {
             $fx->record('USD', 'ZAR', 1_840_000_000, $day, 'manual', $owner, 'Demo stand-in rate (not a market rate)', false, $context);
         }

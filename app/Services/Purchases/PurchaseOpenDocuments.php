@@ -8,7 +8,7 @@ use App\Models\Bank\BankStatementLine;
 use App\Models\Purchases\Bill;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Services\Bank\MatchText;
+use App\Services\Bank\DocumentNumbers;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Shared\Exceptions\AllocationRejected;
 use Illuminate\Support\Str;
@@ -54,12 +54,12 @@ final class PurchaseOpenDocuments implements OpenDocumentSource
                     continue;
                 }
 
-                $keys = array_filter([MatchText::docs((string) $item['number'])[0] ?? null, $item['type'] === 'bill' && filled($references[$item['id']] ?? null) ? (MatchText::docs((string) $references[$item['id']])[0] ?? null) : null]);
+                $supplierRef = $item['type'] === 'bill' ? (string) ($references[$item['id']] ?? '') : '';
                 $name = mb_strtolower((string) $item['party']);
                 $why = null;
                 $rank = null;
 
-                if (array_intersect($keys, $line['docs']) !== []) {
+                if (DocumentNumbers::mentioned($line['text'], (string) $item['number'], $line['docs']) || DocumentNumbers::mentioned($line['text'], $supplierRef, $line['docs'])) {
                     [$rank, $why] = [0, 'the narrative mentions '.$item['number'].(filled($references[$item['id']] ?? null) ? ' ('.$references[$item['id']].')' : '')];
                 } elseif ($item['open'] === $cents) {
                     [$rank, $why] = [1, 'the amount is exactly what '.$item['number'].' still owes'];

@@ -4,6 +4,7 @@ namespace Tests\Feature\Integration;
 
 use App\Actions\Jetstream\DeleteTeam;
 use App\Actions\Jetstream\DeleteUser;
+use App\Models\Account;
 use App\Models\Bank\BankStatement;
 use App\Models\Team;
 use App\Models\User;
@@ -100,7 +101,7 @@ class LedgerTablesTest extends TestCase
     public function test_a_person_whose_personal_books_hold_bank_statements_is_refused_in_words_and_kept(): void
     {
         $user = $this->user();
-        $account = \App\Models\Account::factory()->create(['user_id' => $user->id, 'currency' => 'ZAR']);
+        $account = Account::factory()->create(['user_id' => $user->id, 'currency' => 'ZAR']);
         BankStatement::create($account->ledgerOwner() + [
             'account_id' => $account->id, 'source' => 'csv', 'original_name' => 's.csv', 'file_sha256' => hash('sha256', Str::uuid()->toString()),
             'currency' => 'ZAR', 'date_from' => '2026-10-01', 'date_to' => '2026-10-31', 'line_count' => 0, 'duplicate_count' => 0,

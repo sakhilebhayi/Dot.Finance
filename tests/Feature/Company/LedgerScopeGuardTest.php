@@ -66,7 +66,7 @@ class LedgerScopeGuardTest extends TestCase
     public function test_raw_table_access_is_limited_to_the_files_that_have_a_reason_for_it(): void
     {
         $allowed = [
-            'Models/Team.php' => 'asks whether a company has any ledger rows before it can be deleted',
+            'Models/Team.php' => 'asks whether a company, or a person\'s personal ledger, has any rows that restrict deleting it',
             'Models/Transaction.php' => 'reads an account currency and releases an import fingerprint by id',
             'Models/RecurringRule.php' => 'reads the currency of the account it points at',
             'Support/Ledger/LedgerOwnership.php' => 'reads the owner of a referenced record to check it is in the same context',
@@ -83,6 +83,7 @@ class LedgerScopeGuardTest extends TestCase
             'Services/Accounting/GlVerifier.php' => 'integrity checks over the one ledger it was handed, with an explicit owner condition',
             'Services/Accounting/JournalPoster.php' => 'bulk insert of journal lines and the single guarded reversal-link update (append-only rows have no model path for either)',
             'Services/Sales/ShareLinks.php' => 'finds a customer link by the hash of its secret token to learn which ledger it belongs to, before any scoped model can be read (reads owner columns only)',
+            'Console/Commands/SeedReferenceData.php' => 'counts the rows of the reference-data tables (tax rules, rates, codes, holidays) before and after seeding: they hold no ledger rows of their own to leak',
             'Services/Accounting/Periods.php' => 'year-end aggregate over the one ledger it was handed, with an explicit owner condition',
             // R-44 Bank: every one of these keys its set-based read or write by ids first loaded through a scoped model in the same
             // transaction (the session, the account, the statement, the match), or states the owner condition itself (BankIsolationTest proves it).

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Integrations;
 
 use App\Contracts\Integrations\PayrollSummarySink;
+use App\Services\Integrations\Hr\NullPayrollSummarySink;
 use App\Services\Integrations\Hr\PayrollSummary;
 use App\Services\Integrations\NotifyClient;
 use App\Support\Ledger\LedgerContext;
@@ -88,6 +89,8 @@ class NotifyClientAndPayrollTest extends TestCase
 
     public function test_without_a_payroll_import_a_summary_is_refused_not_swallowed(): void
     {
+        // the Tax module's sink is bound in the application (IntegrationServiceProvider); this is the case where none is
+        $this->app->bind(PayrollSummarySink::class, NullPayrollSummarySink::class);
         $this->expectException(LogicException::class);
 
         app(PayrollSummarySink::class)->accept(LedgerContext::personal(1), PayrollSummary::fromArray($this->summary()));

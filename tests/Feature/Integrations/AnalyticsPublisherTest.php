@@ -3,8 +3,10 @@
 namespace Tests\Feature\Integrations;
 
 use App\Jobs\SendAnalyticsSnapshot;
+use App\Models\Account;
 use App\Services\Integrations\Analytics\AnalyticsClient;
 use App\Services\Integrations\Analytics\SnapshotPublisher;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -84,7 +86,7 @@ class AnalyticsPublisherTest extends TestCase
     public function test_a_personal_ledger_is_never_published(): void
     {
         $user = $this->user();
-        $account = \App\Models\Account::factory()->create(['user_id' => $user->id, 'team_id' => null]);
+        $account = Account::factory()->create(['user_id' => $user->id, 'team_id' => null]);
         $this->spend($account, null, 100, '2026-11-05');
         $this->enable();
 
@@ -92,7 +94,7 @@ class AnalyticsPublisherTest extends TestCase
 
         $this->assertCount(1, $payloads);
         $this->assertSame(strtolower($this->b['team']->infodot_team_uuid), $payloads->first()['company_uuid']);
-        $this->assertNull(app(SnapshotPublisher::class)->payload(\App\Support\Ledger\LedgerContext::personal($user)));
+        $this->assertNull(app(SnapshotPublisher::class)->payload(LedgerContext::personal($user)));
     }
 
     public function test_dry_run_prints_the_payloads_and_sends_nothing(): void

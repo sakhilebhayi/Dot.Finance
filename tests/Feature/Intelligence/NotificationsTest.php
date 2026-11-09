@@ -4,10 +4,10 @@ namespace Tests\Feature\Intelligence;
 
 use App\Contracts\Intelligence\ReceivablesSource;
 use App\Contracts\Intelligence\TaxDeadlineSource;
+use App\Enums\Capability;
 use App\Mail\FinanceNotificationMail;
 use App\Models\Controls\ApprovalRequest;
 use App\Models\Insight;
-use App\Models\Intelligence\FinanceInsight;
 use App\Models\Intelligence\FinanceNotification;
 use App\Models\Intelligence\NotificationPreference;
 use App\Services\Intelligence\FinanceNotifier;
@@ -85,7 +85,7 @@ class NotificationsTest extends TestCase
         $viewer = $this->memberOf($this->b['team'], 'viewer');
         $this->assertNotNull($this->send('y', $viewer));
 
-        $names = $this->notifier()->recipientsWith($this->b['context'], \App\Enums\Capability::ViewAudit)->pluck('id')->all();
+        $names = $this->notifier()->recipientsWith($this->b['context'], Capability::ViewAudit)->pluck('id')->all();
         $this->assertContains($this->b['owner']->id, $names);
         $this->assertNotContains($viewer->id, $names);
     }

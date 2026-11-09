@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Intelligence;
 
+use App\Contracts\Intelligence\InvoiceReminderSender;
 use App\Enums\ApprovalSubject;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\LedgerSetting;
@@ -10,6 +11,7 @@ use App\Models\FinanceAuditLog;
 use App\Models\Intelligence\AssistantDraft;
 use App\Models\Transaction;
 use App\Services\Intelligence\FinanceAssistant;
+use App\Services\Intelligence\Sources\NullInvoiceReminderSender;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\Concerns\BuildsAccounting;
@@ -255,6 +257,8 @@ class AssistantDraftsTest extends TestCase
 
     public function test_a_reminder_cannot_be_drafted_without_the_sales_module(): void
     {
+        // the Sales sender is bound in the application (IntegrationServiceProvider); this is the case where none is
+        $this->app->bind(InvoiceReminderSender::class, NullInvoiceReminderSender::class);
         $m = app(FinanceAssistant::class)->ask($this->b['owner'], $this->b['context'], 'Remind Acme about their overdue invoice');
 
         $this->assertSame('no_data', $m->status);

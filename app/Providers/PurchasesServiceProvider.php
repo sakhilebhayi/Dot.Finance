@@ -104,6 +104,6 @@ class PurchasesServiceProvider extends ServiceProvider
             }
 
             return $items;
-        });
+        }, 'purchases');
     }
 }

@@ -28,7 +28,7 @@ class EcosystemTokenHardeningTest extends TestCase
 
     public function test_ids_that_are_not_numbers_or_do_not_fit_a_bigint_are_a_clean_miss(): void
     {
-        foreach (['|', 'x|y', '-1|abc', '1.5|abc', '99999999999999999999|abc', '9223372036854775808|abc', str_repeat('9', 400).'|abc', " 1|abc", "1 |abc", "1\0|abc", '0|', '|abc|def'] as $token) {
+        foreach (['|', 'x|y', '-1|abc', '1.5|abc', '99999999999999999999|abc', '9223372036854775808|abc', str_repeat('9', 400).'|abc', ' 1|abc', '1 |abc', "1\0|abc", '0|', '|abc|def'] as $token) {
             $this->post(route('ecosystem.auth'), ['token' => $token], $this->fromInfodot())->assertStatus(303)->assertRedirect('/login');
             $this->assertGuest();
         }

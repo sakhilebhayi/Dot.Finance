@@ -6,6 +6,7 @@ use App\Models\FinanceAuditLog;
 use App\Models\Intelligence\FinanceInsight;
 use App\Models\RecurringRule;
 use App\Models\Shared\Party;
+use App\Models\Transaction;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
 use App\Services\Accounting\PostingRequest;
@@ -15,6 +16,7 @@ use App\Support\Ui\StateLine;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Tests\Concerns\BuildsAccounting;
 use Tests\Concerns\BuildsIntelFixtures;
 use Tests\TestCase;
@@ -41,7 +43,7 @@ class InsightEngineTest extends TestCase
         return app(InsightEngine::class)->scan(($b ?? $this->b)['context']);
     }
 
-    /** @return \Illuminate\Support\Collection<int, FinanceInsight> */
+    /** @return Collection<int, FinanceInsight> */
     private function findings(?array $b = null, ?string $kind = null)
     {
         $b ??= $this->b;
@@ -110,7 +112,7 @@ class InsightEngineTest extends TestCase
 
         $rule = RecurringRule::factory()->create(['team_id' => $this->b['team']->id, 'user_id' => null, 'account_id' => $this->b['bank']->id]);
         foreach (['2026-11-14', '2026-11-15'] as $d) {
-            \App\Models\Transaction::factory()->create(['account_id' => $this->b['bank']->id, 'amount_cents' => 7000, 'description' => 'Daily subscription', 'date' => $d, 'recurring_rule_id' => $rule->id]);
+            Transaction::factory()->create(['account_id' => $this->b['bank']->id, 'amount_cents' => 7000, 'description' => 'Daily subscription', 'date' => $d, 'recurring_rule_id' => $rule->id]);
         }
 
         $this->scan();

@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Integrations;
 
+use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
 use App\Models\Accounting\LedgerSetting;
+use App\Models\FinanceAuditLog;
 use App\Models\Integrations\EmallSaleLine;
 use App\Models\Integrations\InboundEvent;
 use App\Services\Integrations\SignedRequest;
@@ -199,7 +201,7 @@ class EmallSalesTest extends TestCase
         // Posting again changes nothing.
         $this->post(route('intel.integrations.emall.post', $line))->assertRedirect();
         $this->assertSame(1, JournalEntry::query()->forContext($this->b['context'])->where('source_id', 'emall:oi-1001')->count());
-        $this->assertTrue(\App\Models\FinanceAuditLog::query()->forContext($this->b['context'])->where('subject_type', 'emall_sale')->where('action', 'posted')->exists());
+        $this->assertTrue(FinanceAuditLog::query()->forContext($this->b['context'])->where('subject_type', 'emall_sale')->where('action', 'posted')->exists());
     }
 
     public function test_posting_is_refused_without_the_capability_without_accounting_for_a_problem_line_or_a_foreign_currency(): void
@@ -243,8 +245,8 @@ class EmallSalesTest extends TestCase
         $this->enableAccounting($other['context']);
         $this->deliver($this->delivery([$this->line()]))->assertStatus(201);
         $line = $this->lines()->first();
-        $foreign = \App\Models\Accounting\GlAccount::query()->forContext($other['context'])->where('class', 'expense')->first();
-        $revenue = \App\Models\Accounting\GlAccount::query()->forContext($this->b['context'])->where('class', 'income')->first();
+        $foreign = GlAccount::query()->forContext($other['context'])->where('class', 'expense')->first();
+        $revenue = GlAccount::query()->forContext($this->b['context'])->where('class', 'income')->first();
 
         $this->inCompany($this->b['owner'], $this->b['team']);
         $this->post(route('intel.integrations.emall.post', $line), ['fee_account_id' => $foreign->id])->assertSessionHasErrors('fee_account_id');

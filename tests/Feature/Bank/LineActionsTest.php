@@ -310,10 +310,9 @@ class LineActionsTest extends TestCase
 
     public function test_an_invoice_can_be_settled_from_a_line_through_the_module_that_owns_it(): void
     {
-        $this->app->bind(StubInvoiceSource::class);
-        $this->app->tag([StubInvoiceSource::class], 'bank.document-sources');
+        // the application tags the real Sales and Purchases sources (IntegrationServiceProvider); this test stands one in for Sales alone
         $this->app->forgetInstance(DocumentSources::class);
-        $this->app->singleton(DocumentSources::class, fn ($app) => new DocumentSources($app->tagged('bank.document-sources')));
+        $this->app->singleton(DocumentSources::class, fn () => new DocumentSources([new StubInvoiceSource]));
         StubInvoiceSource::$settled = 0;
 
         $line = $this->bankLine($this->account, '2026-10-03', 2_500_000, 'EFT CREDIT ACME INV-0042');
@@ -332,6 +331,9 @@ class LineActionsTest extends TestCase
 
     public function test_settling_is_not_offered_when_nothing_has_registered_a_document_source(): void
     {
+        // the case where no module has registered a source
+        $this->app->forgetInstance(DocumentSources::class);
+        $this->app->singleton(DocumentSources::class, fn () => new DocumentSources([]));
         $this->bankLine($this->account, '2026-10-03', 2_500_000, 'EFT CREDIT ACME INV-0042');
         $session = $this->openSession($this->user, $this->account, '2026-10-31', 12_500_000);
 
