@@ -129,7 +129,7 @@ final class LedgerAccess
 
     // ── R-44 F1 accounting capabilities (self-contained block; the Controls module owns the role model) ──
 
-    /** Post journal entries by hand and see the journals, trial balance and general ledger. */
+    /** Post (and reverse) manual journal entries. Reading the journals, trial balance and general ledger needs only membership. */
     public function canPost(): bool
     {
         return $this->isManager() || $this->isEditor();

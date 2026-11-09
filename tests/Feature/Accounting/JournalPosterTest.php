@@ -94,7 +94,7 @@ class JournalPosterTest extends TestCase
 
         $numbers = JournalEntry::withoutGlobalScopes()->orderBy('entry_number')->pluck('entry_number')->all();
         $this->assertSame([1, 2, 3], $numbers);
-        $this->assertSame(4, (int) LedgerSetting::withoutGlobalScopes()->first()->next_entry_number);
+        $this->assertSame(4, (int) JournalEntry::withoutGlobalScopes()->max('entry_number') + 1, 'the next number is the one after the newest entry');
     }
 
     public function test_an_unbalanced_or_one_line_entry_is_refused_and_leaves_no_trace(): void

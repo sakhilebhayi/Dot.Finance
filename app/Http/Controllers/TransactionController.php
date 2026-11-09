@@ -94,32 +94,32 @@ class TransactionController extends Controller
 
         try {
             DB::transaction(function () use ($validated, $recurrence, $context) {
-            // A repeat creates a rule (the editable, pausable schedule) and links
-            // this first entry to it. The scheduler writes the later ones.
-            if ($recurrence['recurrence_type']) {
-                $start = Carbon::parse($validated['date'])->startOfDay();
+                // A repeat creates a rule (the editable, pausable schedule) and links
+                // this first entry to it. The scheduler writes the later ones.
+                if ($recurrence['recurrence_type']) {
+                    $start = Carbon::parse($validated['date'])->startOfDay();
 
-                $rule = RecurringRule::create($context->ownerAttributes() + [
-                    'account_id' => $validated['account_id'],
-                    'category_id' => $validated['category_id'] ?? null,
-                    'description' => $validated['description'],
-                    'amount' => $validated['amount'],
-                    'type' => $validated['type'],
-                    'notes' => $validated['notes'] ?? null,
-                    'recurrence_type' => $recurrence['recurrence_type'],
-                    'recurrence_interval' => $recurrence['recurrence_interval'],
-                    'start_date' => $start,
-                    'next_occurrence_date' => $this->recurrenceService->occurrenceAt($start, $recurrence['recurrence_type'], $recurrence['recurrence_interval'], 1),
-                ]);
+                    $rule = RecurringRule::create($context->ownerAttributes() + [
+                        'account_id' => $validated['account_id'],
+                        'category_id' => $validated['category_id'] ?? null,
+                        'description' => $validated['description'],
+                        'amount' => $validated['amount'],
+                        'type' => $validated['type'],
+                        'notes' => $validated['notes'] ?? null,
+                        'recurrence_type' => $recurrence['recurrence_type'],
+                        'recurrence_interval' => $recurrence['recurrence_interval'],
+                        'start_date' => $start,
+                        'next_occurrence_date' => $this->recurrenceService->occurrenceAt($start, $recurrence['recurrence_type'], $recurrence['recurrence_interval'], 1),
+                    ]);
 
-                $validated['recurring_rule_id'] = $rule->id;
-            }
+                    $validated['recurring_rule_id'] = $rule->id;
+                }
 
-            $created = Transaction::create($validated);
+                $created = Transaction::create($validated);
 
-            // With accounting on, the entry is journalled in this same transaction.
-            app(GlSync::class)->transaction($created);
-        });
+                // With accounting on, the entry is journalled in this same transaction.
+                app(GlSync::class)->transaction($created);
+            });
         } catch (PeriodClosed $e) {
             return back()->withErrors(['date' => $e->getMessage().' Record it in an open period, or ask someone who can reopen the period.'])->withInput();
         }

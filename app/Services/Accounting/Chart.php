@@ -9,6 +9,8 @@ use App\Models\Accounting\LedgerSetting;
 use App\Models\Category;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\Exceptions\AccountingNotReady;
+use App\Services\Accounting\Exceptions\CrossLedger;
+use App\Support\FinanceAudit;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -159,20 +161,24 @@ class Chart
     public function remapAccount(Account $account, GlAccount $target): void
     {
         $this->guardRemap($account->ledgerContext(), $target, ['asset', 'liability'], 'cash_account_id', $account->id, $account->currency);
+        $before = $account->gl_account_id;
         $account->forceFill(['gl_account_id' => $target->id])->saveQuietly();
+        FinanceAudit::record($account->ledgerOwner(), 'mapped', 'gl_account', $target->id, $account->name.' -> '.$target->label(), ['cash_account_id' => ['after' => $account->id], 'gl_account_id' => ['before' => $before, 'after' => $target->id]]);
     }
 
     public function remapCategory(Category $category, GlAccount $target): void
     {
         $this->guardRemap($category->ledgerContext(), $target, ['income', 'expense'], 'category_id', $category->id, null);
+        $before = $category->gl_account_id;
         $category->forceFill(['gl_account_id' => $target->id])->saveQuietly();
+        FinanceAudit::record($category->ledgerOwner(), 'mapped', 'gl_account', $target->id, $category->name.' -> '.$target->label(), ['category_id' => ['after' => $category->id], 'gl_account_id' => ['before' => $before, 'after' => $target->id]]);
     }
 
     /** @param list<string> $classes */
     private function guardRemap(LedgerContext $context, GlAccount $target, array $classes, string $lineColumn, int $id, ?string $currency): void
     {
         if (! $target->ledgerContext()->equals($context)) {
-            throw new \App\Services\Accounting\Exceptions\CrossLedger('That GL account belongs to another ledger.');
+            throw new CrossLedger('That GL account belongs to another ledger.');
         }
 
         if (! in_array($target->class, $classes, true) || ! $target->is_active || ! $target->is_postable) {

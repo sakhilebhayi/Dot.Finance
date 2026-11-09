@@ -17,6 +17,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -145,7 +146,7 @@ class JournalController extends AccountingController
         return redirect()->route('accounting.journals.show', $reversal)->with('status', "Entry {$entry->reference()} reversed by {$reversal->reference()}.");
     }
 
-    /** @return \Illuminate\Support\Collection<int, GlAccount> */
+    /** @return Collection<int, GlAccount> */
     private function postableAccounts()
     {
         return GlAccount::query()->where('is_active', true)->where('is_postable', true)->orderBy('code')->get();

@@ -117,14 +117,13 @@ class BackfillTest extends TestCase
         $backfill = app(GlBackfill::class);
         LedgerContext::run($this->ctx, fn () => $backfill->prepare($this->ctx, 'ZAR', 1, ChartTemplates::PERSONAL));
         $before = $this->counts();
-        $next = LedgerSetting::withoutGlobalScopes()->first()->next_entry_number;
 
         $run = $backfill->dryRun($this->ctx, $this->user);
 
         $this->assertSame('dry_run', $run->status);
         $this->assertGreaterThan(0, $run->entries_posted);
         $this->assertSame($before, $this->counts(), 'the dry run rolled everything back');
-        $this->assertSame($next, LedgerSetting::withoutGlobalScopes()->first()->next_entry_number);
+        $this->assertSame(0, JournalEntry::withoutGlobalScopes()->count());
         $this->assertNull(LedgerSetting::withoutGlobalScopes()->first()->accounting_enabled_at);
 
         $reasons = collect($run->exceptions)->pluck('reason')->implode(' | ');
@@ -188,7 +187,6 @@ class BackfillTest extends TestCase
         DB::table('journal_lines')->delete();
         DB::table('journal_entries')->delete();
         DB::table('accounting_periods')->delete();
-        DB::table('ledger_settings')->update(['next_entry_number' => 1, 'last_entry_hash' => null]);
 
         $midpoint = (int) Transaction::query()->forContext($this->ctx)->withTrashed()->orderBy('id')->get()->get(5)->id;
         $run = GlBackfillRun::create($this->ctx->ownerAttributes() + ['mode' => 'apply', 'status' => 'running', 'started_at' => now(), 'cursor_phase' => 'transactions', 'cursor_id' => $midpoint]);

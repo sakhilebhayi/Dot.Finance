@@ -67,7 +67,13 @@ class JournalPoster
             $this->assertSameLedger($request, $context);
 
             $period = $this->periods->forDate($context, $request->entryDate, $settings);
-            $number = (int) $settings->next_entry_number;
+
+            // The next number and the hash it chains from come from the newest entry itself, read while the settings
+            // row is locked. (Counting on a column of that row would rewrite one row per posting; PostgreSQL keeps every
+            // version of a row updated inside one transaction, so a bulk post slowed down with every entry.)
+            $last = JournalEntry::query()->forContext($context)->orderByDesc('entry_number')->first(['entry_number', 'entry_hash']);
+            $number = $last === null ? 1 : (int) $last->entry_number + 1;
+            $previousHash = $last?->entry_hash;
             $postedBy = $request->postedByUserId ?? Auth::id();
             $now = now();
             $total = $request->totalDebits();
@@ -87,8 +93,8 @@ class JournalPoster
                 'posted_by_user_id' => $postedBy,
                 'posted_at' => $now,
                 'posting_rule_version' => $settings->posting_rule_version,
-                'prev_hash' => $settings->last_entry_hash,
-                'entry_hash' => $this->hash($settings->last_entry_hash, $context, $number, $request, $accountIds, $settings->base_currency),
+                'prev_hash' => $previousHash,
+                'entry_hash' => $this->hash($previousHash, $context, $number, $request, $accountIds, $settings->base_currency),
             ]);
 
             $rows = [];
@@ -113,8 +119,6 @@ class JournalPoster
                 ];
             }
             DB::table('journal_lines')->insert($rows);
-
-            $settings->forceFill(['next_entry_number' => $number + 1, 'last_entry_hash' => $entry->entry_hash])->save();
 
             return $entry;
         });

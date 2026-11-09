@@ -22,7 +22,6 @@ class LedgerSetting extends Model
 
     protected $casts = [
         'fiscal_year_start_month' => 'integer',
-        'next_entry_number' => 'integer',
         'accounting_enabled_at' => 'datetime',
         'accounting_start_date' => DateOnly::class,
         'books_closed_through' => DateOnly::class,

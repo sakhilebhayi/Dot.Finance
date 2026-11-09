@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\LedgerReconciler;
 use App\Services\TransferService;
+use App\Support\Database\Checks;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -141,7 +142,7 @@ class CheckBalancesCommandTest extends TestCase
     {
         $account = Account::factory()->create();
         // Legacy data predates the amount_cents > 0 rule (R-44 Phase 0); lift it for this test (rolled back with it).
-        \App\Support\Database\Checks::drop('transactions', 'transactions_amount_positive');
+        Checks::drop('transactions', 'transactions_amount_positive');
         DB::table('transactions')->insert([
             'account_id' => $account->id, 'user_id' => $account->user_id, 'description' => 'never backfilled',
             'amount' => '10.00', 'amount_cents' => 0, 'currency' => null, 'type' => 'expense', 'date' => '2026-01-01',

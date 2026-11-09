@@ -418,4 +418,30 @@ class AccountingPagesTest extends TestCase
         $this->inPersonal($user)->post(route('accounting.setup.mapping'), ['accounts' => [$account->id => $other->id]])->assertSessionHasNoErrors();
         $this->assertSame($other->id, $account->refresh()->gl_account_id);
     }
+
+    public function test_the_wizard_mapping_refuses_another_ledgers_gl_account(): void
+    {
+        $user = $this->user();
+        $account = Account::factory()->create(['user_id' => $user->id, 'name' => 'Everyday']);
+        $this->inPersonal($user)->post(route('accounting.setup.prepare'), ['base_currency' => 'ZAR', 'fiscal_year_start_month' => 1, 'chart_template' => 'personal']);
+        $before = $account->refresh()->gl_account_id;
+        $foreign = GlAccount::withoutGlobalScopes()->where('team_id', $this->company->id)->where('system_key', 'cash')->firstOrFail();
+
+        $this->inPersonal($user)->post(route('accounting.setup.mapping'), ['accounts' => [$account->id => $foreign->id]])->assertSessionHasErrors('accounts.'.$account->id);
+        $this->assertSame($before, $account->refresh()->gl_account_id);
+    }
+
+    public function test_remapping_is_audited(): void
+    {
+        $user = $this->user();
+        $account = Account::factory()->create(['user_id' => $user->id, 'name' => 'Everyday']);
+        $this->inPersonal($user)->post(route('accounting.setup.prepare'), ['base_currency' => 'ZAR', 'fiscal_year_start_month' => 1, 'chart_template' => 'personal']);
+        $cash = GlAccount::withoutGlobalScopes()->where('user_id', $user->id)->where('system_key', 'cash')->firstOrFail();
+
+        $this->inPersonal($user)->post(route('accounting.setup.mapping'), ['accounts' => [$account->id => $cash->id]])->assertSessionHasNoErrors();
+
+        $row = FinanceAuditLog::withoutGlobalScopes()->where('user_id', $user->id)->where('action', 'mapped')->firstOrFail();
+        $this->assertSame('gl_account', $row->subject_type);
+        $this->assertSame($cash->id, $row->changes['gl_account_id']['after']);
+    }
 }

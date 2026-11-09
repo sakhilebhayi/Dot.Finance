@@ -1,9 +1,9 @@
 <?php
 
-use App\Console\Commands\Gl\PostPending;
-use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\GenerateInsights;
 use App\Console\Commands\GenerateRecurringTransactions;
+use App\Console\Commands\Gl\PostPending;
+use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\PruneImports;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;

@@ -7,6 +7,7 @@ use App\Services\Accounting\Chart;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\GlQuery;
 use App\Support\FinanceAudit;
+use App\Support\Ledger\LedgerRule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -52,7 +53,7 @@ class ChartController extends AccountingController
             'name' => ['required', 'string', 'max:120'],
             'class' => ['required', Rule::in(GlAccount::CLASSES)],
             'subtype' => ['nullable', 'string', 'max:40'],
-            'parent_id' => ['nullable', 'integer', \App\Support\Ledger\LedgerRule::exists('gl_accounts', $context)],
+            'parent_id' => ['nullable', 'integer', LedgerRule::exists('gl_accounts', $context)],
             'description' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -84,7 +85,7 @@ class ChartController extends AccountingController
             'name' => ['required', 'string', 'max:120'],
             'class' => ['nullable', Rule::in(GlAccount::CLASSES)],
             'subtype' => ['nullable', 'string', 'max:40'],
-            'parent_id' => ['nullable', 'integer', \App\Support\Ledger\LedgerRule::exists('gl_accounts', $context), Rule::notIn([$glAccount->id])],
+            'parent_id' => ['nullable', 'integer', LedgerRule::exists('gl_accounts', $context), Rule::notIn([$glAccount->id])],
             'description' => ['nullable', 'string', 'max:255'],
         ]);
         $validated = array_filter($validated, fn ($v, $k) => $k !== 'class' || $v !== null, ARRAY_FILTER_USE_BOTH);

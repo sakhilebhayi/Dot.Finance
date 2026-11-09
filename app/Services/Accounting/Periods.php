@@ -3,7 +3,6 @@
 namespace App\Services\Accounting;
 
 use App\Models\Accounting\AccountingPeriod;
-use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\LedgerSetting;
 use App\Models\User;

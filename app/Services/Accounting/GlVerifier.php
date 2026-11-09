@@ -4,6 +4,7 @@ namespace App\Services\Accounting;
 
 use App\Models\Accounting\LedgerSetting;
 use App\Support\Ledger\LedgerContext;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -177,7 +178,7 @@ class GlVerifier
         ]);
     }
 
-    private function owned(LedgerContext $context, string $table): \Illuminate\Database\Query\Builder
+    private function owned(LedgerContext $context, string $table): Builder
     {
         $alias = trim(explode(' as ', $table)[1] ?? $table);
         $query = DB::table($table);

@@ -4,13 +4,15 @@ namespace App\Console\Commands\Gl;
 
 use App\Models\Accounting\GlBackfillRun;
 use App\Models\Accounting\LedgerSetting;
+use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\GlBackfill;
+use App\Services\Accounting\GlVerifier;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('finance:gl:backfill {--ledger= : The ledger (personal:ID or company:ID)} {--dry-run : Compute everything, roll it back, report} {--apply : Post the history, then verify} {--resume : Resume the last interrupted apply} {--enable : After a verified apply, switch accounting on}')]
+#[Signature('finance:gl:backfill {--ledger= : The ledger (personal:ID or company:ID)} {--dry-run : Compute everything, roll it back, report} {--apply : Post the history, then verify} {--resume : Resume the last interrupted apply} {--enable : After a verified apply, switch accounting on} {--verify : Only run the full verification and print it}')]
 #[Description('Post a ledger\'s cash history into the journals: dry run, apply (resumable, idempotent), verify, enable')]
 class Backfill extends Command
 {
@@ -31,8 +33,8 @@ class Backfill extends Command
 
         $context = $ledgers->first();
 
-        if (! $this->option('dry-run') && ! $this->option('apply') && ! $this->option('enable')) {
-            $this->error('Choose --dry-run, --apply or --enable.');
+        if (! $this->option('dry-run') && ! $this->option('apply') && ! $this->option('enable') && ! $this->option('verify')) {
+            $this->error('Choose --dry-run, --apply, --verify or --enable.');
 
             return self::FAILURE;
         }
@@ -42,6 +44,16 @@ class Backfill extends Command
             $this->error('This ledger has no accounting settings. Prepare it first (the accounting setup page, or GlBackfill::prepare).');
 
             return self::FAILURE;
+        }
+
+        if ($this->option('verify')) {
+            $report = LedgerContext::run($context, fn () => app(GlVerifier::class)->verify($context));
+            foreach ($report['checks'] as $check) {
+                $line = sprintf('  [%s] %s: %s', $check['ok'] ? 'ok' : 'FAIL', $check['code'], $check['message']);
+                $check['ok'] ? $this->line($line) : $this->error($line);
+            }
+
+            return $report['ok'] ? self::SUCCESS : self::FAILURE;
         }
 
         if ($this->option('dry-run')) {
@@ -65,7 +77,14 @@ class Backfill extends Command
         }
 
         if ($this->option('enable')) {
-            LedgerContext::run($context, fn () => $backfill->enable($context));
+            try {
+                LedgerContext::run($context, fn () => $backfill->enable($context));
+            } catch (AccountingException $e) {
+                $this->error($e->getMessage());
+
+                return self::FAILURE;
+            }
+
             $this->info('Accounting is enabled for '.$context->key().'.');
         }
 

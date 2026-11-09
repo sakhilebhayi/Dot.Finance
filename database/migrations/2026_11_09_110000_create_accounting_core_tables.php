@@ -79,8 +79,6 @@ return new class extends Migration
             $table->timestamp('accounting_enabled_at')->nullable();
             $table->date('accounting_start_date')->nullable();
             $table->date('books_closed_through')->nullable();
-            $table->unsignedBigInteger('next_entry_number')->default(1);
-            $table->char('last_entry_hash', 64)->nullable();
             $table->unsignedSmallInteger('posting_rule_version')->default(1);
             $table->timestamps();
 
@@ -250,7 +248,6 @@ return new class extends Migration
     {
         Checks::add('ledger_settings', 'ledger_settings_currency_format', ['pgsql' => "base_currency ~ '^[A-Z]{3}\$'", 'sqlite' => "length(base_currency) = 3 AND base_currency GLOB '[A-Z][A-Z][A-Z]'"], ['base_currency']);
         Checks::add('ledger_settings', 'ledger_settings_fiscal_month', 'fiscal_year_start_month BETWEEN 1 AND 12', ['fiscal_year_start_month']);
-        Checks::add('ledger_settings', 'ledger_settings_next_number', 'next_entry_number >= 1', ['next_entry_number']);
 
         Checks::add('gl_accounts', 'gl_accounts_class', "class IN ('asset','liability','equity','income','expense')", ['class']);
         Checks::add('gl_accounts', 'gl_accounts_side', "normal_side IN ('debit','credit')", ['normal_side']);
@@ -272,7 +269,7 @@ return new class extends Migration
     private function immutability(): void
     {
         if (DB::getDriverName() === 'sqlite') {
-            $msg = "journal rows are append-only: post a reversing entry instead";
+            $msg = 'journal rows are append-only: post a reversing entry instead';
             DB::unprepared("CREATE TRIGGER IF NOT EXISTS journal_lines_no_update BEFORE UPDATE ON journal_lines BEGIN SELECT RAISE(ABORT, '{$msg}'); END");
             DB::unprepared("CREATE TRIGGER IF NOT EXISTS journal_lines_no_delete BEFORE DELETE ON journal_lines BEGIN SELECT RAISE(ABORT, '{$msg}'); END");
             DB::unprepared("CREATE TRIGGER IF NOT EXISTS journal_entries_no_delete BEFORE DELETE ON journal_entries BEGIN SELECT RAISE(ABORT, '{$msg}'); END");

@@ -3,6 +3,7 @@
 namespace App\Console\Commands\Gl;
 
 use App\Services\Accounting\GlSweeper;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -25,7 +26,7 @@ class PostPending extends Command
 
         foreach ($ledgers as $context) {
             if ($this->option('dry-run')) {
-                $p = \App\Support\Ledger\LedgerContext::run($context, fn () => $sweeper->pending($context));
+                $p = LedgerContext::run($context, fn () => $sweeper->pending($context));
                 $this->line(sprintf('%s: %d transaction(s), %d transfer(s), %d opening balance(s) pending.', $context->key(), count($p['transactions']), count($p['transfers']), count($p['openings'])));
 
                 continue;

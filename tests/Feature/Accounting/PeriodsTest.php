@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Accounting;
 
+use App\Actions\Jetstream\DeleteUser;
 use App\Models\Account;
 use App\Models\Accounting\AccountingPeriod;
 use App\Models\Accounting\GlAccount;
@@ -12,6 +13,7 @@ use App\Models\FinanceAuditLog;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Accounting\Chart;
+use App\Services\Accounting\ChartTemplates;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\Accounting\GlQuery;
@@ -24,6 +26,7 @@ use App\Services\Accounting\TrialBalance;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\Concerns\BuildsAccounting;
 use Tests\Concerns\BuildsCompanyLedgers;
 use Tests\TestCase;
@@ -224,5 +227,23 @@ class PeriodsTest extends TestCase
         // Mapped to a category: refused until the mapping is moved.
         $this->expectException(AccountingException::class);
         LedgerContext::run($this->ctx, fn () => app(Chart::class)->deactivate($groceries));
+    }
+
+    public function test_a_person_whose_books_have_accounting_on_cannot_delete_the_account_and_a_company_with_journals_is_kept(): void
+    {
+        $this->actingAs($this->user)->withSession(['auth.password_confirmed_at' => time()]);
+        $deleter = app(DeleteUser::class);
+
+        try {
+            $deleter->delete($this->user);
+            $this->fail('expected the delete to be refused');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('posted journal entries are kept', $e->errors()['password'][0]);
+        }
+        $this->assertNotNull(User::find($this->user->id));
+
+        $company = $this->company($this->user, 'Books Ltd');
+        $this->enableAccounting($this->companyContext($company), 'ZAR', ChartTemplates::COMPANY);
+        $this->assertTrue($company->fresh()->hasLedgerData());
     }
 }
