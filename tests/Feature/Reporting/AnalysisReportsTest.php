@@ -180,7 +180,7 @@ class AnalysisReportsTest extends TestCase
         $lines = array_values(array_filter($movers->rows, fn ($row) => $row['type'] === 'line'));
         // Fuel grew: Q1 550k+500k+450k = 1,500,000, Q2 600k+650k+700k = 1,950,000. Rent is flat at 9,000,000 each quarter.
         $this->assertCount(1, $lines);
-        $this->assertSame('6501 Fuel', $lines[0]['label']);
+        $this->assertSame($this->categoryAccount('Fuel')->label(), $lines[0]['label']);
         $this->assertSame(450_000, $lines[0]['cells']['chg']);
         $this->assertSame(3000, $lines[0]['cells']['chg_pct'], '+30.00%');
         $this->assertSame('Up', $lines[0]['cells']['dir']);

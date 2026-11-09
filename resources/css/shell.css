@@ -568,6 +568,12 @@
     margin-top: 0.2rem;
 }
 
+/* ---- a notice that something in the books needs a person: flat panel, full hairline border, icon in the pencil colour ---- */
+.fx-notice--warn { border-color: var(--pencil-line); background: var(--pencil-bg); margin: 0 0 var(--s-4); }
+.fx-notice--warn .fx-icon { color: var(--pencil); }
+.fx-notice__title { margin: 0 0 var(--s-1); font-size: var(--fs-body); font-weight: 600; color: var(--ink); }
+.fx-notice--warn p { margin: 0; }
+
 /* ---- Bottom bar (below 1024px) --------------------------------------------------------------------------- */
 .fx-bar {
     position: fixed;

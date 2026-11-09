@@ -204,6 +204,8 @@ class Chart
             throw new InvalidArgumentException('Unknown account class.');
         }
 
+        $this->guardDuplicate($context, (string) $attributes['name'], (string) $attributes['code']);
+
         $account = GlAccount::create($context->ownerAttributes() + [
             'code' => $attributes['code'],
             'name' => $attributes['name'],
@@ -236,6 +238,10 @@ class Chart
                 throw new AccountingException('An account with postings cannot change class.');
             }
             $attributes['normal_side'] = GlAccount::normalSideFor($attributes['class']);
+        }
+
+        if (isset($attributes['name']) || isset($attributes['code'])) {
+            $this->guardDuplicate($account->ledgerContext(), (string) ($attributes['name'] ?? $account->name), (string) ($attributes['code'] ?? $account->code), $account->id);
         }
 
         $account->update(array_intersect_key($attributes, array_flip(['code', 'name', 'class', 'normal_side', 'subtype', 'parent_id', 'description'])));
@@ -292,8 +298,53 @@ class Chart
         throw new AccountingException("The {$range} range of the chart ({$first} to {$last}) is full; create the account by hand with a free code.");
     }
 
+    /**
+     * The name an account is compared by: capitals, spacing and a trailing full stop do not make a different account.
+     */
+    public static function normaliseName(string $name): string
+    {
+        return mb_strtolower(trim(preg_replace('/\s+/u', ' ', rtrim(trim($name), '.')) ?? $name));
+    }
+
+    /**
+     * Refuse a second account with a name or code already in use in this ledger. Two accounts called "Rent" make every report
+     * ambiguous: a person cannot tell which one a figure belongs to.
+     *
+     * @throws AccountingException
+     */
+    public function guardDuplicate(LedgerContext $context, string $name, string $code, ?int $ignoreId = null): void
+    {
+        $wanted = self::normaliseName($name);
+        $clash = GlAccount::query()->forContext($context)->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))
+            ->get(['id', 'code', 'name'])->first(fn (GlAccount $a) => $a->code === $code || self::normaliseName($a->name) === $wanted);
+
+        if ($clash !== null) {
+            throw new AccountingException($clash->code === $code
+                ? "Account code {$code} is already used by {$clash->label()}."
+                : "There is already an account called {$clash->name} ({$clash->code}). Use that one, or give this one a different name.");
+        }
+    }
+
+    /**
+     * An existing, unmapped account of the right class that already carries this name (the chart template's "Rent" when a "Rent"
+     * category is created), so mapping a category or cash account never makes a second account of the same name.
+     */
+    private function adoptable(LedgerContext $context, string $name, string $class): ?GlAccount
+    {
+        $wanted = self::normaliseName($name);
+        $taken = Category::query()->forContext($context)->withTrashed()->whereNotNull('gl_account_id')->pluck('gl_account_id')
+            ->merge(Account::query()->forContext($context)->withTrashed()->whereNotNull('gl_account_id')->pluck('gl_account_id'))->flip();
+
+        return GlAccount::query()->forContext($context)->where('class', $class)->where('is_active', true)->where('is_postable', true)->get()
+            ->first(fn (GlAccount $a) => self::normaliseName($a->name) === $wanted && ! $taken->has($a->id));
+    }
+
     private function createInRange(LedgerContext $context, string $range, string $name, string $class, string $subtype, ?string $currency): GlAccount
     {
+        if ($existing = $this->adoptable($context, $name, $class)) {
+            return $existing;
+        }
+
         $gl = GlAccount::create($context->ownerAttributes() + [
             'code' => $this->nextCode($context, $range),
             'name' => mb_substr($name, 0, 120),

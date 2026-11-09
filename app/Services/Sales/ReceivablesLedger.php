@@ -6,6 +6,7 @@ use App\Models\Accounting\JournalLine;
 use App\Models\Sales\SalesApplication;
 use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesRefund;
+use App\Models\Sales\SalesWriteOff;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Shared\PaymentAllocation;
@@ -14,7 +15,6 @@ use App\Services\Accounting\GlQuery;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Receivables, worked out from the documents and the applications, never from the journal: open items, what
@@ -301,12 +301,13 @@ final class ReceivablesLedger
             return [];
         }
 
-        $owned = fn (string $table) => $context->isCompany() ? DB::table($table)->where('team_id', $context->teamId) : DB::table($table)->where('user_id', $context->userId)->whereNull('team_id');
-
+        // the journal entries that Sales itself wrote, read through the scoped models (a voided document keeps its rows)
+        $documents = SalesDocument::query()->forContext($context);
         $owners = collect()
-            ->merge($owned('sales_documents')->pluck('gl_entry_id'))->merge($owned('sales_documents')->pluck('void_entry_id'))
-            ->merge($owned('payments')->pluck('gl_entry_id'))->merge($owned('sales_write_offs')->pluck('gl_entry_id'))
-            ->merge($owned('sales_applications')->pluck('fx_entry_id'))
+            ->merge((clone $documents)->pluck('gl_entry_id'))->merge((clone $documents)->pluck('void_entry_id'))
+            ->merge(Payment::query()->forContext($context)->pluck('gl_entry_id'))
+            ->merge(SalesWriteOff::query()->forContext($context)->pluck('gl_entry_id'))
+            ->merge(SalesApplication::query()->forContext($context)->pluck('fx_entry_id'))
             ->filter()->map(fn ($id) => (int) $id)->flip();
 
         $lines = $this->gl->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')

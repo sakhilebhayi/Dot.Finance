@@ -33,6 +33,16 @@
 @include('accounting._nav')
 @include('accounting._messages')
 
+@if ($suspense)
+<section class="fx-notice fx-notice--warn" role="status" aria-labelledby="suspense-title">
+    <x-fx.icon name="circle-alert" />
+    <div>
+        <h2 id="suspense-title" class="fx-notice__title">{{ $suspense->label() }} holds <x-fx.money :cents="abs($suspenseBalance)" :variance="true" /></h2>
+        <p>Suspense is a parking place for money nobody has sorted yet. It should be nil, and while it is not, the balance sheet lists it under assets as if it were owned. <a class="fx-link" href="{{ route('accounting.general-ledger', ['account' => $suspense->id]) }}">See what is on it</a> and move each entry to the account it belongs to.</p>
+    </div>
+</section>
+@endif
+
 <p class="fx-hint fx-hint--wide">Each balance is shown on its normal side: assets and expenses count debits as positive, liabilities, equity and income count credits as positive. A figure in brackets is on the unusual side.</p>
 
 @foreach ($classes as $class)
@@ -59,7 +69,7 @@
             @php $balance = $natural($account->id); @endphp
             <tr @class(['is-header' => ! $account->is_postable, 'is-inactive' => ! $account->is_active])>
                 <th scope="row" class="fx-acct fx-depth-{{ $depth }}">
-                    <span class="fx-acct__line"><span class="fx-figure fx-acct__num">{{ $account->code }}</span> <span class="fx-acct__name">{{ $account->name }}</span>@if($account->isSystem()) <x-fx.pill kind="plain" icon="lock">System</x-fx.pill>@endif</span>
+                    <span class="fx-acct__line"><span class="fx-figure fx-acct__num">{{ $account->code }}</span> <span class="fx-acct__name">{{ $account->name }}</span>@if($account->isSystem()) <x-fx.pill kind="plain" icon="lock">System</x-fx.pill>@endif @if($suspense && $account->id === $suspense->id) <x-fx.pill kind="variance">Should be nil</x-fx.pill>@endif</span>
                 </th>
                 <td @class(['fx-col-status', 'is-default' => $account->is_active && $account->is_postable])>
                     {{ $account->is_active ? 'Active' : 'Inactive' }}@unless($account->is_postable), report line @endunless

@@ -14,7 +14,6 @@ use App\Services\Accounting\GlQuery;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * The accounts-payable subledger: what is owed to each supplier, document by document, aged, and the check that it equals the
@@ -199,12 +198,11 @@ final class ApLedger
             return [];
         }
 
-        $owned = fn (string $table) => $context->isCompany() ? DB::table($table)->where('team_id', $context->teamId) : DB::table($table)->where('user_id', $context->userId)->whereNull('team_id');
-
+        // the journal entries that Purchases itself wrote, read through the scoped models
         $owners = collect()
-            ->merge($owned('bills')->pluck('posted_entry_id'))->merge($owned('bills')->pluck('void_entry_id'))
-            ->merge($owned('expense_claims')->pluck('posted_entry_id'))->merge($owned('expense_claims')->pluck('void_entry_id'))
-            ->merge($owned('payments')->pluck('gl_entry_id'))
+            ->merge(Bill::query()->forContext($context)->pluck('posted_entry_id'))->merge(Bill::query()->forContext($context)->pluck('void_entry_id'))
+            ->merge(ExpenseClaim::query()->forContext($context)->pluck('posted_entry_id'))->merge(ExpenseClaim::query()->forContext($context)->pluck('void_entry_id'))
+            ->merge(Payment::query()->forContext($context)->pluck('gl_entry_id'))
             ->filter()->map(fn ($id) => (int) $id)->flip();
 
         $rows = $this->gl->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')

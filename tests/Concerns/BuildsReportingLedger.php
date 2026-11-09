@@ -77,6 +77,14 @@ trait BuildsReportingLedger
         return GlAccount::query()->forContext($this->ctx)->where(fn ($q) => $q->where('system_key', $nameOrKey)->orWhere('name', $nameOrKey))->firstOrFail();
     }
 
+    /** The account a category posts to. (A category takes over the chart's account of the same name, so its code is not fixed.) */
+    protected function categoryAccount(string $categoryName): GlAccount
+    {
+        $id = Category::query()->forContext($this->ctx)->where('name', $categoryName)->value('gl_account_id');
+
+        return GlAccount::query()->forContext($this->ctx)->findOrFail($id);
+    }
+
     protected function glCode(string $code): GlAccount
     {
         return GlAccount::query()->forContext($this->ctx)->where('code', $code)->firstOrFail();
