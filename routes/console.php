@@ -8,6 +8,7 @@ use App\Console\Commands\Intelligence\RunNotifications;
 use App\Console\Commands\Intelligence\ScanInsights;
 use App\Console\Commands\PublishMetrics;
 use App\Console\Commands\PruneImports;
+use App\Console\Commands\Purchases\GenerateRecurringBills;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -69,3 +70,11 @@ Schedule::command(PublishMetrics::class)
     ->dailyAt('04:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+// --- purchases ---
+// Make the draft bills that recurring-bill schedules have come due for (idempotent per schedule and period).
+Schedule::command(GenerateRecurringBills::class)
+    ->dailyAt('03:10')
+    ->withoutOverlapping()
+    ->onOneServer();
+// --- end purchases ---

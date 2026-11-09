@@ -12,6 +12,12 @@ use App\Models\Controls\ApprovalRequest;
 use App\Models\Controls\LedgerMemberRole;
 use App\Models\Controls\SpendLimit;
 use App\Models\FinanceAuditLog;
+use App\Models\Purchases\Bill;
+use App\Models\Purchases\ExpenseClaim;
+use App\Models\Purchases\PaymentRun;
+use App\Models\Purchases\PurchaseSetting;
+use App\Models\Purchases\RecurringBill;
+use App\Models\Purchases\SupplierProfile;
 use App\Models\RecurringRule;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
@@ -108,6 +114,38 @@ class FinanceAudit
             'values' => ['payment_id', 'allocatable_type', 'allocatable_id', 'amount_cents', 'tax_cents', 'fx_diff_cents', 'released_at'],
             'text' => ['release_reason'],
         ],
+        // ----- R-44 Purchases -----
+        Bill::class => [
+            'type' => 'bill',
+            'values' => ['kind', 'party_id', 'number', 'status', 'bill_date', 'due_date', 'currency', 'total_cents', 'tax_cents', 'claimable_tax_cents', 'document_type', 'credit_for_bill_id'],
+            'text' => ['supplier_reference', 'notes', 'credit_reason', 'void_reason', 'rejection_reason', 'post_error'],
+        ],
+        ExpenseClaim::class => [
+            'type' => 'expense_claim',
+            'values' => ['claimant_user_id', 'number', 'status', 'claim_date', 'total_cents', 'tax_cents', 'claimable_tax_cents'],
+            'text' => ['title', 'notes', 'void_reason', 'rejection_reason', 'post_error'],
+        ],
+        PaymentRun::class => [
+            'type' => 'payment_run',
+            'values' => ['due_by', 'paid_on', 'cash_account_id', 'currency', 'status', 'total_cents', 'supplier_count'],
+            'text' => ['name'],
+        ],
+        RecurringBill::class => [
+            'type' => 'recurring_bill',
+            'values' => ['party_id', 'frequency', 'interval_count', 'next_run_on', 'end_on', 'status', 'currency'],
+            'text' => ['name'],
+        ],
+        PurchaseSetting::class => [
+            'type' => 'purchase_setting',
+            'values' => ['vat_registered', 'missing_document_threshold_cents'],
+            'text' => [],
+        ],
+        SupplierProfile::class => [
+            'type' => 'supplier_profile',
+            'values' => ['party_id', 'default_gl_account_id', 'default_tax_code', 'early_payment_discount_bp', 'early_payment_days'],
+            'text' => [],
+        ],
+        // ----- end R-44 Purchases -----
     ];
 
     private static int $muted = 0;

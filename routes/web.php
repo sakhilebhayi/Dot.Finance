@@ -128,3 +128,7 @@ require __DIR__.'/shared.php';
 // --- bank ---
 require __DIR__.'/bank.php';
 // --- end bank ---
+
+// --- purchases ---
+require __DIR__.'/purchases.php';
+// --- end purchases ---

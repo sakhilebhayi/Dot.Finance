@@ -103,6 +103,11 @@ class GlSync
             return $transaction->transfer_group !== null ? $this->syncTransfer($context, $transaction->transfer_group) : 'skipped';
         }
 
+        // R-44 Purchases/Sales: the bank leg of a document payment is journalled by the payment's own entry, not as an expense.
+        if (SettlementTransactions::is($transaction)) {
+            return 'skipped';
+        }
+
         $map = $this->mapFor($context, $transaction->account_id, $transaction->category_id);
         $desired = $this->countsFor($transaction) ? $this->rules->transaction($context, $transaction, $map) : null;
 
