@@ -10,6 +10,7 @@ use App\Models\Transaction;
 use App\Services\Accounting\Chart;
 use App\Services\Accounting\ChartTemplates;
 use App\Services\Accounting\Exceptions\AccountingException;
+use App\Services\Accounting\Exceptions\AccountingNotReady;
 use App\Services\Accounting\GlBackfill;
 use App\Services\Accounting\GlSync;
 use App\Support\Ledger\LedgerRule;
@@ -148,7 +149,12 @@ class SetupController extends AccountingController
         $this->require('canManageChart');
         $context = $this->ledger();
 
-        $run = $backfill->dryRun($context, request()->user());
+        try {
+            $run = $backfill->dryRun($context, request()->user());
+        } catch (AccountingNotReady $e) {
+            // A ledger that was never prepared has nothing to dry-run: say so, do not answer 500 (QA security D-1400).
+            return redirect()->route('accounting.setup')->withErrors(['apply' => $e->getMessage()]);
+        }
         $ok = (bool) ($run->report['verify']['ok'] ?? false);
 
         return redirect()->route('accounting.setup.review')->with('status', $ok
@@ -165,7 +171,11 @@ class SetupController extends AccountingController
             return back()->withErrors(['apply' => 'This ledger is large. Run it from the server: php artisan finance:gl:backfill --ledger='.$context->key().' --apply --enable']);
         }
 
-        $run = $backfill->apply($context, request()->user());
+        try {
+            $run = $backfill->apply($context, request()->user());
+        } catch (AccountingNotReady $e) {
+            return redirect()->route('accounting.setup')->withErrors(['apply' => $e->getMessage()]);
+        }
 
         if ($run->status !== 'verified') {
             return redirect()->route('accounting.setup.review')->withErrors(['apply' => 'The history was posted but the checks did not all pass, so accounting stays off. Read the result below.']);

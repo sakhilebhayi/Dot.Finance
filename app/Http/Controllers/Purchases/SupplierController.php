@@ -11,6 +11,7 @@ use App\Models\Shared\Payment;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\SupplierBankDetails;
 use App\Services\Purchases\SupplierStatement;
+use App\Services\Tax\CsvSafe;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -133,15 +134,17 @@ class SupplierController extends PurchasesController
 
         if (($v['format'] ?? null) === 'csv') {
             return Response::streamDownload(function () use ($statement) {
+                // Every text cell goes through CsvSafe: a supplier named "=HYPERLINK(...)" must not run in a spreadsheet (QA security D-1402).
                 $out = fopen('php://output', 'w');
-                fputcsv($out, ['Supplier statement', $statement['party']->name, 'From '.$statement['from'], 'To '.$statement['to']]);
-                fputcsv($out, ['Date', 'Currency', 'What', 'Reference', 'Amount', 'Balance']);
+                $row = fn (array $cells) => fputcsv($out, array_map([CsvSafe::class, 'cell'], $cells), ',', '"', '');
+                $row(['Supplier statement', $statement['party']->name, 'From '.$statement['from'], 'To '.$statement['to']]);
+                $row(['Date', 'Currency', 'What', 'Reference', 'Amount', 'Balance']);
                 foreach ($statement['currencies'] as $currency => $c) {
-                    fputcsv($out, [$statement['from'], $currency, 'Opening balance', '', '', Money::toDecimalString($c['opening'])]);
+                    $row([$statement['from'], $currency, 'Opening balance', '', '', Money::toDecimalString($c['opening'])]);
                     foreach ($c['lines'] as $line) {
-                        fputcsv($out, [$line['date'], $currency, $line['kind'], $line['reference'], Money::toDecimalString($line['amount']), Money::toDecimalString($line['balance'])]);
+                        $row([$line['date'], $currency, $line['kind'], $line['reference'], Money::toDecimalString($line['amount']), Money::toDecimalString($line['balance'])]);
                     }
-                    fputcsv($out, [$statement['to'], $currency, 'Closing balance', '', '', Money::toDecimalString($c['closing'])]);
+                    $row([$statement['to'], $currency, 'Closing balance', '', '', Money::toDecimalString($c['closing'])]);
                 }
                 fclose($out);
             }, 'statement-'.str($party->name)->slug().'-'.$statement['to'].'.csv', ['Content-Type' => 'text/csv']);

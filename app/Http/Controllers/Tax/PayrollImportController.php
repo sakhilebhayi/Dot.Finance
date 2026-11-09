@@ -16,6 +16,10 @@ class PayrollImportController extends Controller
 {
     public function __invoke(Request $request, PayrollImport $import): JsonResponse
     {
+        if (strlen($request->getContent()) > (int) config('tax.payroll_import.max_body_bytes', 2 * 1024 * 1024)) {
+            return response()->json(['message' => 'The body is too large.'], 413);
+        }
+
         if (! $import->isConfigured()) {
             return response()->json(['message' => 'Payroll import is not configured on this server.'], 503);
         }
