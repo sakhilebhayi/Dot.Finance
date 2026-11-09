@@ -18,7 +18,11 @@ use App\Models\Purchases\PaymentRun;
 use App\Models\Purchases\PurchaseSetting;
 use App\Models\Purchases\RecurringBill;
 use App\Models\Purchases\SupplierProfile;
+use App\Models\Planning\Dimension;
+use App\Models\Planning\PlanBudget;
+use App\Models\Planning\Scenario;
 use App\Models\RecurringRule;
+use App\Models\Reporting\ReportPreset;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Shared\PaymentAllocation;
@@ -146,6 +150,28 @@ class FinanceAudit
             'text' => [],
         ],
         // ----- end R-44 Purchases -----
+        // ----- R-44 Reporting and Planning -----
+        PlanBudget::class => [
+            'type' => 'plan_budget',
+            'values' => ['kind', 'fiscal_year', 'starts_on', 'ends_on', 'currency', 'status', 'based_on_id', 'method', 'version'],
+            'text' => ['name'],
+        ],
+        Scenario::class => [
+            'type' => 'scenario',
+            'values' => ['horizon'],
+            'text' => ['name', 'assumptions'],
+        ],
+        Dimension::class => [
+            'type' => 'dimension',
+            'values' => ['ref', 'kind', 'is_active'],
+            'text' => ['name'],
+        ],
+        ReportPreset::class => [
+            'type' => 'report_preset',
+            'values' => ['report_key'],
+            'text' => ['name', 'params'],
+        ],
+        // ----- end R-44 Reporting and Planning -----
     ];
 
     private static int $muted = 0;

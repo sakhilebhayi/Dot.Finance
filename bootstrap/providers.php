@@ -8,6 +8,7 @@ use App\Providers\HealthCheckServiceProvider;
 use App\Providers\IntelligenceServiceProvider;
 use App\Providers\JetstreamServiceProvider;
 use App\Providers\PurchasesServiceProvider;
+use App\Providers\ReportingServiceProvider;
 use App\Providers\SharedDataServiceProvider;
 
 return [
@@ -20,4 +21,5 @@ return [
     IntelligenceServiceProvider::class,
     BankServiceProvider::class,
     PurchasesServiceProvider::class,
+    ReportingServiceProvider::class,
 ];

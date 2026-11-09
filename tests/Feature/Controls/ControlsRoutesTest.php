@@ -366,6 +366,6 @@ class ControlsRoutesTest extends TestCase
         $this->inCompany($this->people['owner'], $this->acme)->put(route('controls.members.update', $this->people['bookkeeper']->id), ['role' => 'accountant']);
 
         $this->inCompany($this->people['owner'], $this->acme)->get(route('controls.access-review.index'))
-            ->assertOk()->assertSee('granted by '.$this->people['owner']->name, false)->assertSee('bookkeeper to accountant');
+            ->assertOk()->assertSee('granted by '.$this->people['owner']->name)->assertSee('bookkeeper to accountant');
     }
 }

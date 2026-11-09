@@ -132,3 +132,11 @@ require __DIR__.'/bank.php';
 // --- purchases ---
 require __DIR__.'/purchases.php';
 // --- end purchases ---
+
+// --- reporting ---
+require __DIR__.'/reporting.php';
+// --- end reporting ---
+
+// --- planning ---
+require __DIR__.'/planning.php';
+// --- end planning ---

@@ -147,8 +147,13 @@ class IntegerMoneyTest extends TestCase
         $bankMigration = require database_path('migrations/2026_11_09_400000_create_bank_tables.php');
         $accountingMigration = require database_path('migrations/2026_11_09_110000_create_accounting_core_tables.php');
         $phase0Migration = require database_path('migrations/2026_11_09_100000_r44_phase0_integrity_fixes.php');
+        // Reporting and planning tables point at gl_accounts, so they come off before the accounting core does.
+        $reportIndexes = require database_path('migrations/2026_11_10_500100_add_report_indexes.php');
+        $reportingMigration = require database_path('migrations/2026_11_10_500000_create_reporting_and_planning_tables.php');
 
         // Roll the schema back to the pre-ledger shape (newest migration first), then write rows exactly as the old code did.
+        $reportIndexes->down();
+        $reportingMigration->down();
         $bankMigration->down();
         $accountingMigration->down();
         $phase0Migration->down();
