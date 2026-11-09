@@ -30,6 +30,16 @@ class TaxReturn extends Model
         'payable_cents', 'sars_reference', 'submitted_on', 'submitted_by_user_id', 'prepared_at',
     ];
 
+    /** Added in QA (D-1308): the JSON documents and ids the working paper is printed from, frozen with the rest. */
+    public const FROZEN_DOCUMENTS = ['user_id', 'team_id', 'period_label', 'channel', 'rule_versions', 'figures', 'reconciliation', 'checks', 'prepared_by_user_id', 'supersedes_return_id'];
+
+    /** Frozen once a payment is recorded. */
+    public const FROZEN_PAYMENT = ['paid_cents', 'paid_on', 'payment_reference', 'paid_by_user_id', 'payment_proof_attachment_id'];
+
+    /** Frozen while a return is prepared (withdraw it to change anything). */
+    public const FROZEN_WHILE_PREPARED = ['kind', 'period_start', 'period_end', 'revision', 'basis', 'channel', 'period_label', 'figures_hash', 'figures', 'rule_versions', 'reconciliation', 'checks',
+        'output_tax_cents', 'input_tax_cents', 'payable_cents', 'prepared_by_user_id', 'prepared_at', 'user_id', 'team_id'];
+
     protected $fillable = [
         'user_id', 'team_id', 'kind', 'period_start', 'period_end', 'period_label', 'revision', 'supersedes_return_id', 'status',
         'basis', 'channel', 'rule_versions', 'figures', 'figures_hash', 'output_tax_cents', 'input_tax_cents', 'payable_cents',
@@ -60,16 +70,37 @@ class TaxReturn extends Model
     {
         static::updating(function (self $return) {
             $was = $return->getOriginal('status');
+            $changed = fn (string $column): bool => $return->isDirty($column) && self::printable($return->getOriginal($column)) !== self::printable($return->getAttribute($column));
 
             if (in_array($was, ['submitted', 'paid'], true)) {
-                foreach (self::FROZEN as $column) {
-                    if ($return->isDirty($column) && (string) $return->getOriginal($column) !== (string) $return->getAttribute($column)) {
+                foreach (array_merge(self::FROZEN, self::FROZEN_DOCUMENTS) as $column) {
+                    if ($changed($column)) {
                         throw new LogicException("A return recorded as submitted is frozen: {$column} never changes. Record a revision instead.");
                     }
                 }
                 if (! in_array($return->status, ['submitted', 'paid'], true) || ($was === 'paid' && $return->status !== 'paid')) {
                     throw new LogicException('A submitted return cannot go back to an earlier status.');
                 }
+            }
+
+            if ($was === 'paid') {
+                foreach (self::FROZEN_PAYMENT as $column) {
+                    if ($changed($column)) {
+                        throw new LogicException("A recorded payment never changes: {$column}.");
+                    }
+                }
+            }
+
+            if ($was === 'prepared' && $return->status === 'prepared') {
+                foreach (self::FROZEN_WHILE_PREPARED as $column) {
+                    if ($changed($column)) {
+                        throw new LogicException("A prepared return has frozen figures: {$column} cannot change. Withdraw the preparation first.");
+                    }
+                }
+            }
+
+            if ($return->getOriginal('settlement_entry_id') !== null && $changed('settlement_entry_id')) {
+                throw new LogicException('The settlement journal of a return is set once and never changed.');
             }
         });
 
@@ -78,6 +109,12 @@ class TaxReturn extends Model
                 throw new LogicException('Only a draft return can be deleted.');
             }
         });
+    }
+
+    /** A comparable form of a column value: arrays by their JSON, everything else as a string. */
+    private static function printable(mixed $value): string
+    {
+        return is_array($value) ? (string) json_encode($value) : (string) $value;
     }
 
     public function ledgerReferences(): array

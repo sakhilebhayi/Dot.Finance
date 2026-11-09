@@ -83,7 +83,10 @@ final class Vat201Builder
         $calc['6'] = Money::mulDivRound($v('5'), $accommodationBp, 10_000);
         $calc['8'] = $calc['6'] + $v('7');
         $calc['9'] = Money::mulDivRound($calc['8'], $rateBpAtEnd, 10_000);
-        $calc['13'] = $v('4') + $v('4A') + $calc['9'] + $v('11') + $v('12');
+        // Field 11 is field 10 x r/(100 + r) (SARS guide rev 11, 7.6.1). An adjustment typed on field 11 is the vendor's edit
+        // (a difference) added to that figure; without this a field 10 amount alone left the output tax out (QA D-1301).
+        $calc['11'] = Money::mulDivRound($v('10'), $rateBpAtEnd, 10_000 + $rateBpAtEnd) + $v('11');
+        $calc['13'] = $v('4') + $v('4A') + $calc['9'] + $calc['11'] + $v('12');
         $calc['19'] = $v('14') + $v('14A') + $v('15') + $v('15A') + $v('16') + $v('17') + $v('18');
         $calc['20'] = $calc['13'] - $calc['19'];
         $diesel = $v('25') + $v('29') + $v('33') + $v('37');
@@ -135,7 +138,8 @@ final class Vat201Builder
         return match ($code) {
             '1' => 'VAT-inclusive: the net value plus the VAT on the same entry.',
             '1A' => 'VAT-inclusive.',
-            '4', '4A', '11' => 'The VAT booked. SARS lets the vendor edit this field.',
+            '4', '4A' => 'The VAT booked. SARS lets the vendor edit this field.',
+            '11' => 'Field 10 times 15/115. An adjustment on this field changes the calculated amount (SARS lets the vendor edit it).',
             '12' => 'Credit notes received, debit notes issued, recovered bad debts and similar.',
             '18' => 'Credit notes issued, debit notes received and similar.',
             '17' => 'Bad debts: invoice basis only.',

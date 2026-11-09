@@ -29,7 +29,7 @@ final class PayrollTaxCalculator
     }
 
     /**
-     * SDL for a month. $annualisedPayrollCents is the employer's payroll over a year; strictly under the threshold is exempt.
+     * SDL for a month. $annualisedPayrollCents is the employer's payroll over a year; an employer whose payroll will NOT EXCEED the threshold is exempt (Skills Development Levies Act s4(b)), so exactly R500,000 is exempt.
      *
      * @return array{cents: int, exempt: bool, threshold_cents: int}
      */
@@ -37,7 +37,7 @@ final class PayrollTaxCalculator
     {
         $threshold = $rules->rule('sdl.payroll_exemption_threshold_cents', $on)->cents();
         $bp = $rules->rule('sdl.rate_bp', $on)->basisPoints();
-        $exempt = $annualisedPayrollCents < $threshold;
+        $exempt = $annualisedPayrollCents <= $threshold;
 
         return ['cents' => $exempt ? 0 : Money::mulDivRound(max(0, $monthlyRemunerationCents), $bp, 10_000), 'exempt' => $exempt, 'threshold_cents' => $threshold];
     }

@@ -3,6 +3,7 @@
 namespace App\Services\Tax;
 
 use App\Models\Accounting\JournalEntry;
+use App\Models\Accounting\LedgerSetting;
 use App\Models\Tax\TaxDeadline;
 use App\Models\Tax\TaxProfile;
 use App\Models\Tax\TaxReturn;
@@ -425,15 +426,34 @@ final class TaxReturnService
             throw new TaxException('Accounting is not switched on.');
         }
 
+        // One settlement per period (QA D-1305): the settlement is built from the books of the whole period, so a second one for a
+        // revision of the same period would move the same VAT into VAT control twice.
+        $earlier = TaxReturn::query()->forContext($ctx)->where('kind', $return->kind)
+            ->where('period_start', $return->period_start->toDateString())->where('period_end', $return->period_end->toDateString())
+            ->where('id', '<>', $return->id)->whereNotNull('settlement_entry_id')->orderBy('revision')->first();
+        if ($earlier !== null) {
+            throw new TaxException('This period was already settled with revision '.$earlier->revision.': the VAT is already in VAT control. Post an adjusting journal by hand for any later difference.');
+        }
+
         $lines = $this->suggestSettlement($ctx, $return);
         if ($lines === []) {
             throw new TaxException('No VAT moved through the VAT accounts in this period: there is nothing to settle.');
         }
 
-        return LedgerContext::run($ctx, fn () => DB::transaction(function () use ($ctx, $return, $by, $lines) {
+        // Dated at the period end, unless the books are already closed through it: a period lock is never bypassed, so the
+        // settlement then goes on the first open day and says so (QA D-1307).
+        $date = CarbonImmutable::parse($return->period_end->toDateString());
+        $closedThrough = LedgerSetting::query()->forContext($ctx)->first()?->books_closed_through; // fresh read: the lock may have moved since this service was built
+        $lateNote = '';
+        if ($closedThrough !== null && $date->lte(CarbonImmutable::parse($closedThrough->toDateString()))) {
+            $date = CarbonImmutable::parse($closedThrough->toDateString())->addDay();
+            $lateNote = ' (dated '.$date->format('j F Y').', the first open day: the period itself is closed)';
+        }
+
+        return LedgerContext::run($ctx, fn () => DB::transaction(function () use ($ctx, $return, $by, $lines, $date, $lateNote) {
             $entry = $this->poster->post(new PostingRequest(
-                CarbonImmutable::parse($return->period_end->toDateString()), 'adjustment', 'vat_settlement:'.$return->id, 1,
-                'VAT settlement for '.$return->period_label.': output and input VAT moved to VAT control',
+                $date, 'adjustment', 'vat_settlement:'.$return->id, 1,
+                'VAT settlement for '.$return->period_label.': output and input VAT moved to VAT control'.$lateNote,
                 array_map(fn ($l) => new PostingLine($l['account'], debitCents: $l['debit_cents'], creditCents: $l['credit_cents'], description: $l['label']), $lines),
                 $by->id,
             ));

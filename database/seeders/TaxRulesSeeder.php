@@ -228,11 +228,11 @@ class TaxRulesSeeder extends Seeder
     {
         $clock = 'Clock: the company\'s year-of-assessment END date. ';
 
-        $this->rule('CIT', 'cit.rate_bp', 'basis_points', 2700, '2023-04-01', '2027-03-31', self::URL_COMPANIES, 'high',
-            ref: 'R44_TAX_RESEARCH.md 1, 3.1; SARS companies and SBC rates page (updated 28 Oct 2026)',
-            note: $clock.'27 percent for years of assessment ending 1 April 2023 to 31 March 2027, unchanged in Budget 2026. Not valid beyond 2027-03-31 until a later version is added. SEZ companies may qualify for 15 percent (not modelled).');
+        $this->rule('CIT', 'cit.rate_bp', 'basis_points', 2700, '2023-03-31', '2027-03-31', self::URL_COMPANIES, 'high',
+            ref: 'R44_TAX_RESEARCH.md 1, 3.1; SARS companies and SBC rates page (updated 28 Oct 2026); QA D-1300',
+            note: $clock.'27 percent for years of assessment ending from 31 March 2023 to 31 March 2027, unchanged in Budget 2026. The SARS rates page lists "31 March 2023 to 31 March 2024" at 27 percent (the research table said 1 April 2023, which left 31 March 2023 uncovered; corrected in QA). Not valid beyond 2027-03-31 until a later version is added. SEZ companies may qualify for 15 percent (not modelled).');
         $this->rule('CIT', 'cit.rate_bp', 'basis_points', 2800, '2022-04-01', '2023-03-30', self::URL_COMPANIES, 'high',
-            ref: 'R44_TAX_RESEARCH.md 1', note: $clock.'28 percent for years of assessment ending 1 April 2022 to 30 March 2023. The research lists 30 March for this range and 1 April for the 27 percent range, which leaves 31 March 2023 uncovered; the engine refuses that one date rather than guess.');
+            ref: 'R44_TAX_RESEARCH.md 1; SARS companies rates page', note: $clock.'28 percent for years of assessment ending 1 April 2022 to 30 March 2023. A year ending 31 March 2023 is taxed at 27 percent (the next row).');
 
         $sbc = [
             ['above_cents' => 0, 'up_to_cents' => 9_900_000, 'base_cents' => 0, 'rate_bp' => 0],
@@ -364,7 +364,7 @@ class TaxRulesSeeder extends Seeder
         $this->rule('UIF', 'uif.ceiling_monthly_cents', 'money_cents', 1_771_200, '2021-06-01', null, self::URL_UIF, 'high', unit: 'ZAR per month', ref: 'R44_TAX_RESEARCH.md 1, 4.2, 9 (item 4)', note: 'Remuneration ceiling R17,712 a month (R212,544 a year) since 1 June 2021. Some calculator sites claim a 2026 increase; no official evidence was found. On the watch list.');
         $this->rule('UIF', 'uif.max_per_party_monthly_cents', 'money_cents', 17_712, '2021-06-01', null, self::URL_UIF, 'high', unit: 'ZAR per month', ref: 'R44_TAX_RESEARCH.md 1, 4.2', note: 'Maximum contribution R177.12 per party a month (R354.24 combined).');
         $this->rule('SDL', 'sdl.rate_bp', 'basis_points', 100, self::EARLIEST, null, self::URL_TAX_GUIDE, 'high', ref: 'R44_TAX_RESEARCH.md 1, 4.2', note: '1 percent of total remuneration.');
-        $this->rule('SDL', 'sdl.payroll_exemption_threshold_cents', 'money_cents', 50_000_000, self::EARLIEST, null, self::URL_TAX_GUIDE, 'high', unit: 'ZAR per year', ref: 'R44_TAX_RESEARCH.md 1, 4.2', note: 'Employers with an annual payroll under R500,000 are exempt.');
+        $this->rule('SDL', 'sdl.payroll_exemption_threshold_cents', 'money_cents', 50_000_000, self::EARLIEST, null, self::URL_TAX_GUIDE, 'high', unit: 'ZAR per year', ref: 'R44_TAX_RESEARCH.md 1, 4.2', note: 'An employer whose total remuneration over the next 12 months will not exceed R500,000 is exempt (Skills Development Levies Act s4(b); SARS SDL page: "won\'t exceed R500 000", liable when "more than R500 000"). So exactly R500,000 is exempt. The Budget 2026 Tax Guide says "less than R500 000"; the Act and the SARS page prevail (QA D-1303).');
 
         $eti = 'Employment Tax Incentive: ages 18 to 29; ends 28 February 2029. Enacted retrospectively by Act 3 of 2026 (ETI Guide Issue 5, 27 Jul 2026). ';
         foreach ([

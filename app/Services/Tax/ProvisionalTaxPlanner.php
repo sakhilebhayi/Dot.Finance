@@ -50,7 +50,8 @@ final class ProvisionalTaxPlanner
         $months = (int) $lastAssessedYearEnd->diffInMonths($estimateMadeOn);
         $uplift = $rules->rule('pt.basic_amount_uplift_bp', $estimateMadeOn)->basisPoints();
         // "more than 18 months": 18 months to the day is not more
-        $over = $estimateMadeOn->gt($lastAssessedYearEnd->addMonths(18));
+        // no month-end overflow: 31 Aug + 18 months is 28 Feb, not 3 March (QA D-1304)
+        $over = $estimateMadeOn->gt($lastAssessedYearEnd->addMonthsNoOverflow(18));
 
         return ['cents' => $over ? $base + Money::mulDivRound($base, $uplift, 10_000) : $base, 'uplifted' => $over, 'months' => $months];
     }

@@ -22,22 +22,22 @@
 
     <table class="tax-sheet__table">
         <caption>Fields</caption>
-        <thead><tr><th scope="col">Field</th><th scope="col">Description</th><th scope="col">Amount (ZAR)</th></tr></thead>
+        <thead><tr><th scope="col">Field</th><th scope="col">Description</th><th scope="col">Basis</th><th scope="col">Amount (ZAR)</th></tr></thead>
         <tbody>
         @foreach ($paper['boxes'] as $b)
-            <tr><th scope="row">{{ $b['code'] }}</th><td>{{ $b['label'] }}</td><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $b['amount_cents']) }}</td></tr>
+            <tr><th scope="row">{{ $b['code'] }}</th><td>{{ $b['label'] }}</td><td>{{ $b['basis'] }}</td><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $b['amount_cents']) }}</td></tr>
         @endforeach
         </tbody>
         <tfoot>
-            <tr><th scope="row" colspan="2">Output tax</th><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $paper['output_tax_cents']) }}</td></tr>
-            <tr><th scope="row" colspan="2">Input tax</th><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $paper['input_tax_cents']) }}</td></tr>
-            <tr><th scope="row" colspan="2">{{ (int) $paper['payable_cents'] >= 0 ? 'Payable to SARS' : 'Refundable from SARS' }}</th><td class="num"><strong>{{ \App\Services\Tax\CsvSafe::money(abs((int) $paper['payable_cents'])) }}</strong></td></tr>
+            <tr><th scope="row" colspan="2">Output tax <span class="tax-sheet__basis">(Calculated)</span></th><td></td><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $paper['output_tax_cents']) }}</td></tr>
+            <tr><th scope="row" colspan="2">Input tax <span class="tax-sheet__basis">(Calculated)</span></th><td></td><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $paper['input_tax_cents']) }}</td></tr>
+            <tr><th scope="row" colspan="2">{{ (int) $paper['payable_cents'] >= 0 ? 'Payable to SARS' : 'Refundable from SARS' }} <span class="tax-sheet__basis">(Calculated)</span></th><td></td><td class="num"><strong>{{ \App\Services\Tax\CsvSafe::money(abs((int) $paper['payable_cents'])) }}</strong></td></tr>
         </tfoot>
     </table>
 
     @if (count($paper['adjustments']))
     <h2>Adjustments entered by a person</h2>
-    <table class="tax-sheet__table"><thead><tr><th scope="col">Field</th><th scope="col">Kind</th><th scope="col">Amount</th><th scope="col">Reason</th></tr></thead><tbody>
+    <table class="tax-sheet__table"><thead><tr><th scope="col">Field</th><th scope="col">Kind</th><th scope="col">Amount (You entered)</th><th scope="col">Reason</th></tr></thead><tbody>
         @foreach ($paper['adjustments'] as $a)<tr><th scope="row">{{ $a['box'] }}</th><td>{{ $a['kind'] }}</td><td class="num">{{ \App\Services\Tax\CsvSafe::money((int) $a['amount_cents']) }}</td><td>{{ $a['reason'] }}</td></tr>@endforeach
     </tbody></table>
     @endif

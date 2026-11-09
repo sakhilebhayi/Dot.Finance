@@ -66,10 +66,13 @@ class PayrollTest extends TestCase
     {
         $s = fn (int $monthly, int $annual) => $this->calc->sdl($this->rules, $monthly, $annual, $this->m());
 
-        $this->assertSame(0, $s($this->r(41_666, 66), $this->r(499_999, 99))['cents'], 'R499,999.99 a year is under R500,000: exempt');
+        $this->assertSame(0, $s($this->r(41_666, 66), $this->r(499_999, 99))['cents'], 'R499,999.99 a year does not exceed R500,000: exempt');
         $this->assertTrue($s(1, $this->r(499_999, 99))['exempt']);
-        $this->assertSame($this->r(416, 67), $s($this->r(41_666, 67), $this->r(500_000))['cents'], 'at R500,000 SDL applies; 1% of R41,666.67 = R416.6667, rounded to R416.67');
-        $this->assertFalse($s(1, $this->r(500_000))['exempt']);
+        // QA D-1303: the Act (s4(b)) and the SARS page say "will not exceed R500 000" is exempt, so exactly R500,000 is exempt
+        $this->assertSame(0, $s($this->r(41_666, 67), $this->r(500_000))['cents'], 'at exactly R500,000 the employer is exempt');
+        $this->assertTrue($s(1, $this->r(500_000))['exempt']);
+        $this->assertSame($this->r(416, 67), $s($this->r(41_666, 67), $this->r(500_000, 1))['cents'], 'over R500,000 SDL applies; 1% of R41,666.67 = R416.6667, rounded to R416.67');
+        $this->assertFalse($s(1, $this->r(500_000, 1))['exempt']);
     }
 
     private function capture(array $o = []): TaxPayrollRun
