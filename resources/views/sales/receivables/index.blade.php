@@ -46,9 +46,9 @@
 <x-fx.panel title="Open invoices" flush>
 @if ($items->isNotEmpty())
 <x-fx.table caption="Invoices that still owe something"><thead><tr><th scope="col">Invoice</th><th scope="col">Customer</th><th scope="col">Due</th><th scope="col" class="is-num">Owing</th></tr></thead>
-<tbody>@foreach ($items->take(15) as $i)@php $d = $i['document']; @endphp
+<tbody>@foreach ($items as $i)@php $d = $i['document']; @endphp
 <tr><td data-label="Invoice" class="is-lead"><a class="fx-link fx-cell-main" href="{{ route('sales.documents.show', $d) }}">{{ $d->number }}</a></td><td data-label="Customer">{{ $d->party?->name }}</td><td data-label="Due">{{ $d->due_date?->format('j M Y') }}</td><td data-label="Owing" class="is-num"><x-fx.money :cents="$i['open_cents']" :currency="$d->currency" :variance="$d->isOverdue()" /></td></tr>@endforeach</tbody></x-fx.table>
-@if ($items->count() > 15)<div class="fx-panel__foot"><a class="fx-link" href="{{ route('sales.invoices.index', ['status' => 'open']) }}">All {{ $items->count() }} open invoices</a></div>@endif
+@if ($itemCount > 15)<div class="fx-panel__foot"><a class="fx-link" href="{{ route('sales.invoices.index', ['status' => 'open']) }}">All {{ $itemCount }} open invoices</a></div>@endif
 @else<x-fx.empty>None.</x-fx.empty>@endif
 </x-fx.panel>
 <x-fx.panel title="Customer credit" flush>

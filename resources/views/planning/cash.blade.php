@@ -75,7 +75,7 @@
     <x-fx.table caption="Every projected item with where it came from and how its date was chosen">
         <thead><tr><th scope="col">Date</th><th scope="col">Item</th><th scope="col">Where from, and how the date was chosen</th><th scope="col" class="is-num">Amount</th><th scope="col" class="is-num">Balance after</th></tr></thead>
         <tbody>
-        @foreach ($base['events'] as $e)
+        @foreach (array_slice($base['events'], 0, 300) as $e)
         <tr>
             <th scope="row" data-label="Date" class="is-lead">{{ \App\Services\Reporting\ReportFormat::date($e['date']) }}</th>
             <td data-label="Item">@if ($e['href'])<a href="{{ $e['href'] }}">{{ $e['label'] }}</a>@else{{ $e['label'] }}@endif @if ($e['estimate'])<x-fx.pill>estimate</x-fx.pill>@endif @if ($e['overdue'])<x-fx.pill kind="variance">late</x-fx.pill>@endif</td>
@@ -86,6 +86,7 @@
         @endforeach
         </tbody>
     </x-fx.table>
+    @if (count($base['events']) > 300)<p class="fx-hint">The first 300 of {{ number_format(count($base['events'])) }} items are listed, soonest first. The balance line, the buckets and every total above use all of them.</p>@endif
     @endif
 </x-fx.panel>
 

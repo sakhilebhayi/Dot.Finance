@@ -49,19 +49,23 @@ class GlOpenItemsProvider implements OpenItemsProvider
         }
 
         $sign = $kind === 'payable' ? -1 : 1;
-        $lines = $this->query->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
-            ->where('l.gl_account_id', $control->id)->where('l.entry_date', '<=', $asOf->toDateString())
-            ->orderBy('l.entry_date')->orderBy('e.entry_number')->orderBy('l.line_no')
-            ->get(['l.party_id', 'l.entry_date', 'l.debit_cents', 'l.credit_cents', 'e.id as entry_id', 'e.entry_number', 'e.memo']);
+        $base = $this->query->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+            ->where('l.gl_account_id', $control->id)->where('l.entry_date', '<=', $asOf->toDateString());
 
-        $partyIds = $lines->pluck('party_id')->filter()->unique()->all();
-        $parties = Party::query()->forContext($context)->whereIn('id', $partyIds)->get()->keyBy('id');
+        // The control account of a busy ledger holds hundreds of thousands of lines. They are read one customer at a time
+        // (ordered by customer, then in posting order) from a cursor, never all at once; only the customer being worked on is in memory.
+        $partyIds = (clone $base)->whereNotNull('l.party_id')->distinct()->pluck('l.party_id')->map(fn ($id) => (int) $id)->all();
+        $parties = collect();
+        foreach (array_chunk($partyIds, 2000) as $chunk) {
+            $parties = $parties->concat(Party::query()->forContext($context)->whereIn('id', $chunk)->get());
+        }
+        $parties = $parties->keyBy('id');
         $currency = $control->currency ?? 'ZAR';
 
         $items = [];
         $history = [];
 
-        foreach ($lines->groupBy(fn ($l) => (int) ($l->party_id ?? 0)) as $partyId => $partyLines) {
+        $settle = function (int $partyId, array $partyLines) use (&$items, &$history, $kind, $sign, $parties, $currency, $asOf) {
             $party = $partyId === 0 ? null : $parties->get($partyId);
             $terms = (int) ($party->payment_terms_days ?? 0);
             $name = $party?->name ?? ($kind === 'payable' ? 'No supplier recorded' : 'No customer recorded');
@@ -108,6 +112,23 @@ class GlOpenItemsProvider implements OpenItemsProvider
             if ($partyId !== 0 && $settled > 0) {
                 $history[$partyId] = ['settled' => $settled, 'avg_days_late' => intdiv($lateDays, $settled)];
             }
+        };
+
+        $current = null;
+        $buffer = [];
+        $rows = (clone $base)->orderByRaw('COALESCE(l.party_id, 0)')->orderBy('l.entry_date')->orderBy('e.entry_number')->orderBy('l.line_no')
+            ->select(['l.party_id', 'l.entry_date', 'l.debit_cents', 'l.credit_cents', 'e.id as entry_id', 'e.entry_number', 'e.memo'])->cursor();
+        foreach ($rows as $line) {
+            $partyId = (int) ($line->party_id ?? 0);
+            if ($current !== null && $partyId !== $current) {
+                $settle($current, $buffer);
+                $buffer = [];
+            }
+            $current = $partyId;
+            $buffer[] = $line;
+        }
+        if ($current !== null) {
+            $settle($current, $buffer);
         }
 
         return ['items' => $items, 'history' => $history];

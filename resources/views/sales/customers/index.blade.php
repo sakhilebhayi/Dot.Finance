@@ -23,6 +23,7 @@
         </tr>@endforeach</tbody>
     <tfoot><tr><th scope="row" colspan="2">Everyone</th><td class="is-num"><x-fx.money :cents="$totals['d30'] + $totals['d60'] + $totals['d90'] + $totals['d120'] + $totals['d120p']" :currency="$base" /></td><td class="is-num"><x-fx.money :cents="$totals['total']" :currency="$base" /></td><td></td></tr></tfoot>
 </x-fx.table>
+@if ($parties->hasPages())<div class="fx-panel__foot">{{ $parties->links() }}</div>@endif
 @else
 <x-fx.empty title="No customers match.">Customers are added once and used on every invoice, quote and payment.<x-slot name="action">@if ($canCreate)<x-fx.button :href="route('parties.create')">Add a customer</x-fx.button>@endif</x-slot></x-fx.empty>
 @endif

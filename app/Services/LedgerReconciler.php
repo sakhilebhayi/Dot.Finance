@@ -61,18 +61,20 @@ class LedgerReconciler
         $summary = [];
 
         foreach ($accounts as $account) {
-            $rows = Transaction::query()->forContext($context)->where('account_id', $account->id)->get();
-
+            // One pass in id order, 2,000 rows at a time: an account can hold hundreds of thousands of rows and the check runs
+            // under the host's memory limit, so the rows are never all in memory (nor loaded twice).
             $recomputed = $account->opening_balance_cents;
             $counted = 0;
+            $rows = Transaction::query()->forContext($context)->where('account_id', $account->id)->lazyById(2000);
             foreach ($rows as $row) {
-                if ($account->opening_balance_date !== null && $row->date->lt($account->opening_balance_date)) {
-                    continue;
+                if ($account->opening_balance_date === null || ! $row->date->lt($account->opening_balance_date)) {
+                    $recomputed += $row->signedCents();
+                    $counted++;
                 }
-                $recomputed += $row->signedCents();
-                $counted++;
+                foreach ($this->rowFindings($row, $account) as $finding) {
+                    $findings[] = $finding;
+                }
             }
-
             $derived = $account->balanceCents();
             $summary[] = [
                 'account_id' => $account->id,
@@ -95,29 +97,6 @@ class LedgerReconciler
                 ));
             }
 
-            foreach ($rows as $row) {
-                if ($row->currency !== $account->currency) {
-                    $findings[] = $this->finding('error', 'currency_mismatch', sprintf(
-                        'Transaction #%d is %s but its account "%s" is %s.', $row->id, $row->currency ?? 'unset', $account->name, $account->currency
-                    ));
-                }
-
-                if (Money::fromDecimal($row->getRawOriginal('amount')) !== $row->amount_cents) {
-                    $findings[] = $this->finding(
-                        'error',
-                        $row->amount_cents === 0 ? 'unmigrated_legacy_row' : 'amount_mirror_mismatch',
-                        $row->amount_cents === 0
-                            ? sprintf('Transaction #%d still has no cents value (run finance:backfill-money).', $row->id)
-                            : sprintf('Transaction #%d: amount_cents %d disagrees with the legacy decimal %s.', $row->id, $row->amount_cents, $row->getRawOriginal('amount'))
-                    );
-                }
-
-                if ($row->type === 'transfer' && $row->transfer_group === null) {
-                    $findings[] = $this->finding('info', 'legacy_transfer_without_destination', sprintf(
-                        'Transaction #%d is a legacy transfer with no destination account; it has never moved a balance and is not counted.', $row->id
-                    ));
-                }
-            }
         }
 
         return ['accounts' => $summary, 'findings' => array_merge(
@@ -128,6 +107,33 @@ class LedgerReconciler
             $this->recurringDuplicateFindings($context),
             $this->journalFindings($context),
         )];
+    }
+
+    /** The per-row checks: currency, the legacy decimal mirror, an orphan legacy transfer. @return list<array{severity: string, code: string, message: string}> */
+    private function rowFindings(Transaction $row, Account $account): array
+    {
+        $findings = [];
+        if ($row->currency !== $account->currency) {
+            $findings[] = $this->finding('error', 'currency_mismatch', sprintf(
+                'Transaction #%d is %s but its account "%s" is %s.', $row->id, $row->currency ?? 'unset', $account->name, $account->currency
+            ));
+        }
+        if (Money::fromDecimal($row->getRawOriginal('amount')) !== $row->amount_cents) {
+            $findings[] = $this->finding(
+                'error',
+                $row->amount_cents === 0 ? 'unmigrated_legacy_row' : 'amount_mirror_mismatch',
+                $row->amount_cents === 0
+                    ? sprintf('Transaction #%d still has no cents value (run finance:backfill-money).', $row->id)
+                    : sprintf('Transaction #%d: amount_cents %d disagrees with the legacy decimal %s.', $row->id, $row->amount_cents, $row->getRawOriginal('amount'))
+            );
+        }
+        if ($row->type === 'transfer' && $row->transfer_group === null) {
+            $findings[] = $this->finding('info', 'legacy_transfer_without_destination', sprintf(
+                'Transaction #%d is a legacy transfer with no destination account; it has never moved a balance and is not counted.', $row->id
+            ));
+        }
+
+        return $findings;
     }
 
     /**
@@ -234,45 +240,42 @@ class LedgerReconciler
         return $findings;
     }
 
-    /** @return list<array{severity: string, code: string, message: string}> */
+    /** Transfers pair an "out" with an "in"; this finds the pairs that are not (a few at most), and the pairs that disagree, in the database. */
     private function transferFindings(LedgerContext $context): array
     {
-        $query = Transaction::query()->forContext($context)->whereNotNull('transfer_group');
-
+        $owned = fn ($q, string $alias) => $context->isCompany()
+            ? $q->where("{$alias}.team_id", $context->teamId)
+            : $q->where("{$alias}.user_id", $context->userId)->whereNull("{$alias}.team_id");
         $findings = [];
-        foreach ($query->get()->groupBy('transfer_group') as $group => $legs) {
-            $out = $legs->where('transfer_direction', 'out');
-            $in = $legs->where('transfer_direction', 'in');
 
-            if ($legs->count() === 1 && Transaction::onlyTrashed()->forContext($context)->where('transfer_group', $group)->exists()) {
-                // The other leg was deleted along with its account. That money
-                // already moved, so this is history, not damage.
-                $findings[] = $this->finding('info', 'transfer_peer_deleted', sprintf(
-                    'Transfer %s: the other leg was deleted with its account; this leg still counts.', $group
-                ));
+        $misshapen = $owned(DB::table('transactions as t'), 't')->whereNull('t.deleted_at')->whereNotNull('t.transfer_group')->groupBy('t.transfer_group')
+            ->havingRaw("COUNT(*) <> 2 OR SUM(CASE WHEN t.transfer_direction = 'out' THEN 1 ELSE 0 END) <> 1 OR SUM(CASE WHEN t.transfer_direction = 'in' THEN 1 ELSE 0 END) <> 1")
+            ->selectRaw('t.transfer_group, COUNT(*) AS legs')->get();
 
-                continue;
-            }
-
-            if ($legs->count() !== 2 || $out->count() !== 1 || $in->count() !== 1) {
-                $findings[] = $this->finding('error', 'orphan_transfer_leg', sprintf(
-                    'Transfer %s has %d leg(s); a transfer must have exactly one out and one in.', $group, $legs->count()
-                ));
+        foreach ($misshapen as $g) {
+            if ((int) $g->legs === 1 && Transaction::onlyTrashed()->forContext($context)->where('transfer_group', $g->transfer_group)->exists()) {
+                // The other leg was deleted along with its account. That money already moved, so this is history, not damage.
+                $findings[] = $this->finding('info', 'transfer_peer_deleted', sprintf('Transfer %s: the other leg was deleted with its account; this leg still counts.', $g->transfer_group));
 
                 continue;
             }
+            $findings[] = $this->finding('error', 'orphan_transfer_leg', sprintf('Transfer %s has %d leg(s); a transfer must have exactly one out and one in.', $g->transfer_group, $g->legs));
+        }
 
-            $outLeg = $out->first();
-            $inLeg = $in->first();
+        $skip = $misshapen->pluck('transfer_group')->all();
+        $pairs = $owned(DB::table('transactions as o')->join('transactions as i', function ($j) {
+            $j->on('i.transfer_group', '=', 'o.transfer_group')->where('i.transfer_direction', 'in')->whereNull('i.deleted_at');
+        }), 'o')->where('o.transfer_direction', 'out')->whereNull('o.deleted_at')->whereNotNull('o.transfer_group')
+            ->when($skip !== [], fn ($q) => $q->whereNotIn('o.transfer_group', $skip))
+            ->where(fn ($q) => $q->where(fn ($w) => $w->whereColumn('o.currency', 'i.currency')->whereColumn('o.amount_cents', '<>', 'i.amount_cents'))->orWhereColumn('o.account_id', 'i.account_id'))
+            ->get(['o.transfer_group', 'o.currency as out_currency', 'i.currency as in_currency', 'o.amount_cents as out_cents', 'i.amount_cents as in_cents', 'o.account_id as out_account', 'i.account_id as in_account']);
 
-            if ($outLeg->currency === $inLeg->currency && $outLeg->amount_cents !== $inLeg->amount_cents) {
-                $findings[] = $this->finding('error', 'transfer_amount_mismatch', sprintf(
-                    'Transfer %s moves %d out but %d in within one currency.', $group, $outLeg->amount_cents, $inLeg->amount_cents
-                ));
+        foreach ($pairs as $p) {
+            if ($p->out_currency === $p->in_currency && (int) $p->out_cents !== (int) $p->in_cents) {
+                $findings[] = $this->finding('error', 'transfer_amount_mismatch', sprintf('Transfer %s moves %d out but %d in within one currency.', $p->transfer_group, $p->out_cents, $p->in_cents));
             }
-
-            if ($outLeg->account_id === $inLeg->account_id) {
-                $findings[] = $this->finding('error', 'transfer_same_account', sprintf('Transfer %s starts and ends in the same account.', $group));
+            if ((int) $p->out_account === (int) $p->in_account) {
+                $findings[] = $this->finding('error', 'transfer_same_account', sprintf('Transfer %s starts and ends in the same account.', $p->transfer_group));
             }
         }
 

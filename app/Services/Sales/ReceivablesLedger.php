@@ -36,43 +36,79 @@ final class ReceivablesLedger
     public function __construct(private readonly Chart $chart) {}
 
     /**
-     * Every invoice and debit note that still owes something.
+     * Every invoice and debit note that still owes something, oldest due first. With a $limit only the first $limit are
+     * loaded as models (the pages that list them show a handful and link to the full list).
      *
      * @return Collection<int, array{document: SalesDocument, party_id: int, currency: string, open_cents: int, open_base_cents: int, paid_cents: int}>
      */
-    public function openItems(LedgerContext $context, ?int $partyId = null): Collection
+    public function openItems(LedgerContext $context, ?int $partyId = null, ?int $limit = null): Collection
     {
         // the payment relation below is read through its own ledger scope, so the context is made current
-        return LedgerContext::run($context, fn () => $this->loadOpenItems($context, $partyId));
+        return LedgerContext::run($context, function () use ($context, $partyId, $limit) {
+            $rows = $this->openRows($context, $partyId);
+            if ($limit !== null) {
+                $rows = $rows->take($limit);
+            }
+            if ($rows->isEmpty()) {
+                return collect();
+            }
+
+            $documents = collect();
+            foreach ($rows->pluck('id')->chunk(1000) as $ids) {
+                $documents = $documents->concat(SalesDocument::query()->forContext($context)->whereIn('id', $ids->all())->with('party')->get());
+            }
+            $documents = $documents->keyBy('id');
+
+            return $rows->map(fn (object $r) => ['document' => $documents[$r->id], 'party_id' => (int) $r->party_id, 'currency' => $r->currency, 'open_cents' => $r->open_cents, 'open_base_cents' => $r->open_base_cents, 'paid_cents' => $r->paid_cents])->values();
+        });
     }
 
-    /** @return Collection<int, array<string, mixed>> */
-    private function loadOpenItems(LedgerContext $context, ?int $partyId): Collection
+    /** How many invoices and debit notes still owe something (one query, nothing loaded). */
+    public function openCount(LedgerContext $context, ?int $partyId = null): int
     {
-        $documents = SalesDocument::query()->forContext($context)->open()
-            ->when($partyId, fn ($q) => $q->where('party_id', $partyId))
-            ->with('party')->orderBy('due_date')->orderBy('id')->get();
+        return LedgerContext::run($context, fn () => $this->openRows($context, $partyId)->count());
+    }
 
-        if ($documents->isEmpty()) {
-            return collect();
-        }
+    /**
+     * The open documents as plain rows, worked out in the database: the document, less credit applied, written off and paid,
+     * in its own currency and in base. No model is built, so a ledger with tens of thousands of open invoices costs a few
+     * megabytes. Call inside the ledger's context.
+     *
+     * @return Collection<int, object{id: int, party_id: int, currency: string, issue_date: string, due_date: ?string, open_cents: int, open_base_cents: int, paid_cents: int}>
+     */
+    private function openRows(LedgerContext $context, ?int $partyId): Collection
+    {
+        $credit = SalesApplication::query()->forContext($context)->where('kind', 'credit')->whereNull('released_at')->groupBy('target_document_id')
+            ->selectRaw('target_document_id, SUM(amount_cents) AS cents');
+        $cleared = SalesApplication::query()->forContext($context)->whereNull('released_at')->groupBy('target_document_id')
+            ->selectRaw('target_document_id, SUM(target_base_cents) AS cents');
+        $paid = PaymentAllocation::query()->forContext($context)->where('payment_allocations.allocatable_type', (new SalesDocument)->getMorphClass())->whereNull('payment_allocations.released_at')
+            ->join('payments as pay', 'pay.id', '=', 'payment_allocations.payment_id')->where('pay.status', 'recorded')->groupBy('payment_allocations.allocatable_id')
+            ->selectRaw('payment_allocations.allocatable_id AS document_id, SUM(payment_allocations.amount_cents) AS cents');
 
-        $ids = $documents->pluck('id');
-        $credit = SalesApplication::query()->forContext($context)->whereIn('target_document_id', $ids)->where('kind', 'credit')->whereNull('released_at')
-            ->selectRaw('target_document_id, SUM(amount_cents) as cents')->groupBy('target_document_id')->pluck('cents', 'target_document_id');
-        $clearedBase = SalesApplication::query()->forContext($context)->whereIn('target_document_id', $ids)->whereNull('released_at')
-            ->selectRaw('target_document_id, SUM(target_base_cents) as cents')->groupBy('target_document_id')->pluck('cents', 'target_document_id');
-        $paid = PaymentAllocation::query()->forContext($context)->where('allocatable_type', (new SalesDocument)->getMorphClass())->whereIn('allocatable_id', $ids)
-            ->whereNull('released_at')->whereHas('payment', fn ($q) => $q->where('status', 'recorded'))
-            ->selectRaw('allocatable_id, SUM(amount_cents) as cents')->groupBy('allocatable_id')->pluck('cents', 'allocatable_id');
+        return SalesDocument::query()->forContext($context)->open()
+            ->when($partyId, fn ($q) => $q->where('sales_documents.party_id', $partyId))
+            ->leftJoinSub($credit, 'cr', 'cr.target_document_id', '=', 'sales_documents.id')
+            ->leftJoinSub($cleared, 'cl', 'cl.target_document_id', '=', 'sales_documents.id')
+            ->leftJoinSub($paid, 'pd', 'pd.document_id', '=', 'sales_documents.id')
+            ->select('sales_documents.id', 'sales_documents.party_id', 'sales_documents.currency', 'sales_documents.issue_date', 'sales_documents.due_date')
+            ->selectRaw('(sales_documents.total_cents - COALESCE(cr.cents, 0) - sales_documents.written_off_cents - COALESCE(pd.cents, 0)) AS open_cents')
+            ->selectRaw('(sales_documents.base_total_cents - sales_documents.written_off_base_cents - COALESCE(cl.cents, 0)) AS open_base_cents')
+            ->selectRaw('COALESCE(pd.cents, 0) AS paid_cents')
+            ->whereRaw('((sales_documents.total_cents - COALESCE(cr.cents, 0) - sales_documents.written_off_cents - COALESCE(pd.cents, 0)) > 0 OR (sales_documents.base_total_cents - sales_documents.written_off_base_cents - COALESCE(cl.cents, 0)) > 0)')
+            ->orderBy('sales_documents.due_date')->orderBy('sales_documents.id')
+            ->toBase()->get()
+            ->map(function (object $r) {
+                $r->id = (int) $r->id;
+                $r->party_id = (int) $r->party_id;
+                $r->open_cents = (int) $r->open_cents;
+                $r->open_base_cents = (int) $r->open_base_cents;
+                $r->paid_cents = (int) $r->paid_cents;
+                $r->issue_date = substr((string) $r->issue_date, 0, 10);
+                $r->due_date = $r->due_date !== null ? substr((string) $r->due_date, 0, 10) : null;
 
-        return $documents->map(function (SalesDocument $d) use ($credit, $clearedBase, $paid) {
-            $paidCents = (int) ($paid[$d->id] ?? 0);
-            $open = (int) $d->total_cents - (int) ($credit[$d->id] ?? 0) - (int) $d->written_off_cents - $paidCents;
-            $openBase = (int) $d->base_total_cents - (int) $d->written_off_base_cents - (int) ($clearedBase[$d->id] ?? 0);
-
-            return ['document' => $d, 'party_id' => (int) $d->party_id, 'currency' => $d->currency, 'open_cents' => $open, 'open_base_cents' => $openBase, 'paid_cents' => $paidCents];
-        })->filter(fn (array $row) => $row['open_cents'] > 0 || $row['open_base_cents'] > 0)->values();
+                return $r;
+            });
     }
 
     /**
@@ -110,26 +146,24 @@ final class ReceivablesLedger
     {
         $out = collect();
 
-        $payments = Payment::query()->forContext($context)->where('direction', 'in')->where('status', 'recorded')->whereNotNull('party_id')
-            ->when($partyId, fn ($q) => $q->where('party_id', $partyId))->get();
-        if ($payments->isNotEmpty()) {
-            $ids = $payments->pluck('id');
-            $allocated = PaymentAllocation::query()->forContext($context)->whereIn('payment_id', $ids)->whereNull('released_at')
-                ->selectRaw('payment_id, SUM(amount_cents) as cents')->groupBy('payment_id')->pluck('cents', 'payment_id');
-            $usedBase = SalesApplication::query()->forContext($context)->whereIn('payment_id', $ids)->whereNull('released_at')
-                ->selectRaw('payment_id, SUM(source_base_cents) as cents')->groupBy('payment_id')->pluck('cents', 'payment_id');
-            $refundedBase = SalesRefund::query()->forContext($context)->whereIn('source_payment_id', $ids)->where('status', 'recorded')
-                ->selectRaw('source_payment_id, SUM(source_base_cents) as cents')->groupBy('source_payment_id')->pluck('cents', 'source_payment_id');
-
-            foreach ($payments as $p) {
-                $left = (int) $p->amount_cents - (int) ($allocated[$p->id] ?? 0);
-                $total = $p->base_amount_cents !== null ? (int) $p->base_amount_cents : (int) $p->amount_cents;
-                $leftBase = $total - (int) ($usedBase[$p->id] ?? 0) - (int) ($refundedBase[$p->id] ?? 0);
-                if ($left > 0 || $leftBase > 0) {
-                    $out->push(['kind' => 'payment', 'id' => $p->id, 'label' => 'Payment received '.$p->paid_on->toDateString().($p->reference ? ' ('.$p->reference.')' : ''), 'date' => CarbonImmutable::parse($p->paid_on->toDateString()),
-                        'party_id' => (int) $p->party_id, 'currency' => $p->currency, 'cents' => $left, 'base_cents' => $leftBase, 'model' => $p]);
-                }
-            }
+        // Only payments that have something left are loaded; the remainder is worked out in the query.
+        $allocated = PaymentAllocation::query()->forContext($context)->whereNull('released_at')->groupBy('payment_id')->selectRaw('payment_id, SUM(amount_cents) AS cents');
+        $used = SalesApplication::query()->forContext($context)->whereNull('released_at')->whereNotNull('payment_id')->groupBy('payment_id')->selectRaw('payment_id, SUM(source_base_cents) AS cents');
+        $refunded = SalesRefund::query()->forContext($context)->where('status', 'recorded')->whereNotNull('source_payment_id')->groupBy('source_payment_id')->selectRaw('source_payment_id AS payment_id, SUM(source_base_cents) AS cents');
+        $payments = Payment::query()->forContext($context)->where('direction', 'in')->where('status', 'recorded')->whereNotNull('payments.party_id')
+            ->when($partyId, fn ($q) => $q->where('payments.party_id', $partyId))
+            ->leftJoinSub($allocated, 'al', 'al.payment_id', '=', 'payments.id')
+            ->leftJoinSub($used, 'us', 'us.payment_id', '=', 'payments.id')
+            ->leftJoinSub($refunded, 'rf', 'rf.payment_id', '=', 'payments.id')
+            ->whereRaw('(payments.amount_cents - COALESCE(al.cents, 0) > 0 OR COALESCE(payments.base_amount_cents, payments.amount_cents) - COALESCE(us.cents, 0) - COALESCE(rf.cents, 0) > 0)')
+            ->select('payments.*')->selectRaw('COALESCE(al.cents, 0) AS applied_cents, COALESCE(us.cents, 0) AS used_base, COALESCE(rf.cents, 0) AS refunded_base')
+            ->with('party')->get();
+        foreach ($payments as $p) {
+            $left = (int) $p->amount_cents - (int) $p->applied_cents;
+            $total = $p->base_amount_cents !== null ? (int) $p->base_amount_cents : (int) $p->amount_cents;
+            $leftBase = $total - (int) $p->used_base - (int) $p->refunded_base;
+            $out->push(['kind' => 'payment', 'id' => $p->id, 'label' => 'Payment received '.$p->paid_on->toDateString().($p->reference ? ' ('.$p->reference.')' : ''), 'date' => CarbonImmutable::parse($p->paid_on->toDateString()),
+                'party_id' => (int) $p->party_id, 'currency' => $p->currency, 'cents' => $left, 'base_cents' => $leftBase, 'model' => $p]);
         }
 
         $credits = SalesDocument::query()->forContext($context)->where('kind', 'credit_note')->whereNotNull('sealed_at')->where('status', '<>', 'void')
@@ -157,7 +191,7 @@ final class ReceivablesLedger
     /** What one customer owes, in base currency (invoices less credits and unapplied money). */
     public function customerBalanceBase(LedgerContext $context, int $partyId): int
     {
-        return (int) $this->openItems($context, $partyId)->sum('open_base_cents') - (int) $this->unappliedCredits($context, $partyId)->sum('base_cents');
+        return (int) LedgerContext::run($context, fn () => $this->openRows($context, $partyId)->sum('open_base_cents')) - (int) $this->unappliedCredits($context, $partyId)->sum('base_cents');
     }
 
     /**
@@ -172,19 +206,20 @@ final class ReceivablesLedger
         $rows = [];
         $blank = fn () => array_fill_keys(array_keys(self::BUCKETS), 0) + ['on_account' => 0, 'total' => 0, 'count' => 0];
 
-        foreach ($this->openItems($context, $partyId) as $item) {
-            /** @var SalesDocument $d */
-            $d = $item['document'];
-            $anchor = CarbonImmutable::parse(($basis === 'invoice' ? $d->issue_date : ($d->due_date ?? $d->issue_date))->toDateString());
-            $days = (int) $anchor->diffInDays($asOf, false);
+        $open = LedgerContext::run($context, fn () => $this->openRows($context, $partyId));
+        $parties = Party::query()->forContext($context)->withTrashed()->whereIn('id', $open->pluck('party_id')->unique()->all())->get()->keyBy('id');
+        $asOfDay = intdiv(strtotime($asOf->toDateString().' UTC'), 86400);
+        foreach ($open as $item) {
+            $anchor = $basis === 'invoice' ? $item->issue_date : ($item->due_date ?? $item->issue_date);
+            $days = $asOfDay - intdiv(strtotime($anchor.' UTC'), 86400);
             $bucket = match (true) {
                 $days <= 0 => 'current', $days <= 30 => 'd30', $days <= 60 => 'd60', $days <= 90 => 'd90', $days <= 120 => 'd120', default => 'd120p',
             };
 
-            $rows[$item['party_id']] ??= ['party' => $d->party] + $blank();
-            $rows[$item['party_id']][$bucket] += $item['open_base_cents'];
-            $rows[$item['party_id']]['total'] += $item['open_base_cents'];
-            $rows[$item['party_id']]['count']++;
+            $rows[$item->party_id] ??= ['party' => $parties->get($item->party_id)] + $blank();
+            $rows[$item->party_id][$bucket] += $item->open_base_cents;
+            $rows[$item->party_id]['total'] += $item->open_base_cents;
+            $rows[$item->party_id]['count']++;
         }
 
         foreach ($this->unappliedCredits($context, $partyId) as $credit) {
@@ -236,8 +271,8 @@ final class ReceivablesLedger
     public function reconcile(LedgerContext $context): array
     {
         $subledger = [];
-        foreach ($this->openItems($context) as $item) {
-            $subledger[$item['party_id']] = ($subledger[$item['party_id']] ?? 0) + $item['open_base_cents'];
+        foreach (LedgerContext::run($context, fn () => $this->openRows($context, null)) as $item) {
+            $subledger[$item->party_id] = ($subledger[$item->party_id] ?? 0) + $item->open_base_cents;
         }
         foreach ($this->unappliedCredits($context) as $credit) {
             $subledger[$credit['party_id']] = ($subledger[$credit['party_id']] ?? 0) - $credit['base_cents'];
@@ -277,11 +312,13 @@ final class ReceivablesLedger
     public function summary(LedgerContext $context, ?CarbonImmutable $today = null): array
     {
         $today ??= CarbonImmutable::today();
-        $items = $this->openItems($context);
+        $items = LedgerContext::run($context, fn () => $this->openRows($context, null));
         $credits = $this->unappliedCredits($context);
+        $day = $today->toDateString();
+        $soon = $today->addDays(7)->toDateString();
 
-        $overdue = $items->filter(fn ($i) => $i['document']->isOverdue($today));
-        $dueSoon = $items->filter(fn ($i) => ! $i['document']->isOverdue($today) && $i['document']->due_date !== null && $i['document']->due_date->toDateString() <= $today->addDays(7)->toDateString());
+        $overdue = $items->filter(fn ($i) => $i->due_date !== null && $i->due_date < $day);
+        $dueSoon = $items->filter(fn ($i) => $i->due_date !== null && $i->due_date >= $day && $i->due_date <= $soon);
         $reconcile = $this->reconcile($context);
 
         return [
@@ -295,7 +332,7 @@ final class ReceivablesLedger
             'open_count' => $items->count(),
             'reconciles' => $reconcile['ok'],
             'difference_cents' => $reconcile['difference_cents'],
-            'oldest_overdue_days' => $overdue->isEmpty() ? 0 : (int) $overdue->map(fn ($i) => (int) CarbonImmutable::parse($i['document']->due_date->toDateString())->diffInDays($today))->max(),
+            'oldest_overdue_days' => $overdue->isEmpty() ? 0 : (int) $overdue->map(fn ($i) => (int) intdiv(strtotime($day.' UTC') - strtotime($i->due_date.' UTC'), 86400))->max(),
         ];
     }
 }

@@ -52,9 +52,17 @@ final class RuleSession
         return $rule;
     }
 
+    /** @var array<string, ResolvedRate> resolved rates by key and day: a VAT review asks the same question for thousands of lines */
+    private array $rates = [];
+
     public function rate(string $rateKey, CarbonInterface|string $on): ResolvedRate
     {
-        $rate = $this->book->rate($this->jurisdiction, $rateKey, $on);
+        $day = $on instanceof CarbonInterface ? $on->toDateString() : substr($on, 0, 10);
+        if (isset($this->rates[$rateKey.'|'.$day])) {
+            return $this->rates[$rateKey.'|'.$day];
+        }
+
+        $rate = $this->rates[$rateKey.'|'.$day] = $this->book->rate($this->jurisdiction, $rateKey, $on);
         $this->used[$rate->version()] = [
             'version' => $rate->version(),
             'key' => $rate->rateKey,

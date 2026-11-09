@@ -35,7 +35,7 @@ class PayablesController extends PurchasesController
         return view('purchases.overview', [
             'on' => $ledger->accountingEnabled($context), 'drafts' => Bill::query()->where('status', 'draft')->count(), 'awaiting' => Bill::query()->where('status', 'awaiting_approval')->count() + ExpenseClaim::query()->where('status', 'awaiting_approval')->count(),
             'unposted' => Bill::query()->where('status', 'approved')->count() + ExpenseClaim::query()->where('status', 'approved')->count(), 'dueSoon' => $dueSoon, 'overdue' => $overdue,
-            'ageing' => $ap->ageing($context), 'reconcile' => $ap->reconcile($context), 'missing' => $missing->forLedger($context)->take(6), 'missingCount' => $missing->countForLedger($context),
+            'ageing' => $ap->ageing($context, null, $open = $ap->openItems($context)), 'reconcile' => $ap->reconcile($context, $open), 'missing' => $missing->forLedger($context, 6), 'missingCount' => $missing->countForLedger($context),
             'movers' => $ledger->accountingEnabled($context) ? $trends->movers($context, 5) : collect(), 'base' => $ledger->baseCurrencyOrDefault($context),
             'canBill' => $this->gate(Capability::EnterBill), 'canPay' => $this->gate(Capability::RecordPayment), 'settings' => PurchaseSetting::forLedger($context),
         ]);
@@ -66,7 +66,7 @@ class PayablesController extends PurchasesController
             }, 'payables-'.$asAt->toDateString().'.csv', ['Content-Type' => 'text/csv', 'Cache-Control' => 'private, no-store']);
         }
 
-        return view('purchases.ap', ['items' => $items, 'ageing' => $ap->ageing($context, $asAt), 'reconcile' => $ap->reconcile($context), 'asAt' => $asAt, 'base' => app(PurchaseLedger::class)->baseCurrencyOrDefault($context), 'partyId' => $v['party_id'] ?? null]);
+        return view('purchases.ap', ['items' => $items, 'ageing' => $ap->ageing($context, $asAt, $items), 'reconcile' => $ap->reconcile($context, $items), 'asAt' => $asAt, 'base' => app(PurchaseLedger::class)->baseCurrencyOrDefault($context), 'partyId' => $v['party_id'] ?? null]);
     }
 
     public function editSettings(): View
