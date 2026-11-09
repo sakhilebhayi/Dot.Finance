@@ -10,6 +10,8 @@ return [
     'payroll_import' => [
         'secret' => env('FINANCE_PAYROLL_IMPORT_SECRET'),
         'max_employees' => 2000,
+        // 2000 employee lines are well under 1 MB; a larger body is refused before it is read (QA security D-1404).
+        'max_body_bytes' => 2 * 1024 * 1024,
         'max_age_minutes' => 15,
     ],
 

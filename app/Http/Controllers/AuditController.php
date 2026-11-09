@@ -18,7 +18,7 @@ use Illuminate\Http\Request;
 class AuditController extends Controller
 {
     // member_role .. access_review: R-44 Controls; gl_account, period: R-44 accounting; assistant_draft, finance_insight, emall_sale: R-44 intelligence and integrations.
-    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import', 'member_role', 'approval_policy', 'approval_request', 'spend_limit', 'access_review', 'gl_account', 'period', 'assistant_draft', 'finance_insight', 'emall_sale', 'bank_statement', 'bank_reconciliation', 'bank_rule', 'bill', 'expense_claim', 'supplier_bank', 'payment_run', 'recurring_bill', 'purchase_setting', 'supplier_profile', 'plan_budget', 'scenario', 'dimension', 'report_preset', 'tax_profile', 'tax_return', 'tax_review', 'tax_estimate', 'tax_provisional', 'tax_payroll', 'tax_document', 'tax_correspondence', 'tax_export', 'report_export', 'tax_adjustment', 'tax_deadline'];
+    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import', 'member_role', 'approval_policy', 'approval_request', 'spend_limit', 'access_review', 'gl_account', 'period', 'assistant_draft', 'finance_insight', 'emall_sale', 'bank_statement', 'bank_reconciliation', 'bank_rule', 'bill', 'expense_claim', 'supplier_bank', 'payment_run', 'recurring_bill', 'purchase_setting', 'supplier_profile', 'plan_budget', 'scenario', 'dimension', 'report_preset', 'tax_profile', 'tax_return', 'tax_review', 'tax_estimate', 'tax_provisional', 'tax_payroll', 'tax_document', 'tax_correspondence', 'tax_export', 'report_export', 'tax_adjustment', 'tax_deadline', 'export'];
 
     public function index(Request $request)
     {

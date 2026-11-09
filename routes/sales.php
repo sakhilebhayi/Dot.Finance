@@ -11,7 +11,11 @@ use App\Http\Controllers\Sales\SalesDocumentController;
 use App\Http\Controllers\Sales\ShareController;
 use App\Http\Controllers\Sales\ShareLinkController;
 use App\Http\Middleware\ResolveLedgerContext;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,7 +94,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 });
 
 // What a customer opens from a link they were sent. No sign-in, no cookie, throttled, 404 when unknown, expired or revoked.
-Route::middleware('throttle:sales-share')->group(function () {
+// The session, cookie and CSRF middleware are taken off these two routes: a customer opening an invoice gets no session and no cookie
+// (they were being set; QA security D-1408). Nothing on the public page reads a session.
+Route::middleware('throttle:sales-share')->withoutMiddleware([
+    StartSession::class,
+    ShareErrorsFromSession::class,
+    AddQueuedCookiesToResponse::class,
+    PreventRequestForgery::class,
+])->group(function () {
     Route::get('/s/{shareToken}', [ShareController::class, 'show'])->name('sales.share.show');
     Route::get('/s/{shareToken}/pdf', [ShareController::class, 'pdf'])->name('sales.share.pdf');
 });

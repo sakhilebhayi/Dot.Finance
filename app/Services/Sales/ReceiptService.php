@@ -160,6 +160,14 @@ final class ReceiptService
                     $earlier = Payment::query()->forContext($context)->where('idempotency_key', $data['idempotency_key'])->first();
                     $replay = $earlier !== null ? SalesRefund::query()->forContext($context)->where('payment_id', $earlier->id)->first() : null;
                     if ($replay !== null) {
+                        // the same request returns the refund that was made; a different one under the same key is refused (D-1410)
+                        $sameSource = $replay->source_kind === 'payment'
+                            ? (int) $replay->source_payment_id === (int) ($data['source_payment_id'] ?? 0)
+                            : (int) $replay->source_document_id === (int) ($data['source_document_id'] ?? 0);
+                        if (! $sameSource || (int) $earlier->amount_cents !== $amount || (int) $earlier->cash_account_id !== (int) $account->id || $earlier->paid_on->toDateString() !== $paidOn->toDateString()) {
+                            throw new SalesViolation("The key {$data['idempotency_key']} was already used for a different refund. Repeat the same request to retry, or use a new key.", 'idempotency');
+                        }
+
                         return $replay;
                     }
 

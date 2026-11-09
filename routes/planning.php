@@ -22,16 +22,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::get('/budgets', [PlanBudgetController::class, 'index'])->name('budgets.index');
         Route::get('/budgets/create', [PlanBudgetController::class, 'create'])->name('budgets.create');
         Route::post('/budgets', [PlanBudgetController::class, 'store'])->name('budgets.store');
-        Route::get('/budgets/{planBudget}', [PlanBudgetController::class, 'show'])->whereNumber('planBudget')->name('budgets.show');
-        Route::get('/budgets/{planBudget}/edit', [PlanBudgetController::class, 'edit'])->whereNumber('planBudget')->name('budgets.edit');
-        Route::put('/budgets/{planBudget}', [PlanBudgetController::class, 'update'])->whereNumber('planBudget')->name('budgets.update');
-        Route::post('/budgets/{planBudget}/submit', [PlanBudgetController::class, 'submit'])->whereNumber('planBudget')->name('budgets.submit');
-        Route::post('/budgets/{planBudget}/version', [PlanBudgetController::class, 'version'])->whereNumber('planBudget')->name('budgets.version');
-        Route::post('/budgets/{planBudget}/reforecast', [PlanBudgetController::class, 'reforecast'])->whereNumber('planBudget')->name('budgets.reforecast');
+        Route::get('/budgets/{planBudget}', [PlanBudgetController::class, 'show'])->where('planBudget', '[0-9]{1,18}')->name('budgets.show');
+        Route::get('/budgets/{planBudget}/edit', [PlanBudgetController::class, 'edit'])->where('planBudget', '[0-9]{1,18}')->name('budgets.edit');
+        Route::put('/budgets/{planBudget}', [PlanBudgetController::class, 'update'])->where('planBudget', '[0-9]{1,18}')->name('budgets.update');
+        Route::post('/budgets/{planBudget}/submit', [PlanBudgetController::class, 'submit'])->where('planBudget', '[0-9]{1,18}')->name('budgets.submit');
+        Route::post('/budgets/{planBudget}/version', [PlanBudgetController::class, 'version'])->where('planBudget', '[0-9]{1,18}')->name('budgets.version');
+        Route::post('/budgets/{planBudget}/reforecast', [PlanBudgetController::class, 'reforecast'])->where('planBudget', '[0-9]{1,18}')->name('budgets.reforecast');
 
         Route::get('/dimensions', [DimensionController::class, 'index'])->name('dimensions.index');
         Route::post('/dimensions', [DimensionController::class, 'store'])->name('dimensions.store');
-        Route::put('/dimensions/{dimension}', [DimensionController::class, 'update'])->whereNumber('dimension')->name('dimensions.update');
+        Route::put('/dimensions/{dimension}', [DimensionController::class, 'update'])->where('dimension', '[0-9]{1,18}')->name('dimensions.update');
 
         Route::get('/cash', [CashController::class, 'index'])->name('cash.index');
         Route::get('/forecasts', [ForecastController::class, 'index'])->name('forecasts.index');
@@ -40,8 +40,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::get('/scenarios', [ScenarioController::class, 'index'])->name('scenarios.index');
         Route::get('/scenarios/create', [ScenarioController::class, 'create'])->name('scenarios.create');
         Route::post('/scenarios', [ScenarioController::class, 'store'])->name('scenarios.store');
-        Route::get('/scenarios/{scenario}', [ScenarioController::class, 'show'])->whereNumber('scenario')->name('scenarios.show');
-        Route::get('/scenarios/{scenario}/edit', [ScenarioController::class, 'edit'])->whereNumber('scenario')->name('scenarios.edit');
-        Route::put('/scenarios/{scenario}', [ScenarioController::class, 'update'])->whereNumber('scenario')->name('scenarios.update');
-        Route::delete('/scenarios/{scenario}', [ScenarioController::class, 'destroy'])->whereNumber('scenario')->name('scenarios.destroy');
+        Route::get('/scenarios/{scenario}', [ScenarioController::class, 'show'])->where('scenario', '[0-9]{1,18}')->name('scenarios.show');
+        Route::get('/scenarios/{scenario}/edit', [ScenarioController::class, 'edit'])->where('scenario', '[0-9]{1,18}')->name('scenarios.edit');
+        Route::put('/scenarios/{scenario}', [ScenarioController::class, 'update'])->where('scenario', '[0-9]{1,18}')->name('scenarios.update');
+        Route::delete('/scenarios/{scenario}', [ScenarioController::class, 'destroy'])->where('scenario', '[0-9]{1,18}')->name('scenarios.destroy');
     });

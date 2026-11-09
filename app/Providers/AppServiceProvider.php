@@ -53,6 +53,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Every id in a URL is a whole number that fits a bigint. Without this, /accounts/abc/edit reaches the database as
+        // `id = 'abc'` and PostgreSQL answers 500 (invalid input syntax for type bigint), as does an id of 25 digits; SQLite
+        // quietly says "not found". Now both are a plain 404 before any query (QA security D-1418). Tokens (uuid, share) are not here.
+        foreach ([
+            'account', 'application', 'approval', 'attachment', 'bankMatch', 'bankRule', 'bill', 'budget', 'category', 'claim', 'claimLine', 'detail', 'dimension', 'document', 'draft', 'entry',
+            'glAccount', 'insight', 'limit', 'line', 'link', 'member', 'message', 'notification', 'party', 'payment', 'period', 'planBudget', 'policy', 'provisionalPayment', 'reconciliation',
+            'recurring', 'reportExport', 'reportPreset', 'returnAdjustment', 'rule', 'run', 'scenario', 'statement', 'taxAdjustment', 'taxCorrespondence', 'taxDeadline', 'taxDocument',
+            'taxPayrollRun', 'taxReturn', 'template', 'transaction',
+        ] as $parameter) {
+            Route::pattern($parameter, '[0-9]{1,18}');
+        }
+
         // Every create / update / delete of a ledger record writes an audit row.
         foreach ([Transaction::class, Account::class, Category::class, Budget::class, RecurringRule::class] as $model) {
             $model::observe(FinanceAuditObserver::class);

@@ -53,6 +53,8 @@ class PayablesController extends PurchasesController
         $items = $ap->openItems($context, $asAt, isset($v['party_id']) ? (int) $v['party_id'] : null);
 
         if (($v['format'] ?? null) === 'csv') {
+            // A file out of the books needs the export capability, like every other export (the page itself is for anyone who can read).
+            Gate::authorize(Capability::ExportReports->value);
             FinanceAudit::exported($context->ownerAttributes(), 'Payables, open items (CSV)', ['report' => 'payables', 'format' => 'csv', 'as_at' => $asAt->toDateString()]);
 
             return Response::streamDownload(function () use ($items, $asAt, $ap, $context) {

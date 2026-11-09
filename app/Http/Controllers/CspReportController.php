@@ -19,8 +19,10 @@ class CspReportController extends Controller
         $report = is_array($raw) ? ($raw['csp-report'] ?? $raw[0]['body'] ?? $raw) : [];
 
         if (is_array($report)) {
-            $directive = (string) ($report['effective-directive'] ?? $report['violated-directive'] ?? $report['effectiveDirective'] ?? 'unknown');
-            $blocked = (string) ($report['blocked-uri'] ?? $report['blockedURL'] ?? '');
+            // Anyone can post anything here: only plain strings are read, so a nested array can never become a server error.
+            $text = fn (mixed $v, string $default) => is_string($v) ? $v : $default;
+            $directive = $text($report['effective-directive'] ?? $report['violated-directive'] ?? $report['effectiveDirective'] ?? null, 'unknown');
+            $blocked = $text($report['blocked-uri'] ?? $report['blockedURL'] ?? null, '');
             $host = parse_url($blocked, PHP_URL_HOST) ?: (in_array($blocked, ['inline', 'eval', 'data', 'blob', 'self'], true) ? $blocked : 'unknown');
 
             Log::channel(config('logging.default'))->warning('csp.violation', [

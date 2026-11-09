@@ -24,18 +24,18 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::get('/', [AssistantController::class, 'index'])->name('index');
         Route::post('/', [AssistantController::class, 'ask'])->middleware('throttle:finance-assistant')->name('ask');
         Route::delete('/messages', [AssistantController::class, 'clear'])->name('clear');
-        Route::delete('/messages/{message}', [AssistantController::class, 'destroy'])->whereNumber('message')->name('destroy');
-        Route::get('/drafts/{draft}', [AssistantController::class, 'draft'])->whereNumber('draft')->name('draft');
-        Route::post('/drafts/{draft}/confirm', [AssistantController::class, 'confirm'])->whereNumber('draft')->name('draft.confirm');
-        Route::post('/drafts/{draft}/dismiss', [AssistantController::class, 'dismiss'])->whereNumber('draft')->name('draft.dismiss');
+        Route::delete('/messages/{message}', [AssistantController::class, 'destroy'])->where('message', '[0-9]{1,18}')->name('destroy');
+        Route::get('/drafts/{draft}', [AssistantController::class, 'draft'])->where('draft', '[0-9]{1,18}')->name('draft');
+        Route::post('/drafts/{draft}/confirm', [AssistantController::class, 'confirm'])->where('draft', '[0-9]{1,18}')->name('draft.confirm');
+        Route::post('/drafts/{draft}/dismiss', [AssistantController::class, 'dismiss'])->where('draft', '[0-9]{1,18}')->name('draft.dismiss');
     });
 
     // What needs attention: reading needs view-finance; changing a finding's state needs record-entries.
     Route::middleware('can:view-finance')->get('/attention', [AttentionController::class, 'index'])->name('intel.attention.index');
     Route::middleware('can:record-entries')->prefix('attention')->name('intel.attention.')->group(function () {
         Route::post('/scan', [AttentionController::class, 'scan'])->middleware('throttle:6,1')->name('scan');
-        Route::post('/{insight}/dismiss', [AttentionController::class, 'dismiss'])->whereNumber('insight')->name('dismiss');
-        Route::post('/{insight}/snooze', [AttentionController::class, 'snooze'])->whereNumber('insight')->name('snooze');
+        Route::post('/{insight}/dismiss', [AttentionController::class, 'dismiss'])->where('insight', '[0-9]{1,18}')->name('dismiss');
+        Route::post('/{insight}/snooze', [AttentionController::class, 'snooze'])->where('insight', '[0-9]{1,18}')->name('snooze');
     });
 
     // Notifications are a person's own; the ledger scope plus recipient check keep them so.
@@ -44,7 +44,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::post('/read-all', [NotificationController::class, 'readAll'])->name('read-all');
         Route::get('/preferences', [NotificationController::class, 'preferences'])->name('preferences');
         Route::put('/preferences', [NotificationController::class, 'update'])->name('preferences.update');
-        Route::post('/{notification}/read', [NotificationController::class, 'read'])->whereNumber('notification')->name('read');
+        Route::post('/{notification}/read', [NotificationController::class, 'read'])->where('notification', '[0-9]{1,18}')->name('read');
     });
 
     // Integrations: the status page, and the review of Dot.Emall sale lines.
@@ -53,7 +53,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::get('/emall', [EmallReviewController::class, 'index'])->name('emall.index');
     });
     Route::middleware('can:post-journal')->prefix('integrations/emall')->name('intel.integrations.emall.')->group(function () {
-        Route::post('/{line}/post', [EmallReviewController::class, 'post'])->whereNumber('line')->name('post');
-        Route::post('/{line}/reject', [EmallReviewController::class, 'reject'])->whereNumber('line')->name('reject');
+        Route::post('/{line}/post', [EmallReviewController::class, 'post'])->where('line', '[0-9]{1,18}')->name('post');
+        Route::post('/{line}/reject', [EmallReviewController::class, 'reject'])->where('line', '[0-9]{1,18}')->name('reject');
     });
 });

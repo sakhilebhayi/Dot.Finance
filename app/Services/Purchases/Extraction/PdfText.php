@@ -15,6 +15,15 @@ use Symfony\Component\Process\Process;
  */
 final class PdfText
 {
+    /** One inflated stream may not grow past this (a "zip bomb" PDF packs gigabytes into a few kilobytes). */
+    private const MAX_STREAM_BYTES = 4 * 1024 * 1024;
+
+    /** All the content read out of one file may not grow past this, whatever the number of streams. */
+    private const MAX_TOTAL_BYTES = 16 * 1024 * 1024;
+
+    /** At most this many streams are looked at: a file made of a million empty streams costs the same as a normal one. */
+    private const MAX_STREAMS = 2000;
+
     public function read(string $bytes): string
     {
         $viaTool = $this->viaPdftotext($bytes);
@@ -58,11 +67,17 @@ final class PdfText
             return '';
         }
 
-        foreach ($streams[1] as $raw) {
+        $budget = self::MAX_TOTAL_BYTES;
+
+        foreach (array_slice($streams[1], 0, self::MAX_STREAMS) as $raw) {
+            if ($budget <= 0) {
+                break;
+            }
             $content = $this->inflate($raw);
             if ($content === null || ! str_contains($content, 'BT')) {
                 continue;
             }
+            $budget -= strlen($content);
             $text .= $this->textOperators($content)."\n";
         }
 
@@ -72,7 +87,8 @@ final class PdfText
     private function inflate(string $raw): ?string
     {
         foreach (['gzuncompress', 'gzinflate'] as $fn) {
-            $out = @$fn($fn === 'gzinflate' ? substr($raw, 2) : $raw);
+            // The second argument caps the output, so a bomb is cut off at the limit instead of filling memory.
+            $out = @$fn($fn === 'gzinflate' ? substr($raw, 2) : $raw, self::MAX_STREAM_BYTES);
             if (is_string($out) && $out !== '') {
                 return $out;
             }

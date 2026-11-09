@@ -14,6 +14,7 @@ use App\Services\Tax\Exceptions\TaxException;
 use App\Services\Tax\IncomeTaxEstimator;
 use App\Services\Tax\IncomeTaxProvision;
 use App\Services\Tax\TaxBasis;
+use App\Support\ExportAudit;
 use App\Support\FinanceAudit;
 use App\Support\Money;
 use App\Support\Shared\Exceptions\AttachmentRejected;
@@ -165,6 +166,7 @@ class IncomeTaxController extends TaxController
         $profile = $this->profileOrWizard();
         abort_if($profile instanceof RedirectResponse, 404);
         $request->validate(['year_end' => ['nullable', 'date_format:Y-m-d']]);
+        ExportAudit::record('Income tax estimate workpaper');
 
         $yearEnd = $estimator->taxYearEnd($profile, $request->filled('year_end') ? CarbonImmutable::parse($request->query('year_end')) : CarbonImmutable::today());
 

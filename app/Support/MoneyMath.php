@@ -41,7 +41,7 @@ final class MoneyMath
         $quotient = bcdiv($numerator, bcmul('2', (string) abs($d), 0), 0);
 
         if (bccomp($quotient, (string) PHP_INT_MAX, 0) > 0) {
-            throw new RuntimeException('The result does not fit in an integer amount.');
+            throw new \OverflowException('The result does not fit in an integer amount.');
         }
 
         return $negative ? -(int) $quotient : (int) $quotient;

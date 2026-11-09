@@ -100,6 +100,7 @@ class ExportController extends ReportingController
     {
         $this->require(Capability::ExportReports);
         abort_unless($reportExport->isDone() && Storage::disk($reportExport->disk)->exists($reportExport->path), 404);
+        ExportAudit::record('Report export #'.$reportExport->id.' downloaded', (string) $reportExport->format);
 
         return Storage::disk($reportExport->disk)->download($reportExport->path, $reportExport->downloadName(), ['X-Content-SHA256' => $reportExport->sha256]);
     }
