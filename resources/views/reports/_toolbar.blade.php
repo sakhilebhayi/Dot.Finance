@@ -4,14 +4,14 @@
     $in = $input;
     $selectedPreset = $request->period->preset;
 @endphp
-<form method="GET" action="{{ route($routeName) }}" class="rp-toolbar" aria-label="Report settings">
+<form method="GET" action="{{ route($routeName) }}" class="rp-toolbar" aria-label="Report settings" data-fx-custom-dates>
     @unless ($point)
-    <x-fx.select name="preset" label="Period" hint="Dates apply for Custom dates.">
+    <x-fx.select name="preset" label="Period">
         @foreach ($periodPresets as $value => $label)
         <option value="{{ $value }}" @selected($selectedPreset === $value)>{{ $label }}</option>
         @endforeach
     </x-fx.select>
-    <x-fx.input name="from" label="From" type="date" :value="$request->period->from" />
+    <x-fx.input name="from" label="From" type="date" :value="$request->period->from" hint="Changing a date switches Period to Custom dates." />
     <x-fx.input name="to" label="To" type="date" :value="$request->period->to" />
     @else
     <x-fx.input name="to" label="As at" type="date" :value="$request->period->to" />
@@ -26,7 +26,7 @@
     @endif
 
     @if ($definition->supportsBasis())
-    <x-fx.select name="basis" label="Basis" hint="Accrual: when issued. Cash: when paid.">
+    <x-fx.select name="basis" label="Basis" hint="Accrual counts a sale when issued; cash counts it when paid.">
         <option value="accrual" @selected(($in['basis'] ?? 'accrual') === 'accrual')>Accrual</option>
         <option value="cash" @selected(($in['basis'] ?? '') === 'cash')>Cash</option>
     </x-fx.select>
@@ -43,7 +43,7 @@
         <option value="direct" @selected(($in['view'] ?? '') === 'direct')>Direct (from the bank)</option>
     </x-fx.select>
     @elseif ($key === 'general-ledger')
-    <x-fx.select name="account" label="Account" :optional="true">
+    <x-fx.select name="account" label="Account" :optional="true" wrap="rp-toolbar__wide">
         <option value="">Every account with activity</option>
         @foreach ($accounts as $a)
         <option value="{{ $a->id }}" @selected((string) ($in['account'] ?? '') === (string) $a->id)>{{ $a->code }} {{ $a->name }}</option>
@@ -56,7 +56,7 @@
         @endforeach
     </x-fx.select>
     @elseif ($key === 'budget-vs-actual')
-    <x-fx.select name="budget" label="Plan" :optional="true">
+    <x-fx.select name="budget" label="Plan" :optional="true" wrap="rp-toolbar__wide">
         <option value="">The plan covering the period</option>
         @foreach ($plans ?? [] as $plan)
         <option value="{{ $plan->id }}" @selected((string) ($in['budget'] ?? '') === (string) $plan->id)>{{ $plan->name }} (v{{ $plan->version }}, {{ $plan->status }})</option>

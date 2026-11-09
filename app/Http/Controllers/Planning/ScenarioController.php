@@ -50,6 +50,7 @@ class ScenarioController extends PlanningController
 
         return view('planning.scenarios.show', [
             'scenario' => $scenario, 'base' => $base, 'alt' => $alt, 'compare' => $projection->compare($base, $alt),
+            'noEffect' => $projection->noEffectReason($assumptions, $base, $alt),
             'described' => array_map(fn ($a) => Assumptions::describe($a, $settings->base_currency), $assumptions),
             'canManage' => $this->access()->can(Capability::ManageBudgets),
         ]);

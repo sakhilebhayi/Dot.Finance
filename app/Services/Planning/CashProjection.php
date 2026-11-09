@@ -238,6 +238,54 @@ class CashProjection
         ];
     }
 
+    /**
+     * When a scenario leaves the projection exactly as it was, say why in plain words. Null when it does change something.
+     * The reasons come from the base projection's own items: how many invoices, bills and recurring items fall in the window,
+     * and whether the ones that do are already late (a late item is placed on tomorrow, whatever days a scenario adds).
+     *
+     * @param  list<array<string, mixed>>  $assumptions  from Assumptions::normalise()
+     */
+    public function noEffectReason(array $assumptions, array $base, array $scenario): ?string
+    {
+        $key = fn (array $p) => json_encode([$p['series'], array_map(fn ($e) => [$e['date'], $e['cents'], $e['label']], $p['events'])]);
+        if ($key($base) !== $key($scenario)) {
+            return null;
+        }
+
+        $of = fn (string $source) => array_values(array_filter($base['events'], fn ($e) => $e['source'] === $source));
+        $late = fn (array $rows) => count(array_filter($rows, fn ($e) => $e['overdue']));
+        $window = CarbonImmutable::parse($base['today'])->format('j M Y').' and '.CarbonImmutable::parse($base['end'])->format('j M Y');
+        $reasons = [];
+
+        foreach (array_unique(array_column($assumptions, 'type')) as $type) {
+            $reasons[] = match ($type) {
+                'collect_faster', 'delay_receipts' => (function () use ($of, $late, $window) {
+                    $rows = $of('invoice');
+
+                    return $rows === []
+                        ? "no invoice is expected to be paid between {$window}, so there is no payment to move"
+                        : ($late($rows) === count($rows) ? 'every open invoice is already overdue, and an overdue invoice is assumed paid tomorrow whatever days are added' : 'the invoices that are open land in the same days either way');
+                })(),
+                'delay_payment' => (function () use ($of, $late, $window) {
+                    $rows = $of('bill');
+
+                    return $rows === []
+                        ? "no supplier bill falls due between {$window}, so there is no payment to delay"
+                        : ($late($rows) === count($rows) ? 'every open bill is already overdue, and an overdue bill is assumed paid tomorrow whatever days are added' : 'the bills that are open land in the same days either way');
+                })(),
+                'change_recurring' => $of('recurring') === [] ? 'no recurring item falls in this window, so there is nothing to reprice' : 'the recurring items it changes are not in this window',
+                'new_cost', 'one_off' => 'what it adds falls outside the window',
+                default => null,
+            };
+        }
+
+        $reasons = array_values(array_filter($reasons));
+
+        return $reasons === []
+            ? 'It moves no money inside the window.'
+            : ucfirst(implode('; ', $reasons)).'.';
+    }
+
     /** @return list<array<string, mixed>> */
     private function buckets(array $events, CarbonImmutable $today, CarbonImmutable $end, string $horizon, int $opening): array
     {

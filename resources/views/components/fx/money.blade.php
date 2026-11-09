@@ -12,7 +12,5 @@
 <span class="fx-figure-line">
     <span {{ $attributes->class(['fx-money', 'is-neg' => $negative, 'is-lead' => $lead, 'is-variance' => $variance, 'is-ticked' => $ticked, 'is-quiet' => $quiet]) }}>@if ($negative)<span class="sr-only">negative </span>@endif{{ $text }}</span>
     <x-fx.trace :href="$trace" :label="$traceLabel" :ticked="$ticked" />
-</span>
-@else
-<span {{ $attributes->class(['fx-money', 'is-neg' => $negative, 'is-lead' => $lead, 'is-variance' => $variance, 'is-ticked' => $ticked, 'is-quiet' => $quiet]) }}>@if ($negative)<span class="sr-only">negative </span>@endif{{ $text }}</span>
-@endif
+</span>@else
+<span {{ $attributes->class(['fx-money', 'is-neg' => $negative, 'is-lead' => $lead, 'is-variance' => $variance, 'is-ticked' => $ticked, 'is-quiet' => $quiet]) }}>@if ($negative)<span class="sr-only">negative </span>@endif{{ $text }}</span>@endif

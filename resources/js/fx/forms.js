@@ -35,3 +35,14 @@ if (window.matchMedia('(max-width: 719.98px)').matches) {
         if (details.dataset.active !== '1') details.open = false;
     });
 }
+
+// form[data-fx-custom-dates]: typing a From/To date means "Custom dates", so the Period choice follows the dates.
+document.querySelectorAll('form[data-fx-custom-dates]').forEach((form) => {
+    const preset = form.elements.preset;
+    if (!preset) return;
+    ['from', 'to'].forEach((name) => {
+        form.elements[name]?.addEventListener('change', () => {
+            if (Array.from(preset.options).some((option) => option.value === 'custom')) preset.value = 'custom';
+        });
+    });
+});

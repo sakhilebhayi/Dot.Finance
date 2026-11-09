@@ -14,12 +14,19 @@
             <x-fx.input name="question" label="Your question" maxlength="500" required autocomplete="off" placeholder="How much did I spend this month?" :bind="false" />
             <x-fx.button variant="primary" icon="send">Ask</x-fx.button>
         </div>
-        <ul class="intel-suggest" aria-label="Questions you can ask">
-            @foreach ($suggestions as $suggestion)
-            <li><button type="submit" name="question" value="{{ $suggestion }}">{{ $suggestion }}</button></li>
-            @endforeach
-        </ul>
     </form>
+    {{-- Each suggestion is its own form: it submits its own text and never sits next to the required field above. --}}
+    <ul class="intel-suggest" aria-label="Questions you can ask">
+        @foreach ($suggestions as $suggestion)
+        <li>
+            <form method="POST" action="{{ route('intel.assistant.ask') }}" class="intel-suggest__form">
+                @csrf
+                <input type="hidden" name="question" value="{{ $suggestion }}">
+                <button type="submit">{{ $suggestion }}</button>
+            </form>
+        </li>
+        @endforeach
+    </ul>
 </x-fx.panel>
 
 <x-fx.panel title="Your questions in this ledger" :meta="$messages->isEmpty() ? null : $messages->count().' kept, newest first. Only you can see them.'" id="history">

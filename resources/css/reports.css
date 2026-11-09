@@ -7,13 +7,17 @@
 .rp-toolbar {
     display: grid;
     gap: var(--s-3) var(--s-4);
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
     align-items: start;
     padding: var(--s-4);
     border: 1px solid var(--rule);
     border-radius: var(--r-panel);
     background: var(--sheet);
     margin-block-end: var(--s-5);
+}
+
+.rp-toolbar__wide {
+    grid-column: span 2;
 }
 
 .rp-toolbar__actions {
@@ -26,18 +30,43 @@
 
 .rp-header {
     margin: 0 0 var(--s-4);
-    display: grid;
-    gap: var(--s-1) var(--s-5);
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
     font-size: var(--fs-small);
     color: var(--ink-2);
 }
 
-.rp-header dt {
+.rp-header__dl,
+dl.rp-header {
+    display: grid;
+    gap: var(--s-1) var(--s-5);
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.rp-header__line {
+    margin: 0;
+    color: var(--ink);
+}
+
+.rp-header__working {
+    margin-block-start: var(--s-1);
+}
+
+.rp-header__working > summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    width: fit-content;
+    padding: var(--s-1) 0;
+    min-height: 24px;
+}
+
+.rp-header__dl {
+    margin: var(--s-2) 0 0;
+}
+
+.rp-header__dl dt {
     color: var(--ink-3);
 }
 
-.rp-header dd {
+.rp-header__dl dd {
     margin: 0;
     color: var(--ink);
 }
@@ -254,6 +283,10 @@
 }
 
 @media (max-width: 40rem) {
+    .rp-toolbar__wide {
+        grid-column: auto;
+    }
+
     .rp-toolbar {
         gap: var(--s-2) var(--s-3);
         padding: var(--s-3);
@@ -261,5 +294,57 @@
 
     .rp-toolbar .fx-hint {
         display: none;
+    }
+}
+
+/* A report keeps its columns on a phone: one header row, name and amounts aligned, and a wide one scrolls inside its panel. */
+.fx-tablewrap:has(> .rp-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.rp-table .is-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+@media (max-width: 47.5rem) {
+    .fx-table.rp-table thead th {
+        position: static;
+        white-space: normal;
+        vertical-align: bottom;
+        padding-inline: var(--s-2);
+    }
+
+    .fx-table.rp-table tbody th,
+    .fx-table.rp-table tbody td {
+        padding: var(--s-2);
+        vertical-align: baseline;
+    }
+
+    .fx-table.rp-table th:first-child,
+    .fx-table.rp-table td:first-child {
+        padding-left: var(--s-3);
+    }
+
+    .fx-table.rp-table th:last-child,
+    .fx-table.rp-table td:last-child {
+        padding-right: var(--s-3);
+    }
+
+    .fx-table.rp-table tbody th[scope='row'],
+    .fx-table.rp-table thead th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--sheet);
+        min-width: 6rem;
+        max-width: 11rem;
+    }
+
+    .fx-table.rp-table tr.rp-section th {
+        position: static;
+        min-width: 0;
+        max-width: none;
     }
 }
