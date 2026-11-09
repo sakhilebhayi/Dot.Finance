@@ -148,7 +148,7 @@ final class Navigation
             'sales' => [
                 ['key' => 'invoices', 'label' => 'Invoices', 'icon' => 'file-text', 'routes' => ['sales.invoices.index', 'invoices.index']],
                 ['key' => 'quotes', 'label' => 'Quotes', 'icon' => 'file-clock', 'routes' => ['sales.quotes.index', 'quotes.index']],
-                ['key' => 'customers', 'label' => 'Customers', 'icon' => 'users', 'routes' => ['parties.customers.index', 'customers.index', 'sales.customers.index']],
+                ['key' => 'customers', 'label' => 'Customers', 'icon' => 'users', 'routes' => ['parties.customers.index', 'customers.index', 'sales.customers.index', 'parties.index']],
             ],
             'purchases' => [
                 ['key' => 'bills', 'label' => 'Bills', 'icon' => 'receipt', 'routes' => ['purchases.bills.index', 'bills.index']],
@@ -169,6 +169,8 @@ final class Navigation
                 ['key' => 'cash-flow', 'label' => 'Cash flow', 'icon' => 'chart-column', 'routes' => ['reports.cash-flow']],
                 ['key' => 'profit-loss', 'label' => 'Profit and loss', 'icon' => 'chart-line', 'routes' => ['reports.profit-loss', 'reports.pnl']],
                 ['key' => 'balance-sheet', 'label' => 'Balance sheet', 'icon' => 'scale', 'routes' => ['reports.balance-sheet']],
+                ['key' => 'trial-balance', 'label' => 'Trial balance', 'icon' => 'scale', 'routes' => ['accounting.trial-balance']],
+                ['key' => 'general-ledger', 'label' => 'General ledger', 'icon' => 'book-open', 'routes' => ['accounting.general-ledger']],
                 ['key' => 'insights', 'label' => 'Weekly summaries', 'icon' => 'file-text', 'routes' => ['insights.index'], 'match' => ['insights.*']],
             ],
             'planning' => [
@@ -180,10 +182,14 @@ final class Navigation
                 ['key' => 'tieout', 'label' => 'Balance tie-out', 'icon' => 'shield-check', 'routes' => ['reconciliation.index'], 'match' => ['reconciliation.*']],
                 ['key' => 'audit', 'label' => 'Audit log', 'icon' => 'history', 'routes' => ['audit.index'], 'can' => 'view-audit', 'match' => ['audit.*']],
                 ['key' => 'approvals', 'label' => 'Approvals', 'icon' => 'list-checks', 'routes' => ['controls.approvals.index', 'approvals.index']],
-                ['key' => 'access', 'label' => 'Roles and access', 'icon' => 'key-round', 'routes' => ['controls.access.index', 'controls.roles.index']],
+                ['key' => 'access', 'label' => 'Roles and access', 'icon' => 'key-round', 'routes' => ['controls.members.index', 'controls.access.index', 'controls.roles.index']],
                 ['key' => 'periods', 'label' => 'Period locks', 'icon' => 'lock', 'routes' => ['controls.periods.index', 'accounting.periods.index']],
-                ['key' => 'chart', 'label' => 'Chart of accounts', 'icon' => 'book-check', 'routes' => ['accounting.accounts.index', 'gl.accounts.index', 'chart.index']],
+                ['key' => 'chart', 'label' => 'Chart of accounts', 'icon' => 'book-check', 'routes' => ['accounting.chart.index', 'accounting.accounts.index', 'gl.accounts.index', 'chart.index']],
                 ['key' => 'journals', 'label' => 'Journals', 'icon' => 'layers', 'routes' => ['accounting.journals.index', 'journals.index']],
+                ['key' => 'policies', 'label' => 'Approval rules', 'icon' => 'list-checks', 'routes' => ['controls.policies.index']],
+                ['key' => 'limits', 'label' => 'Spending limits', 'icon' => 'gauge', 'routes' => ['controls.limits.index']],
+                ['key' => 'access-review', 'label' => 'Access review', 'icon' => 'user-check', 'routes' => ['controls.access-review.index']],
+                ['key' => 'accounting-setup', 'label' => 'Accounting set-up', 'icon' => 'settings-2', 'routes' => ['accounting.setup']],
             ],
         ];
     }

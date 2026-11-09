@@ -2,6 +2,8 @@
 
 use App\Console\Commands\GenerateInsights;
 use App\Console\Commands\GenerateRecurringTransactions;
+use App\Console\Commands\Gl\PostPending;
+use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\PruneImports;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -17,7 +19,8 @@ Artisan::command('inspire', function () {
 // follows an existing schedule convention.
 Schedule::command(GenerateInsights::class)
     ->weekly()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->onOneServer();
 
 // Generate any recurring transaction occurrences due today, across all
 // users -- daily rather than matching each transaction's own cadence,
@@ -25,9 +28,23 @@ Schedule::command(GenerateInsights::class)
 // yearly) and this just checks "is next_occurrence_date <= today" each run.
 Schedule::command(GenerateRecurringTransactions::class)
     ->daily()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->onOneServer();
 
 // Staged CSV uploads that were previewed but never imported are deleted after a day.
 Schedule::command(PruneImports::class)
     ->daily()
-    ->withoutOverlapping();
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// The journals' safety net: post anything the cash ledger changed that explicit posting missed, then prove
+// the books still tie out. A failing verify exits non-zero, which the scheduler watchdog reports.
+Schedule::command(PostPending::class)
+    ->dailyAt('02:10')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command(Verify::class)
+    ->dailyAt('02:40')
+    ->withoutOverlapping()
+    ->onOneServer();

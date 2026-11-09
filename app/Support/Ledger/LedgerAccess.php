@@ -202,4 +202,25 @@ final class LedgerAccess
     {
         return $this->personal || $this->can(Capability::ViewAudit);
     }
+
+    // ── R-44 F1 accounting capabilities (self-contained block; the Controls module owns the role model) ──
+
+    /** Post (and reverse) manual journal entries. Reading the journals, trial balance and general ledger needs only membership. */
+    public function canPost(): bool
+    {
+        return $this->isManager() || $this->isEditor();
+    }
+
+    /** Create, rename, renumber and deactivate chart-of-accounts entries; enable accounting for the ledger. */
+    public function canManageChart(): bool
+    {
+        return $this->isManager();
+    }
+
+    /** Close and reopen accounting periods. */
+    public function canClosePeriod(): bool
+    {
+        return $this->isManager();
+    }
+    // ── end R-44 F1 block ──
 }

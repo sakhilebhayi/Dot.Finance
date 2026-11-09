@@ -26,10 +26,10 @@ class SpendingTrendCalculator
 
         // One grouped query; bucketed into months in PHP because the SQL
         // date-format function differs per driver (strftime / to_char).
-        $rows = Transaction::query()->forContext($context)
+        $rows = Transaction::query()->forContext($context)->counted()
             ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])
-            ->whereDate('date', '>=', $windowStart->toDateString())
+            ->where('date', '>=', $windowStart->toDateString())
             ->selectRaw('type, date, SUM(amount_cents) AS total')
             ->groupBy('type', 'date')
             ->get();

@@ -36,7 +36,11 @@ class Team extends JetstreamTeam
     }
 
     /** Tables whose rows can belong to a company ledger. */
-    public const LEDGER_TABLES = ['accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights'];
+    public const LEDGER_TABLES = [
+        'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights',
+        // R-44 accounting: journals are append-only books of record and are never removed with a team.
+        'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+    ];
 
     /**
      * R-44 shared data layer (parties, numbering, attachments, payments) and a company's own tax/FX overrides.

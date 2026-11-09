@@ -7,6 +7,8 @@
 <form method="POST" action="{{ route('transactions.update', $transaction) }}" class="fx-panel fx-panel__body fx-form r-stack">
     @csrf
     @method('PUT')
+    <input type="hidden" name="version" value="{{ $transaction->version }}">
+    @error('version')<p class="fx-error" role="alert">{{ $message }}</p>@enderror
 
     <x-fx.input name="description" id="transactions-edit-description" label="Description" :value="$transaction->description" required maxlength="255" />
 

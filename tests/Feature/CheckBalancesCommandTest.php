@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\LedgerReconciler;
 use App\Services\TransferService;
+use App\Support\Database\Checks;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -49,7 +50,10 @@ class CheckBalancesCommandTest extends TestCase
 
         $report = (new LedgerReconciler)->run(LedgerContext::personal($user));
 
-        $this->assertSame([], $report['findings']);
+        // R-44 D-100: the row before the opening date is now named (a warning, not an error), because it is
+        // excluded from the balance and from every report. Nothing else is found.
+        $this->assertSame(['pre_opening_transactions'], array_column($report['findings'], 'code'));
+        $this->assertSame([], LedgerReconciler::problems($report));
         $byId = collect($report['accounts'])->keyBy('account_id');
         $this->assertSame(-5_000 + 30_001 - 1_234, $byId[$a->id]['derived_cents']);
         $this->assertSame($byId[$a->id]['derived_cents'], $byId[$a->id]['recomputed_cents']);
@@ -137,6 +141,8 @@ class CheckBalancesCommandTest extends TestCase
     public function test_an_unmigrated_legacy_row_is_flagged(): void
     {
         $account = Account::factory()->create();
+        // Legacy data predates the amount_cents > 0 rule (R-44 Phase 0); lift it for this test (rolled back with it).
+        Checks::drop('transactions', 'transactions_amount_positive');
         DB::table('transactions')->insert([
             'account_id' => $account->id, 'user_id' => $account->user_id, 'description' => 'never backfilled',
             'amount' => '10.00', 'amount_cents' => 0, 'currency' => null, 'type' => 'expense', 'date' => '2026-01-01',

@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Accounting\GlSync;
 use App\Support\FinanceAudit;
 use App\Support\ImportDates;
 use App\Support\ImportFingerprint;
@@ -318,7 +319,7 @@ class TransactionImporter
                         continue;
                     }
 
-                    Transaction::create($account->ledgerOwner() + [
+                    $created = Transaction::create($account->ledgerOwner() + [
                         'account_id' => $account->id,
                         'category_id' => $row['category_id'],
                         'description' => $row['description'],
@@ -329,6 +330,9 @@ class TransactionImporter
                         'import_fingerprint' => $row['fingerprint'],
                         'import_batch_id' => $batch,
                     ]);
+
+                    // With accounting on, each imported row is journalled inside this same transaction.
+                    app(GlSync::class)->transaction($created);
 
                     $result['imported']++;
                     $row['type'] === 'income' ? $income += $row['cents'] : $expense += abs($row['cents']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Account;
 use App\Models\Category;
+use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\TransactionImporter;
 use App\Support\ImportDates;
 use App\Support\Ledger\LedgerRule;
@@ -121,6 +122,8 @@ class TransactionImportController extends Controller
                 isset($validated['default_category_id']) ? (int) $validated['default_category_id'] : null,
                 array_map('intval', $validated['skip'] ?? []),
             );
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['token' => 'Nothing was imported. '.$e->getMessage().' Untick the rows in the closed period, or ask someone who can reopen it.']);
         } catch (UniqueConstraintViolationException) {
             return back()->withErrors(['token' => 'Some of these rows were imported by another request while you were reviewing. Nothing was saved; review the preview again.']);
         }

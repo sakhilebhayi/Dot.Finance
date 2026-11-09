@@ -23,6 +23,8 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null" force="true"/>
         <env name="CACHE_STORE" value="array" force="true"/>
+        <!-- PostgreSQL parity run: pass DB_CONNECTION=pgsql DB_HOST DB_PORT DB_USERNAME DB_PASSWORD DB_DATABASE in the environment (see .github/workflows/ci.yml, job tests-postgres). -->
+        <env name="DB_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
