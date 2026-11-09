@@ -7,6 +7,7 @@ use App\Models\Accounting\AccountingPeriod;
 use App\Models\Controls\ApprovalPolicy;
 use App\Models\Controls\ApprovalRequest;
 use App\Models\Controls\SpendLimit;
+use App\Models\Purchases\Bill;
 use App\Models\Shared\Party;
 use App\Models\Team;
 use App\Models\User;
@@ -19,8 +20,9 @@ use App\Services\Controls\ApprovalPolicies;
 use App\Services\Controls\ApprovalPresets;
 use App\Services\Controls\LedgerRoles;
 use App\Services\Controls\SpendLimits;
+use App\Services\Purchases\BillWorkflow;
 use App\Services\Shared\Attachments;
-use App\Services\Shared\FxService;
+use App\Support\DemoRates;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
@@ -63,10 +65,7 @@ class DemoControlsSeed extends Command
         // The demo company keeps one USD account. The posting engine converts at a rate on record (FxServiceRateProvider, the one
         // binding), so the demo records a user-provided USD/ZAR rate every week for the last 14 months: clearly a local stand-in,
         // entered through the real exchange-rate service as a ledger rate, never a published one.
-        $fx = app(FxService::class);
-        for ($day = CarbonImmutable::today()->subDays(430); $day->lte(CarbonImmutable::today()); $day = $day->addDays(7)) {
-            $fx->record('USD', 'ZAR', 1_840_000_000, $day, 'manual', $owner, 'Demo stand-in rate (not a market rate)', false, $context);
-        }
+        DemoRates::ensure($context);
         app()->forgetScopedInstances();
         $backfill = app()->make(GlBackfill::class);
 
@@ -161,8 +160,25 @@ class DemoControlsSeed extends Command
             $reviews->record($owner, $context, 'Checked after Ayesha joined. Everyone listed still works here.');
         }
 
-        LedgerContext::run($context, function () use ($context, $company, $members): void {
-            if (ApprovalRequest::query()->exists()) {
+        // When the Purchases demo has run there are real bills: send the draft one for approval through the real workflow, so the inbox
+        // holds a request that opens a real bill. Only a ledger with no bills falls back to the labelled stand-ins below.
+        $realBills = LedgerContext::run($context, function () use ($members): bool {
+            if (! Bill::query()->exists()) {
+                return false;
+            }
+            if (! ApprovalRequest::query()->exists() && ($draft = Bill::query()->where('status', 'draft')->orderBy('id')->first())) {
+                try {
+                    app(BillWorkflow::class)->submit($members['ayesha@karoo.test'], $draft);
+                } catch (\Throwable $e) {
+                    $this->warn('Could not send the draft bill for approval: '.$e->getMessage());
+                }
+            }
+
+            return true;
+        });
+
+        LedgerContext::run($context, function () use ($context, $company, $members, $realBills): void {
+            if ($realBills || ApprovalRequest::query()->exists()) {
                 return;
             }
             $policy = ApprovalPolicy::query()->forContext($context)->first();

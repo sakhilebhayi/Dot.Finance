@@ -20,6 +20,7 @@ use App\Services\Sales\SalesProfiles;
 use App\Services\Sales\WriteOffs;
 use App\Services\Shared\FxMath;
 use App\Services\Shared\FxService;
+use App\Support\DemoRates;
 use App\Support\Ledger\LedgerContext;
 use Database\Seeders\TaxRulesSeeder;
 use Illuminate\Console\Attributes\Description;
@@ -62,7 +63,7 @@ class DemoSeedSales extends Command
             }
 
             (new TaxRulesSeeder)->run();
-            $this->rates($ctx);
+            DemoRates::ensure($ctx);
             $settings = LedgerSetting::query()->forContext($ctx)->first();
             if ($settings === null || ! $settings->isEnabled()) {
                 $backfill = app(GlBackfill::class);
@@ -77,16 +78,6 @@ class DemoSeedSales extends Command
         $this->info($made === null ? 'The demo company already has sales.' : "Sales added: {$made} documents.");
 
         return self::SUCCESS;
-    }
-
-    /** A USD to ZAR rate every five days for thirteen months, so the demo's dollar account can be posted. Fictional, gently moving. */
-    private function rates(LedgerContext $ctx): void
-    {
-        $fx = app(FxService::class);
-        $day = now()->startOfDay()->subMonths(13);
-        for ($i = 0; $day->lte(now()); $i++, $day = $day->copy()->addDays(5)) {
-            $fx->record('USD', 'ZAR', FxMath::parseRate(sprintf('%.2f', 17.60 + (($i * 7) % 23) * 0.06)), $day->toDateString(), 'manual', null, 'Demo rate', context: $ctx);
-        }
     }
 
     private function build(LedgerContext $ctx, User $user): int
@@ -163,8 +154,8 @@ class DemoSeedSales extends Command
         $s1 = $invoice($cafe, 26, [$line('Karoo Blend, 1 kg bags', '8', 21_500)]);
         $pay($cafe, 8, 250_000, [['document_id' => $s1->id, 'amount_cents' => (int) $s1->total_cents]], 'Sunbird EFT');
         $s2 = $invoice($cafe, 50, [$line('Espresso Roast, 1 kg bags', '3', 24_900)]);
-        $pay($cafe, 30, 85_000, [['document_id' => $s2->id, 'amount_cents' => 85_000]], 'Sunbird short');
-        app(WriteOffs::class)->request($s2, (int) $s2->total_cents - 85_000, 'Short payment: not worth chasing', $user);
+        $pay($cafe, 30, 80_000, [['document_id' => $s2->id, 'amount_cents' => 80_000]], 'Sunbird short');
+        app(WriteOffs::class)->request($s2, (int) $s2->total_cents - 80_000, 'Short payment: not worth chasing', $user);
 
         // Brewer and Co: a USD export invoice booked at 18.42 and paid at 18.05, so a realised loss
         $b = $drafts->create($ctx, $user, ['kind' => 'tax_invoice', 'party_id' => $brewer->id, 'currency' => 'USD', 'issue_date' => $day(40), 'reference' => 'PO BR-2290'],

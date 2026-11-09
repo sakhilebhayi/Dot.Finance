@@ -90,9 +90,10 @@ class ReserveRunwayCalculator
         $months = $isGrowing ? null : max(0, Money::divideRound($liquidReserves, $avgMonthlyBurn));
 
         $basis = sprintf(
-            'Liquid %s reserves (checking + savings + cash accounts only, from the ledger) divided by average monthly net spend over the trailing %d month(s) of transaction history, as of %s.',
+            'Liquid %s reserves (checking + savings + cash accounts only, from the ledger) divided by average monthly net spend over the trailing %d %s of transaction history, as of %s.',
             $currency,
             $monthsSpanned,
+            $monthsSpanned === 1 ? 'month' : 'months',
             now()->toDateString()
         );
 

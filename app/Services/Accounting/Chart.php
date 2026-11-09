@@ -147,10 +147,34 @@ class Chart
         }
 
         $income = $category->type === 'income';
-        $gl = $this->createInRange($context, $income ? 'income' : 'expense', $category->name, $income ? 'income' : 'expense', 'category', null);
+        $gl = $this->templateAccountNamed($context, $category->name, $income ? 'income' : 'expense', $category->id)
+            ?? $this->createInRange($context, $income ? 'income' : 'expense', $category->name, $income ? 'income' : 'expense', 'category', null);
         $category->forceFill(['gl_account_id' => $gl->id])->saveQuietly();
 
         return $gl;
+    }
+
+    /**
+     * A category called "Rent" should post to the chart's own "Rent" account, not to a second account of the same name
+     * (the P&L then listed 6100 Rent and 6502 Rent side by side, R-44 polish D-1707). Only an exact name match (ignoring case)
+     * on a plain account is reused: not a control or tax account, not a system account the posting engine owns (bank charges and salaries are the two a category may share), not one another category already uses.
+     */
+    private function templateAccountNamed(LedgerContext $context, string $name, string $class, int $categoryId): ?GlAccount
+    {
+        $candidate = GlAccount::query()->forContext($context)
+            ->where('class', $class)->where('is_active', true)->where('is_postable', true)
+            ->where(fn ($q) => $q->whereNull('system_key')->orWhereIn('system_key', ['bank_charges', 'salaries_expense']))
+            ->where(fn ($q) => $q->whereNull('subtype')->orWhereIn('subtype', ['bank_charges', 'payroll']))
+            ->whereRaw('lower(name) = ?', [mb_strtolower(trim($name))])
+            ->orderBy('code')->first();
+
+        if ($candidate === null) {
+            return null;
+        }
+
+        $taken = Category::query()->forContext($context)->withTrashed()->where('gl_account_id', $candidate->id)->where('id', '!=', $categoryId)->exists();
+
+        return $taken ? null : $candidate;
     }
 
     /**

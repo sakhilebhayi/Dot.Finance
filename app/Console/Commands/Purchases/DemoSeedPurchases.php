@@ -10,7 +10,6 @@ use App\Models\Purchases\PurchaseSetting;
 use App\Models\Purchases\RecurringBill;
 use App\Models\Shared\Party;
 use App\Models\Team;
-use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Accounting\ChartTemplates;
 use App\Services\Accounting\GlBackfill;
@@ -22,6 +21,7 @@ use App\Services\Purchases\ReceiptCapture;
 use App\Services\Purchases\SupplierBankDetails;
 use App\Services\Purchases\SupplierPayments;
 use App\Services\Shared\FxService;
+use App\Support\DemoRates;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Database\Seeders\TaxRulesSeeder;
@@ -82,11 +82,10 @@ class DemoSeedPurchases extends Command
     {
         $today = CarbonImmutable::today();
 
-        // accounting on (nothing in a foreign currency can be journalled until an exchange-rate provider is bound to the posting
-        // layer, so the demo's dollar account is emptied: it opens at zero and its few demo transactions are removed)
-        $dollarAccounts = Account::query()->where('currency', 'USD')->pluck('id');
-        Transaction::query()->whereIn('account_id', $dollarAccounts)->forceDelete();
-        Account::query()->whereIn('id', $dollarAccounts)->update(['opening_balance_cents' => 0]);
+        // The dollar account stays: the books value it at the ledger's USD to ZAR rates (the exchange-rate service is bound), so the rates go
+        // in BEFORE accounting is switched on. (This command used to empty the dollar account instead, which left the other leg of its
+        // top-up transfers standing against Suspense.)
+        DemoRates::ensure($ctx);
         $backfill = app(GlBackfill::class);
         $backfill->prepare($ctx, 'ZAR', 1, ChartTemplates::COMPANY);
         $backfill->apply($ctx);
@@ -120,11 +119,11 @@ class DemoSeedPurchases extends Command
         // rent, paid
         $paidRent = $post($bill($mountain, 'MPM-2310', 55, [$line('Roastery unit rent', '6100', 1_850_000)]));
         // packaging: one overdue, one current, a credit note on the overdue one
-        $overdue = $post($bill($kasi, 'KP-88213', 62, [$line('Kraft bags 250g, carton of 500', '6190', 410_000, qty: '4')]));
-        $post($bill($kasi, 'KP-88540', 9, [$line('Kraft bags 1kg, carton of 200', '6190', 320_000, qty: '3')]));
+        $overdue = $post($bill($kasi, 'KP-88213', 62, [$line('Kraft bags 250g, carton of 500', '5000', 410_000, qty: '4')]));
+        $post($bill($kasi, 'KP-88540', 9, [$line('Kraft bags 1kg, carton of 200', '5000', 320_000, qty: '3')]));
         $post($bills->saveDraft($ctx, $user, [
             'kind' => 'credit_note', 'party_id' => $kasi->id, 'credit_for_bill_id' => $overdue->id, 'bill_date' => $today->subDays(20)->toDateString(), 'supplier_reference' => 'KP-CN-114',
-            'credit_reason' => 'One carton arrived damaged', 'document_type' => 'credit_note', 'lines' => [$line('Damaged carton credited', '6190', 410_000)],
+            'credit_reason' => 'One carton arrived damaged', 'document_type' => 'credit_note', 'lines' => [$line('Damaged carton credited', '5000', 410_000)],
         ]));
         // a dollar bill, part paid from the dollar account at a different rate
         $usd = $post($bill($capeGreen, 'CGI-5521', 38, [$line('Green coffee, Ethiopia Guji, 5 x 60kg', '5000', 640_000, 'ZA_VAT_ZERO')], ['currency' => 'USD']));

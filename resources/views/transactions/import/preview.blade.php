@@ -7,7 +7,7 @@
     $canImport = $p['ready'] && $counts['importable'] > 0;
 @endphp
 
-<x-fx.page-head title="Review Import">
+<x-fx.page-head title="Review import">
     <x-slot name="sub">{{ $p['filename'] }} into {{ $p['account']->name }} ({{ $currency }}). Nothing is saved until you press Import.</x-slot>
 </x-fx.page-head>
 

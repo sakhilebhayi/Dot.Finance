@@ -9,33 +9,16 @@
     <x-fx.panel>
         @if ($budgets->count() > 0)
         @foreach ($budgets as $budget)
-        @php
-            $spent = $budget->spentCents();
-            $limit = $budget->amount_cents;
-            $pct = $limit > 0 ? min(100, intdiv($spent * 100, $limit)) : 0;
-            $over = $limit > 0 && $spent >= $limit;
-        @endphp
-        <div class="fx-budgetrow">
-            <div class="fx-budgetrow__top">
-                <span>
-                    <span class="fx-budgetrow__name">{{ $budget->category?->name ?? 'Uncategorized' }}</span>
-                    <span class="fx-hint">{{ \Carbon\Carbon::create()->month($budget->month)->format('F') }} {{ $budget->year }}, {{ $budget->currency }}</span>
-                </span>
-                <span class="fx-cluster">
-                    <span class="fx-fig">{{ \App\Support\Money::format($spent) }} / {{ \App\Support\Money::format($limit, $budget->currency) }}</span>
-                    @can('update', $budget)<a href="{{ route('budgets.edit', $budget) }}" class="fx-link">Edit<span class="sr-only"> {{ $budget->category?->name }} budget</span></a>@endcan
-                    @can('delete', $budget)
-                    <form method="POST" action="{{ route('budgets.destroy', $budget) }}" data-fx-confirm="Delete this budget?" data-fx-confirm-label="Delete">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="fx-linkbtn fx-linkbtn--danger">Delete<span class="sr-only"> {{ $budget->category?->name }} budget</span></button>
-                    </form>
-                    @endcan
-                </span>
-            </div>
-            <x-fx.meter :pct="$pct" :variance="$over" :label="$pct.'% of the limit used'" />
-            <div class="fx-budgetrow__foot"><span @class(['is-variance' => $over])>{{ $pct }}% used @if ($over)(at or over the limit)@endif</span></div>
-        </div>
+        <x-fx.budget-row :budget="$budget" period>
+            @can('update', $budget)<a href="{{ route('budgets.edit', $budget) }}" class="fx-link">Edit<span class="sr-only"> {{ $budget->category?->name }} budget</span></a>@endcan
+            @can('delete', $budget)
+            <form method="POST" action="{{ route('budgets.destroy', $budget) }}" data-fx-confirm="Delete this budget?" data-fx-confirm-label="Delete">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="fx-linkbtn fx-linkbtn--danger">Delete<span class="sr-only"> {{ $budget->category?->name }} budget</span></button>
+            </form>
+            @endcan
+        </x-fx.budget-row>
         @endforeach
         @else
         <x-fx.empty title="No budgets set up yet.">A budget caps what one category may spend in a month. Add one and its progress shows here and on the command centre.</x-fx.empty>
@@ -43,7 +26,7 @@
     </x-fx.panel>
 
     @if ($canAdd)
-    <x-fx.panel title="Add Budget">
+    <x-fx.panel title="Add budget">
         <x-fx.errors />
         @if ($currencies === [])
         <p class="fx-hint">You need an account first so there is a currency to budget in. <a href="{{ route('accounts.index') }}" class="fx-link">Add one</a>.</p>
@@ -71,7 +54,7 @@
                 </x-fx.select>
                 <x-fx.input name="year" id="budgets-index-year" type="number" label="Year" :value="now()->year" required figure />
             </div>
-            <div class="fx-formactions"><x-fx.button variant="primary" icon="plus">Add Budget</x-fx.button></div>
+            <div class="fx-formactions"><x-fx.button variant="primary" icon="plus">Add budget</x-fx.button></div>
         </form>
         @endif
     </x-fx.panel>

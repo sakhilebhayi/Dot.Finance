@@ -55,7 +55,7 @@
     </x-fx.table>
     @else
     <x-fx.empty title="Nothing repeats yet.">Tick "Repeat" when you add a transaction and it will appear here.
-        <x-slot name="action">@can('create', \App\Models\Transaction::class)<x-fx.button :href="route('transactions.create')" icon="plus">Add Transaction</x-fx.button>@endcan</x-slot>
+        <x-slot name="action">@can('create', \App\Models\Transaction::class)<x-fx.button :href="route('transactions.create')" icon="plus">Add transaction</x-fx.button>@endcan</x-slot>
     </x-fx.empty>
     @endif
 </x-fx.panel>

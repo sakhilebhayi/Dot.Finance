@@ -166,10 +166,10 @@ class DemoSeed extends Command
             'coffee' => $cat('Green coffee', 'expense', '#7a4b2a'),
             'packaging' => $cat('Packaging', 'expense', '#8a7a4a'),
             'rent' => $cat('Rent', 'expense', '#555b66'),
-            'salaries' => $cat('Salaries', 'expense', '#3e5a7a'),
-            'utilities' => $cat('Utilities', 'expense', '#5e7a8a'),
-            'marketing' => $cat('Marketing', 'expense', '#9a4b6a'),
-            'software' => $cat('Software', 'expense', '#4b5a9a'),
+            'salaries' => $cat('Salaries and wages', 'expense', '#3e5a7a'),
+            'utilities' => $cat('Water, electricity and utilities', 'expense', '#5e7a8a'),
+            'marketing' => $cat('Advertising and marketing', 'expense', '#9a4b6a'),
+            'software' => $cat('Software and subscriptions', 'expense', '#4b5a9a'),
             'fuel' => $cat('Fuel and deliveries', 'expense', '#8a5a3a'),
             'bank' => $cat('Bank charges', 'expense', '#666666'),
             'insurance' => $cat('Insurance', 'expense', '#4a7a6a'),
@@ -189,7 +189,9 @@ class DemoSeed extends Command
         $rand = fn (int $low, int $high) => $low + (mt_rand() % ($high - $low + 1));
         $round50 = fn (int $rand) => intdiv($rand, 5_000) * 5_000;
 
-        $customers = ['Salt River Deli', 'Bo-Kaap Bakehouse', 'Observatory Co-working', 'Gardens Pantry', 'Southern Suburbs Hotel'];
+        // Trade customers who pay by EFT when they order. The customers the business invoices on credit (Gardens Pantry, Woodstock Deli, ...)
+        // are created by the Sales demo and never appear here, so no name is a customer twice.
+        $customers = ['Salt River Deli', 'Bo-Kaap Bakehouse', 'Observatory Co-working', 'Southern Suburbs Hotel'];
         $beans = ['Ethiopia Guji', 'Kenya AA', 'Colombia Huila', 'Brazil Cerrado', 'Rwanda Nyamasheke'];
 
         for ($m = 0; $m <= 12; $m++) {
@@ -266,7 +268,7 @@ class DemoSeed extends Command
         $rule('Accounting and point-of-sale subscription', 'expense', 115_000, $cheque, $c['software'], 'monthly', $today->copy()->addDays(8));
         $rule('Business insurance premium', 'expense', 238_000, $cheque, $c['insurance'], 'monthly', $today->copy()->addDays(11));
         $rule('Salaries', 'expense', 4_680_000, $cheque, $c['salaries'], 'monthly', $today->copy()->addDays(13));
-        $rule('Standing wholesale order: Gardens Pantry', 'income', 1_450_000, $cheque, $c['wholesale'], 'weekly', $today->copy()->addDays(2));
+        $rule('Standing wholesale order: Salt River Deli', 'income', 1_450_000, $cheque, $c['wholesale'], 'weekly', $today->copy()->addDays(2));
         $rule('Courier account debit order', 'expense', 62_000, $cheque, $c['fuel'], 'weekly', $today->copy()->subDays(3));
     }
 

@@ -46,6 +46,47 @@
     max-width: 30rem;
 }
 
+.fx-cash__def {
+    max-width: 26rem;
+    margin-top: var(--s-1);
+}
+
+.fx-cash__none {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--fs-section);
+    color: var(--ink-2);
+}
+
+.fx-cash__bridge {
+    display: grid;
+    gap: var(--s-1);
+    max-width: 30rem;
+    padding-top: var(--s-2);
+    border-top: 1px dotted var(--rule-strong);
+}
+
+.fx-bridge {
+    display: grid;
+    gap: var(--s-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-cell);
+}
+
+.fx-bridge li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 var(--s-3);
+}
+
+.fx-bridge__fig {
+    color: var(--ink-2);
+}
+
 .fx-needs {
     display: grid;
     margin: 0;
@@ -185,6 +226,48 @@
     fill: var(--ink-3);
     font-family: var(--font-figure);
     font-size: 11px;
+}
+
+.fx-chart__direct {
+    fill: var(--ink);
+    font-weight: 600;
+}
+
+/* A real toggle: a joined pair of options, the chosen one filled. Used where a choice swaps what a panel shows. */
+.fx-seg {
+    display: inline-flex;
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    overflow: hidden;
+}
+
+.fx-seg__opt {
+    display: inline-flex;
+    align-items: center;
+    min-width: 3rem;
+    min-height: 1.75rem;
+    justify-content: center;
+    padding: 0 var(--s-3);
+    background: var(--sheet);
+    color: var(--ink-2);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.fx-seg__opt + .fx-seg__opt {
+    border-left: 1px solid var(--edge);
+}
+
+.fx-seg__opt:hover {
+    background: var(--sunk);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.fx-seg__opt[aria-current='true'] {
+    background: var(--ink);
+    color: var(--paper);
 }
 
 .fx-chart__line {
@@ -1060,5 +1143,132 @@
         margin-left: auto;
         text-align: right;
         max-width: 100%;
+    }
+}
+
+/* ---- A change in words, never in brackets ------------------------------------------------------------------- */
+.fx-change {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0 var(--s-2);
+}
+
+.fx-change__word {
+    color: var(--ink-3);
+    font-size: var(--fs-small);
+}
+
+.fx-panel__note {
+    margin: 0;
+    padding: var(--s-3) var(--s-4) 0;
+}
+
+.fx-owed {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0 var(--s-2);
+}
+
+.fx-owed__word {
+    color: var(--ink-3);
+    font-size: var(--fs-small);
+}
+
+/* ---- Public page: the example statement and the honest list of what exists ---------------------------------------- */
+.fx-sample {
+    display: grid;
+    gap: var(--s-2);
+    margin: 0;
+}
+
+.fx-sample figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-1) var(--s-3);
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-sample__tag {
+    padding: 0 var(--s-2);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-control);
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.fx-sample__sheet {
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+}
+
+.fx-sample__title {
+    display: grid;
+    margin: 0;
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-weight: 620;
+    font-size: var(--fs-section);
+}
+
+.fx-today {
+    display: grid;
+    gap: var(--s-3);
+}
+
+.fx-today__list {
+    display: grid;
+    gap: var(--s-2);
+    max-width: 62ch;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-body);
+    color: var(--ink-2);
+}
+
+.fx-today__list strong {
+    color: var(--ink);
+}
+
+.fx-today__not {
+    max-width: 62ch;
+    margin: 0;
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-auth__trust {
+    display: grid;
+    gap: var(--s-2);
+    margin: var(--s-5) 0 0;
+    padding-left: 0;
+    list-style: none;
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-auth__trust .fx-icon {
+    margin-right: var(--s-2);
+    vertical-align: -0.15em;
+    color: var(--tick);
+}
+
+@media (min-width: 960px) {
+    .fx-auth__trust {
+        display: none;
     }
 }

@@ -1,8 +1,8 @@
 @extends('errors._ecosystem-layout', ['code' => 503])
 
 @section('title', "We'll be right back")
-@section('message', "This platform is briefly down for scheduled maintenance — we're making some improvements behind the scenes. Check back shortly; nothing you were working on has been lost.")
+@section('message', "Dot.Finance is down for a short time for maintenance. Nothing you were working on has been lost. Try again shortly.")
 
 @section('actions')
-    <a href="/" class="fx-btn fx-btn--primary">Try again</a>
+    @include('errors._actions', ['code' => 503])
 @endsection

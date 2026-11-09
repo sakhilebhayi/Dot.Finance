@@ -18,6 +18,7 @@ use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
 use App\Support\Ui\Navigation;
+use App\Support\Ui\StartHere;
 use App\Support\Ui\StateLine;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
@@ -69,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
                 'fxNav' => Navigation::resolved(Route::currentRouteName()),
                 'fxQuick' => Navigation::quickActions(),
                 'fxState' => auth()->check() ? StateLine::for($ledger) : [],
+                'fxStart' => auth()->check() && $ledger ? StartHere::for() : [],
             ]);
         });
 

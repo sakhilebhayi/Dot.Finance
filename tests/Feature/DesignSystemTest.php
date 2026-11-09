@@ -168,7 +168,11 @@ class DesignSystemTest extends TestCase
 
         $html = $this->actingAs($user)->get(route('dashboard'))->getContent();
 
-        $this->assertStringContainsString('3 things need you:', $html);
+        // R-44 polish (D-1704): the strip is one slim line that opens the list; the list itself is the "Needs you" panel, once.
+        $this->assertStringContainsString('3 things need you', $html);
+        $this->assertStringContainsString(', 2 urgent', $html);
+        $this->assertSame(1, substr_count($html, '1 budget is at or over its limit'), 'each fact is listed once, in the Needs you panel, not again in the strip');
+        $this->assertSame(1, substr_count($html, 'class="fx-state"'), 'the strip is drawn once');
         $this->assertStringContainsString('1 budget is at or over its limit', $html);
         $this->assertStringContainsString('1 recurring item is past its date and not added yet', $html);
         $this->assertStringContainsString('1 transaction this month has no category', $html);
@@ -186,6 +190,7 @@ class DesignSystemTest extends TestCase
 
         $this->assertStringContainsString('3 transactions this month have no category', str_replace('1 transaction this month has no category', '3 transactions this month have no category', $html));
         $this->assertDoesNotMatchRegularExpression('/fx-state__link is-variance[^>]*>[^<]*no category/', $html, 'an uncategorised entry is a neutral item, not a variance');
+        $this->assertStringNotContainsString(', 1 urgent', $html, 'a neutral item is not counted as urgent');
     }
 
     public function test_other_modules_can_extend_the_state_line_and_the_command_centre(): void

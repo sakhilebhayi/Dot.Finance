@@ -2,6 +2,8 @@
 
 namespace App\Support\Ui;
 
+use App\Services\Accounting\GlSync;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -56,12 +58,19 @@ final class Navigation
     public static function resolved(?string $currentRoute = null): array
     {
         $groups = [];
+        $accountingOn = self::accountingOn();
 
         foreach (self::groupLabels() as $group) {
             $items = [];
 
             foreach (array_merge(self::definitions()[$group['key']] ?? [], self::$added[$group['key']] ?? []) as $item) {
                 if (isset($item['can']) && ! Gate::allows($item['can'])) {
+                    continue;
+                }
+
+                // A destination that only reads the double-entry books is left out of the sidebar while accounting is off for this ledger
+                // (R-44 polish, D-1711): it would only open a page that says accounting is off. 'Accounting set-up' is the way in.
+                if (($item['requires'] ?? null) === 'accounting' && ! $accountingOn) {
                     continue;
                 }
 
@@ -84,11 +93,29 @@ final class Navigation
             }
 
             $group['items'] = $items;
-            $group['open'] = (bool) array_filter($items, fn ($i) => $i['active']) || (bool) array_filter($items, fn ($i) => $i['available']);
+            // Collapsed unless it holds the page you are on (R-44 polish, D-1709): twenty-odd entries open at once is a wall.
+            $group['open'] = (bool) array_filter($items, fn ($i) => $i['active']);
             $groups[] = $group;
         }
 
+        // A page that is in no group (profile, a record page) still leaves the first group open so the sidebar is never all closed.
+        if ($groups !== [] && ! array_filter($groups, fn ($g) => $g['open'])) {
+            $groups[0]['open'] = true;
+        }
+
         return $groups;
+    }
+
+    /** Whether the active ledger has the double-entry books switched on. A person with no ledger (or a failed lookup) counts as on, so nothing disappears by mistake. */
+    private static function accountingOn(): bool
+    {
+        try {
+            $ledger = LedgerContext::current();
+
+            return $ledger === null || app(GlSync::class)->isEnabled($ledger);
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     /**
@@ -167,10 +194,10 @@ final class Navigation
             'reports' => [
                 ['key' => 'reports-hub', 'label' => 'All reports', 'icon' => 'book-open', 'routes' => ['reports.index']],
                 ['key' => 'cash-flow', 'label' => 'Cash flow', 'icon' => 'chart-column', 'routes' => ['reports.cash-flow']],
-                ['key' => 'profit-loss', 'label' => 'Profit and loss', 'icon' => 'chart-line', 'routes' => ['reports.profit-loss', 'reports.pnl']],
-                ['key' => 'balance-sheet', 'label' => 'Balance sheet', 'icon' => 'scale', 'routes' => ['reports.balance-sheet']],
-                ['key' => 'trial-balance', 'label' => 'Trial balance', 'icon' => 'scale', 'routes' => ['accounting.trial-balance']],
-                ['key' => 'general-ledger', 'label' => 'General ledger', 'icon' => 'book-open', 'routes' => ['accounting.general-ledger']],
+                ['key' => 'profit-loss', 'label' => 'Profit and loss', 'icon' => 'chart-line', 'routes' => ['reports.profit-loss', 'reports.pnl'], 'requires' => 'accounting'],
+                ['key' => 'balance-sheet', 'label' => 'Balance sheet', 'icon' => 'scale', 'routes' => ['reports.balance-sheet'], 'requires' => 'accounting'],
+                ['key' => 'trial-balance', 'label' => 'Trial balance', 'icon' => 'scale', 'routes' => ['accounting.trial-balance'], 'requires' => 'accounting'],
+                ['key' => 'general-ledger', 'label' => 'General ledger', 'icon' => 'book-open', 'routes' => ['accounting.general-ledger'], 'requires' => 'accounting'],
                 ['key' => 'insights', 'label' => 'Weekly summaries', 'icon' => 'file-text', 'routes' => ['insights.index'], 'match' => ['insights.*']],
             ],
             'planning' => [
@@ -183,9 +210,9 @@ final class Navigation
                 ['key' => 'audit', 'label' => 'Audit log', 'icon' => 'history', 'routes' => ['audit.index'], 'can' => 'view-audit', 'match' => ['audit.*']],
                 ['key' => 'approvals', 'label' => 'Approvals', 'icon' => 'list-checks', 'routes' => ['controls.approvals.index', 'approvals.index']],
                 ['key' => 'access', 'label' => 'Roles and access', 'icon' => 'key-round', 'routes' => ['controls.members.index', 'controls.access.index', 'controls.roles.index']],
-                ['key' => 'periods', 'label' => 'Period locks', 'icon' => 'lock', 'routes' => ['controls.periods.index', 'accounting.periods.index']],
-                ['key' => 'chart', 'label' => 'Chart of accounts', 'icon' => 'book-check', 'routes' => ['accounting.chart.index', 'accounting.accounts.index', 'gl.accounts.index', 'chart.index']],
-                ['key' => 'journals', 'label' => 'Journals', 'icon' => 'layers', 'routes' => ['accounting.journals.index', 'journals.index']],
+                ['key' => 'periods', 'label' => 'Period locks', 'icon' => 'lock', 'routes' => ['controls.periods.index', 'accounting.periods.index'], 'requires' => 'accounting'],
+                ['key' => 'chart', 'label' => 'Chart of accounts', 'icon' => 'book-check', 'routes' => ['accounting.chart.index', 'accounting.accounts.index', 'gl.accounts.index', 'chart.index'], 'requires' => 'accounting'],
+                ['key' => 'journals', 'label' => 'Journals', 'icon' => 'layers', 'routes' => ['accounting.journals.index', 'journals.index'], 'requires' => 'accounting'],
                 ['key' => 'policies', 'label' => 'Approval rules', 'icon' => 'list-checks', 'routes' => ['controls.policies.index']],
                 ['key' => 'limits', 'label' => 'Spending limits', 'icon' => 'gauge', 'routes' => ['controls.limits.index']],
                 ['key' => 'access-review', 'label' => 'Access review', 'icon' => 'user-check', 'routes' => ['controls.access-review.index']],

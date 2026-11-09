@@ -1,6 +1,6 @@
 <x-app-layout title="Import transactions">
 
-<x-fx.page-head title="Import Transactions" sub="Upload a CSV with date, description, and amount columns. You choose how dates and amounts are read, and review the result before anything is saved. Importing the same statement twice is safe: rows already in your ledger are skipped." />
+<x-fx.page-head title="Import transactions" sub="Upload a CSV with date, description, and amount columns. You choose how dates and amounts are read, and review the result before anything is saved. Importing the same statement twice is safe: rows already in your ledger are skipped." />
 
 <x-fx.flash />
 <x-fx.errors />

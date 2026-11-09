@@ -1,21 +1,20 @@
 @props(['items' => []])
-{{-- What needs the owner, in one sentence. Variance (pencil red) only for something overdue or over its limit; the
-     words carry the meaning, the colour never does alone. --}}
+{{-- What needs the owner, as ONE slim line that opens the list (R-44 polish, D-1704). It never prints the items themselves: the list lives
+     once, in the "Needs you" panel of the command centre, and this line is the way to it from every page. Urgent means overdue or over
+     a limit (the variance tone); the words carry the meaning, the colour never does alone. --}}
 @php
-    $shown = array_slice($items, 0, 3);
-    $more = max(0, count($items) - 3);
-    $total = array_sum(array_map(fn ($i) => (int) ($i['count'] ?? 1), $items));
+    $total = count($items);
+    $urgent = count(array_filter($items, fn ($i) => ($i['tone'] ?? 'neutral') === 'variance'));
+    $list = route('dashboard').'#needs-you';
 @endphp
 <section class="fx-state" aria-label="What needs you">
-    @if (count($items) === 0)
-        <span class="fx-state__lead fx-state__ok"><x-fx.icon name="check" class="fx-tick-draw" />Nothing needs you right now.</span>
+    @if ($total === 0)
+        <span class="fx-state__ok"><x-fx.icon name="check" class="fx-tick-draw" />Nothing needs you right now.</span>
     @else
-        <span class="fx-state__lead">{{ count($items) === 1 ? 'One thing needs you:' : count($items).' things need you:' }}</span>
-        <ul class="fx-state__list">
-            @foreach ($shown as $item)
-            <li class="fx-state__item"><x-fx.state-item :item="$item" /></li>
-            @endforeach
-            @if ($more > 0)<li class="fx-state__item"><span class="fx-state__link">and {{ $more }} more</span></li>@endif
-        </ul>
+        <a href="{{ $list }}" @class(['fx-state__chip', 'is-variance' => $urgent > 0])>
+            <x-fx.icon :name="$urgent > 0 ? 'circle-alert' : 'info'" />
+            <span class="fx-state__text">{{ $total === 1 ? 'One thing needs you' : $total.' things need you' }}@if ($urgent > 0)<span class="fx-state__urgent">, {{ $urgent }} urgent</span>@endif</span>
+            <span class="fx-state__open">See the list<x-fx.icon name="chevron-right" /></span>
+        </a>
     @endif
 </section>

@@ -44,7 +44,7 @@ class PlanBudgetsTest extends TestCase
         $plan = $this->plan();
         $this->plans->setLines($plan, [
             ['gl_account_id' => $this->glCode('4100')->id, 'annual' => 120_000_000],
-            ['gl_account_id' => $this->glCode('6500')->id, 'annual' => 36_000_000],
+            ['gl_account_id' => $this->glCode('6100')->id, 'annual' => 36_000_000],
         ]);
 
         return $plan;
@@ -61,7 +61,7 @@ class PlanBudgetsTest extends TestCase
         $this->assertSame(['2026-03-01', '2026-08-31'], [$plan->starts_on->toDateString(), $plan->ends_on->toDateString()]);
         $this->assertCount(6, $this->plans->months($plan));
 
-        $this->plans->setLines($plan, [['gl_account_id' => $this->glCode('6500')->id, 'annual' => 1_000]]);
+        $this->plans->setLines($plan, [['gl_account_id' => $this->glCode('6100')->id, 'annual' => 1_000]]);
         $cells = $plan->cells()->orderBy('month')->pluck('amount_cents', 'month')->map(fn ($c) => (int) $c)->all();
         $this->assertSame([167, 167, 167, 167, 166, 166], array_values($cells), '1,000 over six months: the first four get the extra cent');
         $this->assertSame(1_000, array_sum($cells));
@@ -197,9 +197,9 @@ class PlanBudgetsTest extends TestCase
         $r = $run([]);
         $rev = $r->row('4100 Consulting')['cells'];
         $this->assertSame([30_000_000, 33_000_000, 3_000_000, 1000, 'Ahead of target'], [$rev['budget'], $rev['actual'], $rev['var'], $rev['var_pct'], $rev['verdict']]);
-        $rent = $r->row('6500 Rent')['cells'];
+        $rent = $r->row('6100 Rent')['cells'];
         $this->assertSame([9_000_000, 9_000_000, 0, 'On plan'], [$rent['budget'], $rent['actual'], $rent['var'], $rent['verdict']]);
-        $fuel = $r->row('6501 Fuel')['cells'];
+        $fuel = $r->row('6500 Fuel')['cells'];
         $this->assertSame([0, 1_500_000, 'Not planned'], [$fuel['budget'], $fuel['actual'], $fuel['verdict']]);
         $this->assertSame([9_000_000, 10_500_000], [$r->row('Total expenses')['cells']['budget'], $r->row('Total expenses')['cells']['actual']]);
         $this->assertSame('Over budget', $r->row('Total expenses')['cells']['verdict']);

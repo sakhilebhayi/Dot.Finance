@@ -183,7 +183,7 @@ class StatementsTest extends TestCase
     public function test_the_general_ledger_runs_a_balance_per_account_and_closes_to_the_trial_balance(): void
     {
         $this->buildCompanyBooks();
-        $rent = $this->glCode('6500'); // the account the Rent category posts to
+        $rent = $this->glCode('6100'); // the account the Rent category posts to: the chart's own Rent account (R-44 polish D-1707)
         $r = $this->run_('general-ledger', ['from' => '2026-02-01', 'to' => '2026-03-31', 'account' => (string) $rent->id]);
         $this->assertSame(3_000_000, $r->cell('Opening balance', 'balance'));
         $this->assertSame(9_000_000, $r->cell('Closing balance', 'balance'));
