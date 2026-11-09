@@ -144,3 +144,11 @@ require __DIR__.'/reporting.php';
 // --- planning ---
 require __DIR__.'/planning.php';
 // --- end planning ---
+
+// --- tax ---
+require __DIR__.'/tax.php';
+// --- end tax ---
+
+// --- tax ---
+require __DIR__.'/tax.php';
+// --- end tax ---

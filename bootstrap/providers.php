@@ -11,6 +11,7 @@ use App\Providers\PurchasesServiceProvider;
 use App\Providers\ReportingServiceProvider;
 use App\Providers\SalesServiceProvider;
 use App\Providers\SharedDataServiceProvider;
+use App\Providers\TaxServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -24,4 +25,5 @@ return [
     PurchasesServiceProvider::class,
     ReportingServiceProvider::class,
     SalesServiceProvider::class,
+    TaxServiceProvider::class,
 ];

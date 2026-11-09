@@ -37,6 +37,14 @@ use App\Models\Sales\SalesShareLink;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
+use App\Models\Tax\TaxAdjustment;
+use App\Models\Tax\TaxCorrespondence;
+use App\Models\Tax\TaxDeadline;
+use App\Models\Tax\TaxDocument;
+use App\Models\Tax\TaxPayrollRun;
+use App\Models\Tax\TaxProvisionalPayment;
+use App\Models\Tax\TaxReturn;
+use App\Models\Tax\TaxReturnAdjustment;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Accounting\Chart;
@@ -89,10 +97,13 @@ class ContextIsolationRoutesTest extends TestCase
         // R-44 Sales
         'sales_profiles', 'sales_party_prefs', 'sales_documents', 'sales_document_lines', 'sales_applications', 'sales_refunds', 'sales_write_offs',
         'sales_document_events', 'sales_share_links', 'sales_transaction_links', 'sales_reminders', 'sales_recurring_templates',
+        // R-44 tax tables
+        'tax_profiles', 'tax_deadlines', 'tax_reminders', 'tax_returns', 'tax_return_adjustments', 'tax_review_resolutions', 'tax_adjustments',
+        'tax_income_estimates', 'tax_provisional_payments', 'tax_payroll_runs', 'tax_payroll_lines', 'tax_documents', 'tax_correspondence', 'tax_checklist_ticks',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'message' => 'message', 'draft' => 'draft', 'insight' => 'insight', 'notification' => 'notification', 'line' => 'line', 'statement' => 'statement', 'reconciliation' => 'reconciliation', 'bankMatch' => 'bankMatch', 'bankRule' => 'bankRule', 'bill' => 'bill', 'claim' => 'claim', 'claimLine' => 'claimLine', 'run' => 'run', 'recurring' => 'recurring', 'detail' => 'detail', 'payment' => 'payment', 'reportExport' => 'reportExport', 'reportPreset' => 'reportPreset', 'planBudget' => 'planBudget', 'dimension' => 'dimension', 'scenario' => 'scenario', 'document' => 'document', 'application' => 'application', 'template' => 'template', 'link' => 'link', 'shareToken' => 'shareToken'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'message' => 'message', 'draft' => 'draft', 'insight' => 'insight', 'notification' => 'notification', 'line' => 'line', 'statement' => 'statement', 'reconciliation' => 'reconciliation', 'bankMatch' => 'bankMatch', 'bankRule' => 'bankRule', 'bill' => 'bill', 'claim' => 'claim', 'claimLine' => 'claimLine', 'run' => 'run', 'recurring' => 'recurring', 'detail' => 'detail', 'payment' => 'payment', 'reportExport' => 'reportExport', 'reportPreset' => 'reportPreset', 'planBudget' => 'planBudget', 'dimension' => 'dimension', 'scenario' => 'scenario', 'document' => 'document', 'application' => 'application', 'template' => 'template', 'link' => 'link', 'shareToken' => 'shareToken', 'taxDeadline' => 'taxDeadline', 'taxReturn' => 'taxReturn', 'returnAdjustment' => 'returnAdjustment', 'taxPayrollRun' => 'taxPayrollRun', 'taxAdjustment' => 'taxAdjustment', 'provisionalPayment' => 'provisionalPayment', 'taxDocument' => 'taxDocument', 'taxCorrespondence' => 'taxCorrespondence'];
 
     private User $me;
 
@@ -215,7 +226,17 @@ class ContextIsolationRoutesTest extends TestCase
             return [$draft->id, $received['payment']->id, $received['applications'][0]->id, $template->id, $link->id];
         });
 
-        return $bank + ['document' => $document, 'application' => $application, 'template' => $template, 'link' => $link, 'shareToken' => 'notatoken', 'planBudget' => $plan->id, 'dimension' => $dimension->id, 'scenario' => $scenario->id, 'reportPreset' => $preset->id, 'reportExport' => $export->id, 'bill' => $bill->id, 'claim' => $claim->id, 'claimLine' => $claimLine->id, 'run' => $run->id, 'recurring' => $recurring->id, 'detail' => $detail->id, 'payment' => $payment->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id, 'message' => $message->id, 'draft' => $draft->id, 'insight' => $insight2->id, 'notification' => $notification->id, 'line' => $line->id];
+        // R-44 Tax: one of each kind of row, so every tax route can be smuggled a foreign id.
+        $deadline = TaxDeadline::create($owner + ['obligation' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel period {$label}", 'base_due_date' => '2026-11-30', 'due_date' => '2026-11-30']);
+        $taxReturn = TaxReturn::create($owner + ['kind' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel return {$label}", 'status' => 'draft']);
+        $returnAdjustment = TaxReturnAdjustment::create($owner + ['tax_return_id' => $taxReturn->id, 'box_code' => '15', 'kind' => 'other', 'amount_cents' => 100, 'reason' => "Sentinel adjustment {$label}"]);
+        $payrollRun = TaxPayrollRun::create($owner + ['period_month' => '2026-10-01', 'source' => 'manual', 'status' => 'draft', 'gross_pay_cents' => 100]);
+        $taxAdjustment = TaxAdjustment::create($owner + ['tax_year_end' => '2027-02-28', 'kind' => 'add_back', 'label' => "Sentinel add-back {$label}", 'amount_cents' => 100, 'reason' => 'Sentinel reason']);
+        $provisional = TaxProvisionalPayment::create($owner + ['tax_year_end' => '2027-02-28', 'period' => 1, 'due_date' => '2026-08-31']);
+        $taxDocument = TaxDocument::create($owner + ['category' => 'other', 'title' => "Sentinel document {$label}", 'retention_until' => '2031-01-01', 'retention_basis' => 'Sentinel']);
+        $correspondence = TaxCorrespondence::create($owner + ['direction' => 'received', 'channel' => 'letter', 'subject' => "Sentinel letter {$label}", 'occurred_on' => '2026-10-01']);
+
+        return $bank + ['taxDeadline' => $deadline->id, 'taxReturn' => $taxReturn->id, 'returnAdjustment' => $returnAdjustment->id, 'taxPayrollRun' => $payrollRun->id, 'taxAdjustment' => $taxAdjustment->id, 'provisionalPayment' => $provisional->id, 'taxDocument' => $taxDocument->id, 'taxCorrespondence' => $correspondence->id, 'document' => $document, 'application' => $application, 'template' => $template, 'link' => $link, 'shareToken' => 'notatoken', 'planBudget' => $plan->id, 'dimension' => $dimension->id, 'scenario' => $scenario->id, 'reportPreset' => $preset->id, 'reportExport' => $export->id, 'bill' => $bill->id, 'claim' => $claim->id, 'claimLine' => $claimLine->id, 'run' => $run->id, 'recurring' => $recurring->id, 'detail' => $detail->id, 'payment' => $payment->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id, 'message' => $message->id, 'draft' => $draft->id, 'insight' => $insight2->id, 'notification' => $notification->id, 'line' => $line->id];
     }
 
     /** @return array<string, int> */

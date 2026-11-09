@@ -14,6 +14,8 @@ use App\Console\Commands\Sales\CheckReceivables;
 use App\Console\Commands\Sales\ExpireQuotes;
 use App\Console\Commands\Sales\RunRecurring;
 use App\Console\Commands\Sales\SendReminders;
+
+use App\Console\Commands\Tax\RefreshCalendar;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -92,3 +94,12 @@ Schedule::command(ExpireQuotes::class)->dailyAt('01:45')->withoutOverlapping()->
 Schedule::command(SendReminders::class)->dailyAt((string) config('sales.reminders.time', '07:30'))->withoutOverlapping()->onOneServer();
 Schedule::command(CheckReceivables::class)->dailyAt('02:50')->withoutOverlapping()->onOneServer();
 // --- end sales ---
+
+// --- tax ---
+// Regenerate each ledger's tax calendar and create the reminder records that are due. Sends nothing; the Intelligence
+// module delivers the records.
+Schedule::command(RefreshCalendar::class)
+    ->dailyAt('05:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+// --- end tax ---
