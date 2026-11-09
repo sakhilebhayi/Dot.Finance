@@ -9,6 +9,12 @@ use App\Models\Accounting\JournalEntry;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
+use App\Models\Planning\Dimension;
+use App\Models\Planning\PlanBudget;
+use App\Models\Planning\PlanBudgetLine;
+use App\Models\Planning\Scenario;
+use App\Models\Reporting\ReportExport;
+use App\Models\Reporting\ReportPreset;
 use App\Models\RecurringRule;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
@@ -49,10 +55,13 @@ class ContextIsolationRoutesTest extends TestCase
         'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments',
         // R-44 accounting tables
         'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+        // R-44 reporting and planning
+        'report_exports', 'report_presets', 'dimensions', 'plan_budgets', 'plan_budget_lines', 'plan_scenarios',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period',
+        'reportExport' => 'reportExport', 'reportPreset' => 'reportPreset', 'planBudget' => 'planBudget', 'dimension' => 'dimension', 'scenario' => 'scenario'];
 
     private User $me;
 
@@ -124,7 +133,15 @@ class ContextIsolationRoutesTest extends TestCase
             AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
         ]);
 
-        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+        // Reporting and planning rows: a plan with a cell, a scenario, a named dimension, a saved view, a finished export.
+        $plan = PlanBudget::create($owner + ['name' => "Sentinel plan {$label}", 'fiscal_year' => 2026, 'starts_on' => '2026-01-01', 'ends_on' => '2026-12-31', 'currency' => 'ZAR', 'status' => 'draft']);
+        PlanBudgetLine::create($owner + ['plan_budget_id' => $plan->id, 'gl_account_id' => $glAccount, 'month' => '2026-01-01', 'amount_cents' => 1_000]);
+        $scenario = Scenario::create($owner + ['name' => "Sentinel scenario {$label}", 'horizon' => 'weeks_13', 'assumptions' => [['type' => 'collect_faster', 'days' => 5]]]);
+        $dimension = Dimension::create($owner + ['ref' => 'department:'.Str::slug($label), 'kind' => 'department', 'name' => "Sentinel dimension {$label}"]);
+        $preset = ReportPreset::create($owner + ['name' => "Sentinel view {$label}", 'report_key' => 'profit-loss', 'params' => ['preset' => 'this_year']]);
+        $export = ReportExport::create($owner + ['report_key' => 'profit-loss', 'format' => 'csv', 'params' => ['preset' => 'this_year'], 'params_hash' => hash('sha256', $label), 'idempotency_key' => hash('sha256', 'k'.$label), 'status' => 'queued']);
+
+        return ['reportExport' => $export->id, 'reportPreset' => $preset->id, 'planBudget' => $plan->id, 'dimension' => $dimension->id, 'scenario' => $scenario->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
     }
 
     private function keyFor(array $owner): string
@@ -272,7 +289,8 @@ class ContextIsolationRoutesTest extends TestCase
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
         $pages = ['dashboard', 'parties.index', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create',
-            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create'];
+            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create',
+            'reports.index', 'reports.profit-loss', 'reports.balance-sheet', 'reports.general-ledger', 'reports.budget-vs-actual', 'reports.exports.index', 'planning.budgets.index', 'planning.scenarios.index', 'planning.dimensions.index', 'planning.cash.index', 'planning.afford'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -287,7 +305,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'plan', 'scenario', 'dimension', 'view'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }

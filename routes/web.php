@@ -120,3 +120,11 @@ if (! Features::enabled(Features::registration())) {
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---
+
+// --- reporting ---
+require __DIR__.'/reporting.php';
+// --- end reporting ---
+
+// --- planning ---
+require __DIR__.'/planning.php';
+// --- end planning ---

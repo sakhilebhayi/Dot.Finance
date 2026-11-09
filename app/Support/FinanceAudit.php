@@ -101,6 +101,28 @@ class FinanceAudit
             'values' => ['payment_id', 'allocatable_type', 'allocatable_id', 'amount_cents', 'tax_cents', 'fx_diff_cents', 'released_at'],
             'text' => ['release_reason'],
         ],
+        // ----- R-44 Reporting and Planning -----
+        \App\Models\Planning\PlanBudget::class => [
+            'type' => 'plan_budget',
+            'values' => ['kind', 'fiscal_year', 'starts_on', 'ends_on', 'currency', 'status', 'based_on_id', 'method', 'version'],
+            'text' => ['name'],
+        ],
+        \App\Models\Planning\Scenario::class => [
+            'type' => 'scenario',
+            'values' => ['horizon'],
+            'text' => ['name', 'assumptions'],
+        ],
+        \App\Models\Planning\Dimension::class => [
+            'type' => 'dimension',
+            'values' => ['ref', 'kind', 'is_active'],
+            'text' => ['name'],
+        ],
+        \App\Models\Reporting\ReportPreset::class => [
+            'type' => 'report_preset',
+            'values' => ['report_key'],
+            'text' => ['name', 'params'],
+        ],
+        // ----- end R-44 Reporting and Planning -----
     ];
 
     private static int $muted = 0;
