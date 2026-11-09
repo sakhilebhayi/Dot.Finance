@@ -183,7 +183,7 @@ class IncomeTaxController extends TaxController
 
         $rows = [
             ['INCOME TAX ESTIMATE, NOT A RETURN. Prepared by a person from the books; Dot.Finance does not submit anything to SARS.'],
-            ['Tax year', $e->taxYearStart, $e->taxYearEnd], ['Regime', $e->regimeLabel], ['Source of profit', $e->source], ['Year complete', $e->yearComplete ? 'yes' : 'no, year to date'],
+            ['Tax year', $e->taxYearStart, $e->taxYearEnd], ['Regime', $e->regimeLabel], ['Source of profit', $e->sourceText()], ['Year complete', $e->yearComplete ? 'yes' : 'no, year to date'],
             [], ['Line', 'Amount', 'Basis', 'Note'],
         ];
         foreach ($e->lines as $l) {

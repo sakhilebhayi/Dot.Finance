@@ -104,6 +104,42 @@ final class GlTaxLines
         ]);
     }
 
+    /**
+     * Income and expense in [from, to] split by what made the journal entry (invoice, bill, a cash-ledger transaction, a
+     * manual journal ...): the same lines and exclusions as profitAndLossByAccount, so the parts add up to its totals.
+     *
+     * @return array{income: array<string, int>, expense: array<string, int>}
+     */
+    public function profitBySource(LedgerContext $ctx, string $from, string $to): array
+    {
+        $rows = $this->gl->ownedLines($ctx)
+            ->join('gl_accounts as g', 'g.id', '=', 'l.gl_account_id')
+            ->join('journal_entries as se', 'se.id', '=', 'l.journal_entry_id')
+            ->whereIn('g.class', ['income', 'expense'])->whereBetween('l.entry_date', [$from, $to])
+            ->whereNotExists(function ($sub) {
+                $sub->selectRaw('1')->from('journal_entries as ce')->whereColumn('ce.id', 'l.journal_entry_id')
+                    ->where(fn ($q) => $q->where('ce.source_type', 'period_close')
+                        ->orWhereIn('ce.reverses_entry_id', fn ($s) => $s->select('pc.id')->from('journal_entries as pc')->where('pc.source_type', 'period_close')));
+            })
+            ->whereNotExists(function ($sub) {
+                $sub->selectRaw('1')->from('journal_entries as pe')->whereColumn('pe.id', 'l.journal_entry_id')
+                    ->where(fn ($q) => $q->where(fn ($w) => $w->where('pe.source_type', 'adjustment')->where('pe.source_id', 'like', 'income_tax_provision:%'))
+                        ->orWhereIn('pe.reverses_entry_id', fn ($s) => $s->select('pp.id')->from('journal_entries as pp')->where('pp.source_type', 'adjustment')->where('pp.source_id', 'like', 'income_tax_provision:%')));
+            })
+            ->groupBy('g.class', 'se.source_type')
+            ->get(['g.class', 'se.source_type', DB::raw('COALESCE(SUM(l.debit_cents), 0) as debits'), DB::raw('COALESCE(SUM(l.credit_cents), 0) as credits')]);
+
+        $out = ['income' => [], 'expense' => []];
+        foreach ($rows as $r) {
+            $net = $r->class === 'income' ? (int) $r->credits - (int) $r->debits : (int) $r->debits - (int) $r->credits;
+            if ($net !== 0) {
+                $out[$r->class][(string) $r->source_type] = $net;
+            }
+        }
+
+        return $out;
+    }
+
     /** Taxable-supply income in [from, to]: income-class credit net, leaving out exempt and out-of-scope tagged lines and other income. */
     public function taxableSupplies(LedgerContext $ctx, string $from, string $to): array
     {

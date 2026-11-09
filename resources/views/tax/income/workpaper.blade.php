@@ -14,7 +14,7 @@
         <div><dt>Entity</dt><dd>{{ $profile->entityLabel() }}</dd></div>
         <div><dt>Treatment</dt><dd>{{ $estimate->regimeLabel }}</dd></div>
         <div><dt>Year</dt><dd>{{ $estimate->taxYearStart }} to {{ $estimate->taxYearEnd }}{{ $estimate->yearComplete ? '' : ' (year to date)' }}</dd></div>
-        <div><dt>Profit from</dt><dd>{{ $estimate->source }}</dd></div>
+        <div><dt>Profit from</dt><dd>{{ $estimate->sourceText() }}</dd></div>
         <div><dt>Rules confidence</dt><dd>{{ $estimate->confidence }}</dd></div>
         <div><dt>Generated</dt><dd>{{ $generated->format('j F Y H:i') }}</dd></div>
     </dl>

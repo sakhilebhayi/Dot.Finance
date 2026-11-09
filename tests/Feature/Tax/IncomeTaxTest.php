@@ -243,6 +243,25 @@ class IncomeTaxTest extends TestCase
         $this->assertSame('estimate', $labels['Income tax (estimate)']);
     }
 
+    public function test_the_estimate_says_where_its_profit_comes_from_and_why_it_differs_from_the_transactions_list(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2027-03-10 09:00'));
+        $profile = $this->vatProfile(['legal_entity' => 'company', 'financial_year_end_month' => 2]);
+        $this->sale('2026-06-15', $this->r(1_330_000), 'ZA_VAT_ZERO');                                  // an invoice: income in the books, no transaction
+        $this->purchase('2026-07-01', $this->r(300_000), 'ZA_VAT_ZERO', 0, null, 'Rent');              // a bill
+
+        $e = LedgerContext::run($this->tax, fn () => app(IncomeTaxEstimator::class)->estimate($this->tax, $profile, CarbonImmutable::parse('2027-02-28'), CarbonImmutable::today()));
+
+        $this->assertSame('books', $e->source);
+        $this->assertStringContainsString('the books', $e->sourceText());
+        $this->assertStringContainsString('not the Transactions list', $e->sourceText());
+        $parts = $e->bySource();
+        $this->assertSame([['label' => 'Invoices issued', 'cents' => $this->r(1_330_000)]], $parts['income']);
+        $this->assertSame([['label' => 'Bills and expense claims', 'cents' => $this->r(300_000)]], $parts['expense']);
+        $this->assertSame($e->incomeCents, array_sum(array_column($parts['income'], 'cents')), 'the parts add up to the income line');
+        $this->assertTrue(collect($e->warnings)->contains(fn ($w) => str_contains($w, 'count an invoice or bill when it is issued')));
+    }
+
     public function test_non_deductible_categories_are_flagged_for_review_from_the_research_prompts(): void
     {
         $this->travelTo(CarbonImmutable::parse('2027-03-10 09:00'));

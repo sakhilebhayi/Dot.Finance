@@ -67,11 +67,14 @@ final class IncomeTaxEstimator
         $warnings = [];
         $flagged = [];
         $source = 'books';
+        $bySource = null;
         if ($this->sync->isEnabled($ctx)) {
             $pl = $this->lines->profitAndLossByAccount($ctx, $start->toDateString(), $upTo->toDateString());
             $income = (int) $pl->where('class', 'income')->sum('net_cents');
             $expense = (int) $pl->where('class', 'expense')->sum('net_cents');
             $flagged = $this->flag($ctx, $pl->where('class', 'expense'), $end);
+            $bySource = $this->lines->profitBySource($ctx, $start->toDateString(), $upTo->toDateString());
+            $warnings[] = 'These figures are read from the books (the posted journals), the same ones as the Profit and loss report. The books count an invoice or bill when it is issued, so they will not match the Transactions list, which only holds money that moved.';
         } else {
             $source = 'cash ledger';
             $warnings[] = 'Accounting is not switched on, so the profit is taken from the cash ledger (income less expenses recorded). Switch accounting on for a figure that ties to the books.';
@@ -140,7 +143,7 @@ final class IncomeTaxEstimator
             $income, $expense, $profit, $addBacks, $deductions, $exempt, $beforeLoss, $loss['setoff_cents'], $loss['remaining_loss_cents'], $taxable, $tax,
             $projectedTaxable, $projectedTax, $lines, $flagged,
             $adjustments->map(fn ($a) => ['id' => $a->id, 'kind' => $a->kind, 'category' => $a->category, 'label' => $a->label, 'amount_cents' => $a->amount_cents, 'reason' => $a->reason, 'gl_account_id' => $a->gl_account_id, 'created_at' => $a->created_at?->toDateTimeString()])->all(),
-            array_values(array_unique($warnings)), $notModelled, $rules->versions(), $rules->lowestConfidence(), $source, $detail,
+            array_values(array_unique($warnings)), $notModelled, $rules->versions(), $rules->lowestConfidence(), $source, $bySource === null ? $detail : $detail + ['books_by_source' => $bySource],
         );
     }
 

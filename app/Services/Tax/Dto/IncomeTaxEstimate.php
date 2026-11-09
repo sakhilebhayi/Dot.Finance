@@ -50,6 +50,38 @@ final class IncomeTaxEstimate
         public readonly array $detail = [],
     ) {}
 
+    /** Where the figures come from, in words an owner can check against the page they came from. */
+    public function sourceText(): string
+    {
+        return $this->source === 'books'
+            ? 'the books (the posted journals), as in the Profit and loss report; not the Transactions list'
+            : 'the Transactions list (the cash ledger), because accounting is not switched on';
+    }
+
+    /**
+     * Income and expense in the books by what made the entry, labelled, largest first; empty when the cash ledger was used.
+     *
+     * @return array{income: list<array{label: string, cents: int}>, expense: list<array{label: string, cents: int}>}
+     */
+    public function bySource(): array
+    {
+        $labels = [
+            'invoice' => 'Invoices issued', 'credit_note' => 'Credit notes issued', 'bill' => 'Bills and expense claims', 'transaction' => 'Transactions list (cash ledger)',
+            'payment' => 'Payments (exchange differences)', 'manual' => 'Manual journals', 'payroll' => 'Payroll runs', 'adjustment' => 'Adjustments', 'reversal' => 'Reversals', 'transfer' => 'Transfers',
+        ];
+        $out = [];
+        foreach (['income', 'expense'] as $kind) {
+            $rows = [];
+            foreach ($this->detail['books_by_source'][$kind] ?? [] as $type => $cents) {
+                $rows[] = ['label' => $labels[$type] ?? ucfirst(str_replace('_', ' ', (string) $type)), 'cents' => (int) $cents];
+            }
+            usort($rows, fn ($a, $b) => abs($b['cents']) <=> abs($a['cents']));
+            $out[$kind] = $rows;
+        }
+
+        return $out;
+    }
+
     public function toArray(): array
     {
         return get_object_vars($this);

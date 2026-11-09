@@ -247,6 +247,44 @@ class InsightEngineTest extends TestCase
         $this->assertStringNotContainsString('0 months', $f->title.$f->body);
     }
 
+    public function test_the_books_and_the_cash_ledger_disagreeing_is_an_attention_item_and_quiet_when_they_agree(): void
+    {
+        $this->enableAccounting($this->b['context']);
+        $tx = $this->spend($this->b['bank'], $this->b['food'], 45000, '2026-11-10', 'Checkers');
+
+        $this->scan();
+        $first = $this->findings(kind: 'books_vs_cash');
+        $this->assertTrue($first->isNotEmpty(), 'the fixture sets the opening balance without posting it: the check sees that');
+
+        app(\App\Services\Accounting\GlSweeper::class)->run($this->b['context']);
+        $this->scan();
+        $this->assertSame(0, $this->findings(kind: 'books_vs_cash')->where('status', 'open')->count(), 'once the books have caught up, a ledger that ties raises nothing');
+
+        // A row changed behind the books' back (a restore, a direct edit): the Transactions page and the books now differ.
+        \Illuminate\Support\Facades\DB::table('transactions')->where('id', $tx->id)->update(['amount_cents' => 95000]);
+
+        $this->scan();
+        $found = $this->findings(kind: 'books_vs_cash')->where('status', 'open');
+        $this->assertCount(1, $found);
+        $f = $found->first();
+        $this->assertSame('warning', $f->severity);
+        $this->assertStringContainsString('does not agree with the books', $f->title);
+        $this->assertStringContainsString('Cheque', json_encode($f->evidence));
+        $this->assertStringContainsString('Transactions', json_encode($f->evidence));
+
+        \Illuminate\Support\Facades\DB::table('transactions')->where('id', $tx->id)->update(['amount_cents' => 45000]);
+        $this->scan();
+        $this->assertSame(0, $this->findings(kind: 'books_vs_cash')->where('status', 'open')->count(), 'it clears itself when they agree again');
+    }
+
+    public function test_the_books_vs_cash_check_says_nothing_when_accounting_is_off(): void
+    {
+        $this->spend($this->b['bank'], $this->b['food'], 45000, '2026-11-10', 'Checkers');
+        $this->scan();
+
+        $this->assertCount(0, $this->findings(kind: 'books_vs_cash'));
+    }
+
     public function test_scanning_twice_changes_nothing_and_a_cleared_condition_is_resolved(): void
     {
         $a = $this->spend($this->b['bank'], $this->b['food'], 45000, '2026-11-10', 'Checkers');
