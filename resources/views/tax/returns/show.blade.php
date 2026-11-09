@@ -54,7 +54,7 @@
             @foreach ($boxes as $b)
                 <tr>
                     <td data-label="Field" class="is-lead"><span class="tax-box">{{ $b['code'] }}</span></td>
-                    <td data-label="What it is">{{ $b['label'] }}@if($b['note'] ?? null)<span class="fx-cell-sub">{{ $b['note'] }}</span>@endif @if(($b['kind'] ?? '') === 'calc')<x-tax.basis basis="calculated" />@endif</td>
+                    <td data-label="What it is">{{ $b['label'] }}@if($b['note'] ?? null)<span class="fx-cell-sub">{{ $b['note'] }}</span>@endif @if(($b['kind'] ?? '') === 'calc')<span class="fx-cell-sub"><x-tax.basis basis="calculated" /></span>@endif</td>
                     <td data-label="Amount" class="is-num"><x-fx.money :cents="$b['amount_cents']" currency="ZAR" /></td>
                     <td data-label="Behind it">
                         @if (count($b['contributors']))
@@ -68,7 +68,7 @@
                             @endforeach
                             </ul>
                         </details>
-                        @elseif (($b['kind'] ?? '') === 'calc')<span class="fx-hint">{{ $b['formula'] }}</span>@else<span class="fx-hint">none</span>@endif
+                        @elseif (($b['kind'] ?? '') === 'calc')<span class="fx-hint">{{ trim(preg_replace(['/\bf(\d+A?)\b/', '/vat\.accommodation\.long_stay_pct/', '/tax_fraction/', '/\bt\b/'], ['field $1', 'the long-stay percentage', '15/115', 'the VAT rate'], (string) $b['formula'])) }}</span>@else<span class="fx-hint">none</span>@endif
                     </td>
                 </tr>
             @endforeach

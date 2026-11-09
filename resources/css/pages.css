@@ -1004,3 +1004,33 @@
         break-inside: avoid;
     }
 }
+
+/* A secondary line under a cell's main text (the tax pages write it as a span). */
+.fx-table span.fx-cell-sub {
+    display: block;
+}
+.tax-drill li {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.tax-drill .fx-money {
+    white-space: normal;
+}
+
+/* A statement row that carries a figure and its basis tag must wrap on a phone instead of pushing the page sideways. */
+@media (max-width: 560px) {
+    .fx-statement__row {
+        flex-wrap: wrap;
+    }
+    .fx-statement__row dt {
+        max-width: 100%;
+    }
+    .fx-statement__leader {
+        display: none;
+    }
+    .fx-statement__row dd {
+        margin-left: auto;
+        text-align: right;
+        max-width: 100%;
+    }
+}

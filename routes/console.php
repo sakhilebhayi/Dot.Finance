@@ -5,6 +5,7 @@ use App\Console\Commands\GenerateRecurringTransactions;
 use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\PruneImports;
+use App\Console\Commands\Tax\RefreshCalendar;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -52,7 +53,7 @@ Schedule::command(Verify::class)
 // --- tax ---
 // Regenerate each ledger's tax calendar and create the reminder records that are due. Sends nothing; the Intelligence
 // module delivers the records.
-Schedule::command(\App\Console\Commands\Tax\RefreshCalendar::class)
+Schedule::command(RefreshCalendar::class)
     ->dailyAt('05:30')
     ->withoutOverlapping()
     ->onOneServer();
