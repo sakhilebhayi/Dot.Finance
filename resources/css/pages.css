@@ -870,3 +870,137 @@
 .fx-legal h1 {
     font-size: var(--fs-title);
 }
+
+/* ── Tax (R-44) ───────────────────────────────────────────────────────────────────────────────
+   Small additions to the Tie-Out system for the tax pages. Colour keeps its two meanings: green for ticked, red for variance. */
+.tax-fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+.tax-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+}
+.tax-banner p {
+    margin: 0;
+}
+.tax-banner__line {
+    margin: 0;
+}
+.tax-box {
+    display: inline-block;
+    min-width: 2.25rem;
+    padding: 0 var(--s-2);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-chip);
+    font-family: var(--font-figure);
+    font-size: var(--fs-cell);
+    text-align: center;
+}
+.tax-drill > summary,
+.tax-rules > summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    font-size: var(--fs-cell);
+}
+.tax-drill[open] > summary,
+.tax-rules[open] > summary {
+    margin-bottom: var(--s-2);
+}
+.tax-footer {
+    margin-top: var(--s-5);
+    max-width: 65ch;
+}
+
+/* The printed working paper: plain, light, one column. */
+.tax-print {
+    background: #fff;
+    color: #14181f;
+}
+.tax-sheet {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-4);
+    font-family: var(--font-text);
+    font-size: 0.875rem;
+}
+.tax-sheet h1 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin: var(--s-4) 0;
+}
+.tax-sheet h2 {
+    font-size: 1.0625rem;
+    margin: var(--s-6) 0 var(--s-2);
+}
+.tax-sheet h3 {
+    font-size: 0.9375rem;
+    margin: var(--s-4) 0 var(--s-1);
+}
+.tax-sheet__banner {
+    margin: 0;
+    padding: var(--s-3) var(--s-4);
+    border: 2px solid #14181f;
+    font-weight: 700;
+}
+.tax-sheet__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--s-3);
+    margin: 0 0 var(--s-5);
+}
+.tax-sheet__meta dt {
+    color: #3a424e;
+    font-size: 0.75rem;
+}
+.tax-sheet__meta dd {
+    margin: 0;
+    font-weight: 600;
+}
+.tax-sheet__table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--s-2) 0;
+}
+.tax-sheet__table caption {
+    text-align: left;
+    font-weight: 600;
+    padding-bottom: var(--s-1);
+}
+.tax-sheet__table th,
+.tax-sheet__table td {
+    padding: var(--s-1) var(--s-2);
+    border-bottom: 1px solid #d6dae1;
+    text-align: left;
+    vertical-align: top;
+}
+.tax-sheet__table .num {
+    text-align: right;
+    font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.tax-sheet__foot {
+    margin-top: var(--s-6);
+    color: #3a424e;
+    font-size: 0.8125rem;
+}
+@media print {
+    .tax-sheet {
+        padding: 0;
+    }
+    .tax-sheet h2,
+    .tax-sheet h3 {
+        break-after: avoid;
+    }
+    .tax-sheet__table tr {
+        break-inside: avoid;
+    }
+}
