@@ -1,106 +1,60 @@
-<x-app-layout>
+<x-app-layout title="Edit account">
 
-<div class="page-pad" style="padding:2rem 2.5rem 3rem;max-width:760px;">
+<x-fx.page-head title="Edit account">
+    <x-slot name="sub">Current balance from the ledger: <x-fx.money :cents="$balanceCents" :currency="$account->currency" />, {{ $account->transactions_count }} transaction{{ $account->transactions_count === 1 ? '' : 's' }}</x-slot>
+</x-fx.page-head>
 
-    <div style="margin-bottom:1.5rem;">
-        <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
-            Edit account
-        </h1>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">
-            Current balance from the ledger: <x-money :cents="$balanceCents" :currency="$account->currency" :tone="true" />
-            &middot; {{ $account->transactions_count }} transaction{{ $account->transactions_count === 1 ? '' : 's' }}
-        </p>
-    </div>
+<x-fx.flash />
+<x-fx.errors />
 
-    @if (session('status'))
-    <div style="margin-bottom:1.25rem;padding:0.75rem 1rem;border-radius:0.6rem;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:#22c55e;font-size:0.82rem;">
-        {{ session('status') }}
-    </div>
-    @endif
+<form method="POST" action="{{ route('accounts.update', $account) }}" class="fx-panel fx-panel__body fx-form r-stack">
+    @csrf
+    @method('PUT')
 
-    @if ($errors->any())
-    <div style="margin-bottom:1.25rem;padding:0.75rem 1rem;border-radius:0.6rem;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:#f87171;font-size:0.82rem;">
-        <ul style="margin:0;padding-left:1.1rem;">
-            @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
+    <x-fx.input name="name" id="accounts-edit-name" label="Name" :value="$account->name" required maxlength="255" />
+
+    <div class="fx-row fx-row--2">
+        <x-fx.select name="type" id="accounts-edit-type" label="Type" required>
+            @foreach ($types as $type)
+            <option value="{{ $type }}" @selected(old('type', $account->type) === $type)>{{ ucfirst($type) }}</option>
             @endforeach
-        </ul>
+        </x-fx.select>
+        @if ($currencyLocked)
+        <div class="fx-field">
+            <label for="accounts-edit-currency" class="fx-label">Currency</label>
+            <input id="accounts-edit-currency" type="text" value="{{ $account->currency }}" disabled class="fx-input" aria-describedby="accounts-edit-currency-hint" />
+            <input type="hidden" name="currency" value="{{ $account->currency }}">
+            <p class="fx-hint" id="accounts-edit-currency-hint">The currency cannot change once an account has transactions.</p>
+        </div>
+        @else
+        <x-fx.input name="currency" id="accounts-edit-currency" label="Currency" :value="$account->currency" required maxlength="3" hint="Can be changed until the first transaction is recorded." />
+        @endif
     </div>
-    @endif
 
-    <form method="POST" action="{{ route('accounts.update', $account) }}" class="dot-card" style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
-        @csrf
-        @method('PUT')
+    <x-fx.input name="institution" id="accounts-edit-institution" label="Institution" optional maxlength="255" :value="$account->institution" />
 
-        <div>
-            <label for="accounts-edit-name" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Name</label>
-            <input id="accounts-edit-name" type="text" name="name" value="{{ old('name', $account->name) }}" required maxlength="255" class="dot-input" />
-        </div>
+    <div class="fx-formactions">
+        <x-fx.button variant="primary">Save changes</x-fx.button>
+        <x-fx.button :href="route('accounts.index')">Back to accounts</x-fx.button>
+    </div>
+</form>
 
-        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-            <div>
-                <label for="accounts-edit-type" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Type</label>
-                <select id="accounts-edit-type" name="type" required class="dot-input">
-                    @foreach($types as $type)
-                    <option value="{{ $type }}" @selected(old('type', $account->type) === $type)>{{ ucfirst($type) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label for="accounts-edit-currency" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Currency</label>
-                @if($currencyLocked)
-                <input id="accounts-edit-currency" type="text" value="{{ $account->currency }}" disabled class="dot-input" />
-                <input type="hidden" name="currency" value="{{ $account->currency }}">
-                <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">The currency cannot change once an account has transactions.</p>
-                @else
-                <input id="accounts-edit-currency" type="text" name="currency" value="{{ old('currency', $account->currency) }}" required maxlength="3" class="dot-input" />
-                <p style="font-size:0.68rem;color:var(--text-muted);margin:0.3rem 0 0;">Can be changed until the first transaction is recorded.</p>
-                @endif
-            </div>
-        </div>
+@can('adjustOpeningBalance', $account)
+<form method="POST" action="{{ route('accounts.opening-balance', $account) }}" class="fx-panel fx-panel__body fx-form r-stack">
+    @csrf
+    <div>
+        <h2 class="fx-panel__title">Adjust opening balance</h2>
+        <p class="fx-hint">The balance is the opening balance plus every transaction on or after the opening date. Changing either moves the balance, so this is recorded in the audit log with the old and new values. Currently
+            <x-fx.money :cents="$account->opening_balance_cents" :currency="$account->currency" /> from {{ $account->opening_balance_date?->format('j M Y') ?? 'the beginning' }}.</p>
+    </div>
 
-        <div>
-            <label for="accounts-edit-institution" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Institution (optional)</label>
-            <input id="accounts-edit-institution" type="text" name="institution" value="{{ old('institution', $account->institution) }}" maxlength="255" class="dot-input" />
-        </div>
-
-        <div style="display:flex;gap:0.75rem;">
-            <button type="submit" class="dot-btn dot-btn-primary">Save changes</button>
-            <a href="{{ route('accounts.index') }}" class="dot-btn dot-btn-ghost">Back to accounts</a>
-        </div>
-    </form>
-
-    @can('adjustOpeningBalance', $account)
-    <form method="POST" action="{{ route('accounts.opening-balance', $account) }}" class="dot-card" style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
-        @csrf
-        <div>
-            <h2 style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text-primary);margin:0 0 0.3rem;">Adjust opening balance</h2>
-            <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">
-                The balance is the opening balance plus every transaction on or after the opening date. Changing either moves the balance, so this is recorded in the audit log with the old and new values. Currently
-                <x-money :cents="$account->opening_balance_cents" :currency="$account->currency" /> from {{ $account->opening_balance_date?->format('j M Y') ?? 'the beginning' }}.
-            </p>
-        </div>
-
-        <div class="r-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-            <div>
-                <label for="accounts-edit-opening-balance" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Opening balance ({{ $account->currency }})</label>
-                <input id="accounts-edit-opening-balance" type="text" inputmode="decimal" name="opening_balance" value="{{ old('opening_balance', \App\Support\Money::toDecimalString($account->opening_balance_cents)) }}" required class="dot-input" />
-            </div>
-            <div>
-                <label for="accounts-edit-opening-balance-date" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Effective from</label>
-                <input id="accounts-edit-opening-balance-date" type="date" name="opening_balance_date" value="{{ old('opening_balance_date', $account->opening_balance_date?->toDateString() ?? now()->toDateString()) }}" required class="dot-input" />
-            </div>
-        </div>
-        <div>
-            <label for="accounts-edit-reason" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Reason (optional)</label>
-            <input id="accounts-edit-reason" type="text" name="reason" value="{{ old('reason') }}" maxlength="150" class="dot-input" placeholder="e.g. Matched the January statement" />
-        </div>
-        <div>
-            <button type="submit" class="dot-btn dot-btn-ghost">Adjust opening balance</button>
-        </div>
-    </form>
-    @endcan
-
-</div>
+    <div class="fx-row fx-row--2">
+        <x-fx.input name="opening_balance" id="accounts-edit-opening-balance" label="Opening balance ({{ $account->currency }})" inputmode="decimal" :value="\App\Support\Money::toDecimalString($account->opening_balance_cents)" required figure />
+        <x-fx.input name="opening_balance_date" id="accounts-edit-opening-balance-date" type="date" label="Effective from" :value="$account->opening_balance_date?->toDateString() ?? now()->toDateString()" required />
+    </div>
+    <x-fx.input name="reason" id="accounts-edit-reason" label="Reason" optional maxlength="150" placeholder="e.g. Matched the January statement" />
+    <div class="fx-formactions"><x-fx.button>Adjust opening balance</x-fx.button></div>
+</form>
+@endcan
 
 </x-app-layout>

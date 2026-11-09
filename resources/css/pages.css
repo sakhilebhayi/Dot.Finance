@@ -1,0 +1,1318 @@
+/* ===================================================================================================
+   Page compositions: the command centre, charts, sign-in, settings pages, error pages, the public page.
+   =================================================================================================== */
+
+/* ---- Command centre ------------------------------------------------------------------------------------ */
+.fx-cash {
+    display: grid;
+    gap: var(--s-5);
+}
+
+.fx-cash__block {
+    display: grid;
+    gap: var(--s-3);
+    padding-bottom: var(--s-5);
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-cash__block:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.fx-cash__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-1) var(--s-3);
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-cash__title strong {
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-size: var(--fs-section);
+    color: var(--ink);
+}
+
+.fx-cash__cols {
+    display: grid;
+    gap: var(--s-3);
+}
+
+.fx-cash__cols > .fx-statement {
+    max-width: 30rem;
+}
+
+.fx-cash__def {
+    max-width: 26rem;
+    margin-top: var(--s-1);
+}
+
+.fx-cash__none {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--fs-section);
+    color: var(--ink-2);
+}
+
+.fx-cash__bridge {
+    display: grid;
+    gap: var(--s-1);
+    max-width: 30rem;
+    padding-top: var(--s-2);
+    border-top: 1px dotted var(--rule-strong);
+}
+
+.fx-bridge {
+    display: grid;
+    gap: var(--s-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-cell);
+}
+
+.fx-bridge li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0 var(--s-3);
+}
+
+.fx-bridge__fig {
+    color: var(--ink-2);
+}
+
+.fx-needs {
+    display: grid;
+    margin: 0;
+    list-style: none;
+}
+
+.fx-needs__item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-3);
+    align-items: start;
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-needs__item:last-child {
+    border-bottom: 0;
+}
+
+.fx-needs__item .fx-icon {
+    margin-top: 0.15rem;
+}
+
+.fx-needs__item.is-variance .fx-icon {
+    color: var(--pencil);
+}
+
+.fx-needs__count {
+    font-family: var(--font-figure);
+    font-weight: 600;
+}
+
+.fx-ok {
+    display: flex;
+    gap: var(--s-3);
+    align-items: flex-start;
+    color: var(--ink-2);
+    font-size: var(--fs-cell);
+}
+
+.fx-ok .fx-icon {
+    margin-top: 0.15rem;
+    color: var(--tick);
+}
+
+.fx-ok strong {
+    display: block;
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-size: var(--fs-section);
+    color: var(--ink);
+}
+
+.fx-budgetrow {
+    display: grid;
+    gap: var(--s-1);
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-budgetrow:first-child {
+    padding-top: 0;
+}
+
+.fx-budgetrow:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.fx-budgetrow__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-1) var(--s-3);
+}
+
+.fx-budgetrow__name {
+    font-weight: 600;
+}
+
+.fx-budgetrow__fig {
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-budgetrow__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--s-1) var(--s-3);
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-budgetrow__foot .is-variance {
+    color: var(--pencil);
+    font-weight: 600;
+}
+
+.fx-swatch {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    margin-right: var(--s-2);
+    vertical-align: -0.05em;
+}
+
+/* ---- Charts (SVG; colours come from classes, never from inline styles) -------------------------------------- */
+.fx-chart {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.fx-chart__grid {
+    stroke: var(--rule);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.fx-chart__base {
+    stroke: var(--ink);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.fx-chart__bar--in {
+    fill: var(--ink);
+}
+
+.fx-chart__bar--out {
+    fill: var(--ink-3);
+}
+
+.fx-chart__tick {
+    fill: var(--ink-3);
+    font-family: var(--font-figure);
+    font-size: 11px;
+}
+
+.fx-chart__label {
+    fill: var(--ink-2);
+    font-size: 11px;
+    /* a halo in the page colour keeps the label readable where the line passes behind it */
+    paint-order: stroke;
+    stroke: var(--sheet);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+}
+
+.fx-chart__direct {
+    fill: var(--ink);
+    font-weight: 600;
+}
+
+/* A real toggle: a joined pair of options, the chosen one filled. Used where a choice swaps what a panel shows. */
+.fx-seg {
+    display: inline-flex;
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    overflow: hidden;
+}
+
+.fx-seg__opt {
+    display: inline-flex;
+    align-items: center;
+    min-width: 3rem;
+    min-height: 1.75rem;
+    justify-content: center;
+    padding: 0 var(--s-3);
+    background: var(--sheet);
+    color: var(--ink-2);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.fx-seg__opt + .fx-seg__opt {
+    border-left: 1px solid var(--edge);
+}
+
+.fx-seg__opt:hover {
+    background: var(--sunk);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.fx-seg__opt[aria-current='true'] {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.fx-chart__line {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 1.75;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.fx-chart__line--projected {
+    stroke-dasharray: 6 4;
+}
+
+.fx-chart__zero {
+    stroke: var(--rule-strong);
+    stroke-dasharray: 3 3;
+}
+
+.fx-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-4);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-legend__key {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    margin-right: var(--s-1);
+    vertical-align: -0.05em;
+}
+
+.fx-legend__key--in {
+    background: var(--ink);
+}
+
+.fx-legend__key--out {
+    background: var(--ink-3);
+}
+
+.fx-legend__key--proj {
+    height: 0;
+    border-top: 2px dashed var(--ink);
+    vertical-align: 0.25em;
+    width: 1rem;
+}
+
+/* ---- Facts row (a few figures, one container split by rules) ----------------------------------------------- */
+.fx-facts {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+}
+
+.fx-facts > div {
+    padding: var(--s-4) var(--s-5);
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-facts > div:last-child {
+    border-bottom: 0;
+}
+
+.fx-facts dt {
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-facts dd {
+    margin: var(--s-1) 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.fx-facts dd small {
+    display: block;
+    font-family: var(--font-text);
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--ink-3);
+}
+
+@media (min-width: 720px) {
+    .fx-facts {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+    }
+
+    .fx-facts > div {
+        border-bottom: 0;
+        border-right: 1px solid var(--rule);
+    }
+
+    .fx-facts > div:last-child {
+        border-right: 0;
+    }
+}
+
+/* ---- Lists ------------------------------------------------------------------------------------------------------ */
+.fx-list {
+    list-style: none;
+    display: grid;
+}
+
+.fx-list > li {
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-list > li:last-child {
+    border-bottom: 0;
+}
+
+.fx-prose {
+    max-width: 62ch;
+    color: var(--ink-2);
+}
+
+.fx-prose p + p {
+    margin-top: var(--s-3);
+}
+
+.fx-prose ul {
+    padding-left: 1.1rem;
+    list-style: disc;
+}
+
+.fx-prose li + li {
+    margin-top: var(--s-1);
+}
+
+.fx-prose a {
+    color: var(--ink);
+}
+
+.fx-prose h2 {
+    margin-top: var(--s-5);
+    margin-bottom: var(--s-2);
+    font-size: var(--fs-section);
+    color: var(--ink);
+}
+
+.fx-prose h3 {
+    margin-top: var(--s-4);
+    font-size: var(--fs-body);
+    color: var(--ink);
+}
+
+/* ---- Settings pages (Jetstream: profile, teams, API tokens) -------------------------------------------------------- */
+.fx-settings {
+    display: grid;
+    gap: var(--s-4);
+    align-items: start;
+}
+
+@media (min-width: 900px) {
+    .fx-settings {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        gap: var(--s-6);
+    }
+}
+
+.fx-section-title h3 {
+    font-size: var(--fs-section);
+}
+
+.fx-section-title p {
+    margin-top: var(--s-1);
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+    max-width: 44ch;
+}
+
+.fx-section-gap {
+    height: var(--s-5);
+}
+
+.fx-settings-stack {
+    display: grid;
+    gap: var(--s-6);
+}
+
+.fx-panel__foot--end {
+    justify-content: flex-end;
+}
+
+.fx-saved {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-right: var(--s-3);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--tick);
+}
+
+.fx-checkbox {
+    width: 1.125rem;
+    height: 1.125rem;
+    accent-color: var(--ink);
+}
+
+/* Alpine modal used by the Livewire pages */
+.fx-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: var(--s-4);
+    overflow-y: auto;
+}
+
+.fx-modal__scrim {
+    position: fixed;
+    inset: 0;
+    background: var(--scrim);
+}
+
+.fx-modal__panel {
+    position: relative;
+    width: 100%;
+    max-width: 40rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-float);
+    background: var(--sheet);
+    box-shadow: var(--shadow-float);
+}
+
+.fx-modal__panel--sm {
+    max-width: 24rem;
+}
+
+.fx-modal__panel--md {
+    max-width: 32rem;
+}
+
+.fx-fade-enter {
+    transition: opacity 160ms var(--ease);
+}
+
+.fx-fade-from {
+    opacity: 0;
+}
+
+.fx-fade-to {
+    opacity: 1;
+}
+
+.fx-dialog__body {
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-dialog__warn {
+    margin-right: var(--s-2);
+    color: var(--pencil);
+}
+
+.fx-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding: var(--s-2) var(--s-4);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: var(--fs-cell);
+}
+
+.fx-banner .fx-toast__close {
+    color: inherit;
+}
+
+/* ---- Sign-in and recovery ---------------------------------------------------------------------------------------------- */
+.fx-auth {
+    display: grid;
+    min-height: 100dvh;
+    background: var(--paper);
+}
+
+.fx-auth__panel {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--s-5);
+    padding: var(--s-6) var(--s-4);
+}
+
+.fx-auth__logo,
+.fx-auth__sheet {
+    width: 100%;
+    max-width: 26rem;
+}
+
+.fx-auth__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-3);
+    text-decoration: none;
+}
+
+.fx-auth__brand:hover {
+    text-decoration: none;
+}
+
+.fx-auth__sheet {
+    padding: var(--s-6) var(--s-5);
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+}
+
+.fx-auth__sheet h1 {
+    font-size: var(--fs-title);
+}
+
+.fx-auth__intro {
+    margin: var(--s-2) 0 var(--s-5);
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-auth__links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    margin-top: var(--s-5);
+}
+
+.fx-auth__aside {
+    display: none;
+    align-content: center;
+    gap: var(--s-5);
+    padding: var(--s-7) var(--s-6);
+    background: var(--sunk);
+    border-left: 1px solid var(--rule);
+}
+
+.fx-auth__lede {
+    max-width: 18ch;
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-weight: 660;
+    font-size: 2rem;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+}
+
+.fx-auth__list {
+    display: grid;
+    gap: var(--s-4);
+    max-width: 36ch;
+    list-style: none;
+    font-size: var(--fs-body);
+    color: var(--ink-2);
+}
+
+.fx-auth__list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-3);
+}
+
+.fx-auth__list .fx-icon {
+    margin-top: 0.25rem;
+    color: var(--tick);
+}
+
+@media (min-width: 960px) {
+    .fx-auth {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .fx-auth__aside {
+        display: grid;
+    }
+}
+
+/* ---- Error pages and the public page --------------------------------------------------------------------------------------- */
+.fx-bare {
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background: var(--paper);
+}
+
+.fx-bare__head,
+.fx-bare__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    width: 100%;
+    max-width: 72.5rem;
+    margin: 0 auto;
+    padding: var(--s-4);
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-bare__head a {
+    text-decoration: none;
+}
+
+.fx-bare__main {
+    display: grid;
+    align-content: center;
+    gap: var(--s-4);
+    width: 100%;
+    max-width: 72.5rem;
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-4);
+}
+
+.fx-code {
+    font-family: var(--font-figure);
+    font-size: clamp(4rem, 14vw, 9rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+}
+
+.fx-code::after {
+    content: '';
+    display: block;
+    width: min(100%, 14rem);
+    margin-top: var(--s-3);
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    height: 5px;
+}
+
+.fx-bare__title {
+    max-width: 22ch;
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    line-height: 1.12;
+}
+
+.fx-bare__msg {
+    max-width: 52ch;
+    font-size: 1.0625rem;
+    color: var(--ink-2);
+}
+
+.fx-bare__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    padding-top: var(--s-2);
+}
+
+.fx-eco {
+    margin-top: var(--s-6);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+}
+
+.fx-eco__title {
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-eco__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-3);
+    margin-top: var(--s-3);
+    list-style: none;
+}
+
+.fx-eco__list a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-height: 2rem;
+    font-size: var(--fs-cell);
+    text-decoration: none;
+    color: var(--ink-2);
+}
+
+.fx-eco__list a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+}
+
+.fx-eco__dot {
+    width: 0.6rem;
+    height: 0.6rem;
+}
+
+.fx-welcome {
+    display: grid;
+    gap: var(--s-6);
+    align-items: center;
+}
+
+@media (min-width: 900px) {
+    .fx-welcome {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: var(--s-7);
+    }
+}
+
+.fx-welcome h1 {
+    max-width: 16ch;
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.fx-welcome__lede {
+    max-width: 48ch;
+    font-size: 1.125rem;
+    color: var(--ink-2);
+}
+
+.fx-howit {
+    display: grid;
+    gap: 0;
+    list-style: none;
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+}
+
+.fx-howit li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-howit li:last-child {
+    border-bottom: 0;
+}
+
+.fx-howit .fx-icon {
+    margin-top: 0.2rem;
+    color: var(--tick);
+}
+
+.fx-howit strong {
+    display: block;
+    font-family: var(--font-display);
+    font-stretch: 108%;
+}
+
+.fx-howit span {
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+/* ---- Import preview ------------------------------------------------------------------------------------------------------------ */
+.fx-tally {
+    display: grid;
+    margin: 0;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+}
+
+.fx-tally > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding: var(--s-3) var(--s-5);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+}
+
+.fx-tally > div:last-child {
+    border-bottom: 0;
+}
+
+.fx-tally dt {
+    color: var(--ink-2);
+}
+
+.fx-tally dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+@media (min-width: 720px) {
+    .fx-tally {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .fx-tally > div {
+        display: block;
+        border-bottom: 0;
+        border-right: 1px solid var(--rule);
+    }
+
+    .fx-tally > div:last-child {
+        border-right: 0;
+    }
+
+    .fx-tally dd {
+        margin-top: var(--s-1);
+        font-size: 1.25rem;
+    }
+}
+
+/* ---- Tie-out ------------------------------------------------------------------------------------------------------------------------ */
+.fx-verdict {
+    display: flex;
+    gap: var(--s-4);
+    align-items: flex-start;
+    padding: var(--s-5);
+    border: 1px solid var(--tick-line);
+    border-radius: var(--r-panel);
+    background: var(--tick-bg);
+    color: var(--ink);
+}
+
+.fx-verdict .fx-icon {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--tick);
+    stroke-width: 2;
+}
+
+.fx-verdict strong {
+    display: block;
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-size: var(--fs-section);
+    color: var(--tick);
+}
+
+.fx-verdict--bad {
+    border-color: var(--pencil-line);
+    background: var(--pencil-bg);
+}
+
+.fx-verdict--bad .fx-icon,
+.fx-verdict--bad strong {
+    color: var(--pencil);
+}
+
+.fx-finding {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-3);
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+}
+
+.fx-finding:last-child {
+    border-bottom: 0;
+}
+
+.fx-finding code {
+    word-break: break-word;
+}
+
+/* ---- Legal documents ---------------------------------------------------------------------------------------------------------------- */
+.fx-legal {
+    display: grid;
+    gap: var(--s-5);
+    width: 100%;
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-4) var(--s-7);
+}
+
+.fx-legal h1 {
+    font-size: var(--fs-title);
+}
+
+/* ---- Purchases: the receipts inbox ---- */
+.fx-doc {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel, 6px);
+}
+
+.fx-excerpt {
+    margin: 0;
+    padding: var(--s-3);
+    max-height: 22rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--sunk);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-control, 5px);
+    font-family: var(--font-figure, ui-monospace, monospace);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-inline {
+    display: inline-block;
+}
+
+/* ── Tax (R-44) ───────────────────────────────────────────────────────────────────────────────
+   Small additions to the Tie-Out system for the tax pages. Colour keeps its two meanings: green for ticked, red for variance. */
+.tax-fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}
+.tax-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+}
+.tax-banner p {
+    flex: 1 1 14rem;
+    min-width: 0;
+    margin: 0;
+}
+.tax-banner__line {
+    margin: 0;
+}
+.tax-box {
+    display: inline-block;
+    min-width: 2.25rem;
+    padding: 0 var(--s-2);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-chip);
+    font-family: var(--font-figure);
+    font-size: var(--fs-cell);
+    text-align: center;
+}
+.tax-drill > summary,
+.tax-rules > summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    font-size: var(--fs-cell);
+}
+.tax-drill[open] > summary,
+.tax-rules[open] > summary {
+    margin-bottom: var(--s-2);
+}
+.tax-footer {
+    margin-top: var(--s-5);
+    max-width: 65ch;
+}
+
+/* The printed working paper: plain, light, one column. */
+.tax-print {
+    background: #fff;
+    color: #14181f;
+}
+.tax-sheet {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-4);
+    font-family: var(--font-text);
+    font-size: 0.875rem;
+}
+.tax-sheet h1 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin: var(--s-4) 0;
+}
+.tax-sheet h2 {
+    font-size: 1.0625rem;
+    margin: var(--s-6) 0 var(--s-2);
+}
+.tax-sheet h3 {
+    font-size: 0.9375rem;
+    margin: var(--s-4) 0 var(--s-1);
+}
+.tax-sheet__banner {
+    margin: 0;
+    padding: var(--s-3) var(--s-4);
+    border: 2px solid #14181f;
+    font-weight: 700;
+}
+.tax-sheet__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: var(--s-3);
+    margin: 0 0 var(--s-5);
+}
+.tax-sheet__meta dt {
+    color: #3a424e;
+    font-size: 0.75rem;
+}
+.tax-sheet__meta dd {
+    margin: 0;
+    font-weight: 600;
+}
+.tax-sheet__iso {
+    font-weight: 400;
+    color: #3a424e;
+    font-size: 0.75rem;
+}
+.tax-sheet__table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--s-2) 0;
+}
+.tax-sheet__table caption {
+    text-align: left;
+    font-weight: 600;
+    padding-bottom: var(--s-1);
+}
+.tax-sheet__table th,
+.tax-sheet__table td {
+    padding: var(--s-1) var(--s-2);
+    border-bottom: 1px solid #d6dae1;
+    text-align: left;
+    vertical-align: top;
+    /* long rule keys and source addresses wrap, so the sheet never scrolls sideways on a phone */
+    overflow-wrap: anywhere;
+}
+.tax-sheet__table .num {
+    text-align: right;
+    font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.tax-sheet__foot {
+    margin-top: var(--s-6);
+    color: #3a424e;
+    font-size: 0.8125rem;
+}
+/* The paper is always light, whatever theme the person chose for the app. */
+html:has(body.tax-print) {
+    color-scheme: light;
+}
+@page {
+    size: A4;
+    margin: 16mm 14mm;
+}
+@media print {
+    .tax-sheet {
+        padding: 0;
+        max-width: none;
+    }
+    .tax-sheet__table thead {
+        display: table-header-group;
+    }
+    .tax-sheet__table tfoot {
+        display: table-footer-group;
+    }
+    .tax-sheet__banner {
+        break-after: avoid;
+    }
+    .tax-sheet h2,
+    .tax-sheet h3 {
+        break-after: avoid;
+    }
+    .tax-sheet__table tr {
+        break-inside: avoid;
+    }
+}
+
+/* A secondary line under a cell's main text (the tax pages write it as a span). */
+.fx-table span.fx-cell-sub {
+    display: block;
+}
+.tax-drill li {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.tax-drill .fx-money {
+    white-space: normal;
+}
+
+/* A statement row that carries a figure and its basis tag must wrap on a phone instead of pushing the page sideways. */
+@media (max-width: 560px) {
+    .fx-statement__row {
+        flex-wrap: wrap;
+    }
+    .fx-statement__row dt {
+        max-width: 100%;
+    }
+    .fx-statement__leader {
+        display: none;
+    }
+    .fx-statement__row dd {
+        margin-left: auto;
+        text-align: right;
+        max-width: 100%;
+    }
+}
+
+/* ---- A change in words, never in brackets ------------------------------------------------------------------- */
+.fx-change {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0 var(--s-2);
+}
+
+.fx-change__word {
+    color: var(--ink-3);
+    font-size: var(--fs-small);
+}
+
+.fx-panel__note {
+    margin: 0;
+    padding: var(--s-3) var(--s-4) 0;
+}
+
+.fx-owed {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0 var(--s-2);
+}
+
+.fx-owed__word {
+    color: var(--ink-3);
+    font-size: var(--fs-small);
+}
+
+/* ---- Public page: the example statement and the honest list of what exists ---------------------------------------- */
+.fx-sample {
+    display: grid;
+    gap: var(--s-2);
+    margin: 0;
+}
+
+.fx-sample figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-1) var(--s-3);
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-sample__tag {
+    padding: 0 var(--s-2);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-control);
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.fx-sample__sheet {
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+}
+
+.fx-sample__title {
+    display: grid;
+    margin: 0;
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-weight: 620;
+    font-size: var(--fs-section);
+}
+
+.fx-today {
+    display: grid;
+    gap: var(--s-3);
+}
+
+.fx-today__list {
+    display: grid;
+    gap: var(--s-2);
+    max-width: 62ch;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-body);
+    color: var(--ink-2);
+}
+
+.fx-today__list strong {
+    color: var(--ink);
+}
+
+.fx-today__not {
+    max-width: 62ch;
+    margin: 0;
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-auth__trust {
+    display: grid;
+    gap: var(--s-2);
+    margin: var(--s-5) 0 0;
+    padding-left: 0;
+    list-style: none;
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-auth__trust .fx-icon {
+    margin-right: var(--s-2);
+    vertical-align: -0.15em;
+    color: var(--tick);
+}
+
+@media (min-width: 960px) {
+    .fx-auth__trust {
+        display: none;
+    }
+}
+
+/* The rule versions list names long keys and source addresses: they wrap instead of widening the page. */
+.tax-rules td,
+.tax-rules th {
+    overflow-wrap: anywhere;
+}

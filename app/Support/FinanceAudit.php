@@ -3,10 +3,29 @@
 namespace App\Support;
 
 use App\Models\Account;
+use App\Models\Bank\BankRule;
 use App\Models\Budget;
 use App\Models\Category;
+use App\Models\Controls\AccessReview;
+use App\Models\Controls\ApprovalPolicy;
+use App\Models\Controls\ApprovalRequest;
+use App\Models\Controls\LedgerMemberRole;
+use App\Models\Controls\SpendLimit;
 use App\Models\FinanceAuditLog;
+use App\Models\Planning\Dimension;
+use App\Models\Planning\PlanBudget;
+use App\Models\Planning\Scenario;
+use App\Models\Purchases\Bill;
+use App\Models\Purchases\ExpenseClaim;
+use App\Models\Purchases\PaymentRun;
+use App\Models\Purchases\PurchaseSetting;
+use App\Models\Purchases\RecurringBill;
+use App\Models\Purchases\SupplierProfile;
 use App\Models\RecurringRule;
+use App\Models\Reporting\ReportPreset;
+use App\Models\Shared\Party;
+use App\Models\Shared\Payment;
+use App\Models\Shared\PaymentAllocation;
 use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -47,6 +66,112 @@ class FinanceAudit
             'values' => ['account_id', 'category_id', 'amount_cents', 'currency', 'type', 'recurrence_type', 'recurrence_interval', 'start_date', 'next_occurrence_date', 'end_date', 'paused_at', 'ended_at'],
             'text' => ['description', 'notes'],
         ],
+
+        // ----- R-44 Controls (F3): roles, approvals, policies, limits, access reviews -----
+        // Policies and limits are logged by the generic observer; role grants, approval requests and
+        // access reviews are logged explicitly by their services (they carry an action and a context).
+        LedgerMemberRole::class => [
+            'type' => 'member_role',
+            'values' => ['member_user_id', 'role'],
+            'text' => [],
+        ],
+        ApprovalPolicy::class => [
+            'type' => 'approval_policy',
+            'values' => ['subject_type', 'threshold_cents', 'currency', 'approver_capability', 'min_role', 'steps_required', 'allow_self_approval', 'is_active'],
+            'text' => ['name'],
+        ],
+        ApprovalRequest::class => [
+            'type' => 'approval_request',
+            'values' => ['subject_kind', 'amount_cents', 'currency', 'status', 'steps_required', 'steps_done'],
+            'text' => ['reason', 'request_note'],
+        ],
+        SpendLimit::class => [
+            'type' => 'spend_limit',
+            'values' => ['member_user_id', 'role', 'currency', 'period', 'limit_cents'],
+            'text' => [],
+        ],
+        AccessReview::class => [
+            'type' => 'access_review',
+            'values' => ['member_count'],
+            'text' => ['notes'],
+        ],
+        // ----- end R-44 Controls -----
+        // R-44 Bank: rules are audited per row; statements, matches and reconciliations are logged by their services.
+        BankRule::class => [
+            'type' => 'bank_rule',
+            'values' => ['account_id', 'match_field', 'operator', 'direction', 'min_cents', 'max_cents', 'category_id', 'priority', 'is_active'],
+            'text' => ['name', 'pattern', 'new_description'],
+        ],
+        // R-44 shared data layer (F2)
+        Party::class => [
+            'type' => 'party',
+            'values' => ['type', 'name', 'currency', 'payment_terms_days', 'credit_limit_cents', 'status'],
+            'text' => ['legal_name', 'email', 'phone', 'tax_number', 'registration_number', 'billing_address', 'shipping_address', 'external_ref', 'notes'],
+        ],
+        Payment::class => [
+            'type' => 'payment',
+            'values' => ['direction', 'party_id', 'cash_account_id', 'amount_cents', 'currency', 'fx_rate_e8', 'paid_on', 'method', 'status', 'gl_entry_id', 'transaction_id'],
+            'text' => ['reference', 'reversal_reason', 'notes'],
+        ],
+        PaymentAllocation::class => [
+            'type' => 'payment_alloc',
+            'values' => ['payment_id', 'allocatable_type', 'allocatable_id', 'amount_cents', 'tax_cents', 'fx_diff_cents', 'released_at'],
+            'text' => ['release_reason'],
+        ],
+        // ----- R-44 Purchases -----
+        Bill::class => [
+            'type' => 'bill',
+            'values' => ['kind', 'party_id', 'number', 'status', 'bill_date', 'due_date', 'currency', 'total_cents', 'tax_cents', 'claimable_tax_cents', 'document_type', 'credit_for_bill_id'],
+            'text' => ['supplier_reference', 'notes', 'credit_reason', 'void_reason', 'rejection_reason', 'post_error'],
+        ],
+        ExpenseClaim::class => [
+            'type' => 'expense_claim',
+            'values' => ['claimant_user_id', 'number', 'status', 'claim_date', 'total_cents', 'tax_cents', 'claimable_tax_cents'],
+            'text' => ['title', 'notes', 'void_reason', 'rejection_reason', 'post_error'],
+        ],
+        PaymentRun::class => [
+            'type' => 'payment_run',
+            'values' => ['due_by', 'paid_on', 'cash_account_id', 'currency', 'status', 'total_cents', 'supplier_count'],
+            'text' => ['name'],
+        ],
+        RecurringBill::class => [
+            'type' => 'recurring_bill',
+            'values' => ['party_id', 'frequency', 'interval_count', 'next_run_on', 'end_on', 'status', 'currency'],
+            'text' => ['name'],
+        ],
+        PurchaseSetting::class => [
+            'type' => 'purchase_setting',
+            'values' => ['vat_registered', 'missing_document_threshold_cents'],
+            'text' => [],
+        ],
+        SupplierProfile::class => [
+            'type' => 'supplier_profile',
+            'values' => ['party_id', 'default_gl_account_id', 'default_tax_code', 'early_payment_discount_bp', 'early_payment_days'],
+            'text' => [],
+        ],
+        // ----- end R-44 Purchases -----
+        // ----- R-44 Reporting and Planning -----
+        PlanBudget::class => [
+            'type' => 'plan_budget',
+            'values' => ['kind', 'fiscal_year', 'starts_on', 'ends_on', 'currency', 'status', 'based_on_id', 'method', 'version'],
+            'text' => ['name'],
+        ],
+        Scenario::class => [
+            'type' => 'scenario',
+            'values' => ['horizon'],
+            'text' => ['name', 'assumptions'],
+        ],
+        Dimension::class => [
+            'type' => 'dimension',
+            'values' => ['ref', 'kind', 'is_active'],
+            'text' => ['name'],
+        ],
+        ReportPreset::class => [
+            'type' => 'report_preset',
+            'values' => ['report_key'],
+            'text' => ['name', 'params'],
+        ],
+        // ----- end R-44 Reporting and Planning -----
     ];
 
     private static int $muted = 0;
@@ -102,16 +227,17 @@ class FinanceAudit
      *
      * @param  array{user_id: ?int, team_id: ?int}  $owner
      */
-    public static function record(array $owner, string $action, string $subjectType, ?int $subjectId, ?string $label, ?array $changes = null, ?string $context = null, ?string $currency = null): FinanceAuditLog
+    public static function record(array $owner, string $action, string $subjectType, ?int $subjectId, ?string $label, ?array $changes = null, ?string $context = null, ?string $currency = null, ?int $actorUserId = null): FinanceAuditLog
     {
         $context ??= self::$contextOverride;
+        $actorUserId ??= Auth::id();
 
         return FinanceAuditLog::create([
             'user_id' => $owner['user_id'],
             'team_id' => $owner['team_id'],
             'action' => $action,
-            'actor' => Auth::check() ? 'user' : 'system',
-            'actor_user_id' => Auth::id(),
+            'actor' => $actorUserId !== null ? 'user' : 'system',
+            'actor_user_id' => $actorUserId,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
             'subject_label' => $label !== null ? mb_substr($label, 0, 255) : null,
@@ -119,6 +245,23 @@ class FinanceAudit
             'changes' => $changes === [] ? null : $changes,
             'context' => $context !== null ? mb_substr($context, 0, 255) : null,
         ]);
+    }
+
+    /**
+     * Someone took figures out of the system (a download, a spreadsheet, a print): who, what, for which period. The file itself is not
+     * kept. $details are plain values such as the report key, the format and the period.
+     *
+     * @param  array{user_id: ?int, team_id: ?int}  $owner
+     * @param  array<string, scalar|null>  $details
+     */
+    public static function exported(array $owner, string $label, array $details = []): FinanceAuditLog
+    {
+        $changes = [];
+        foreach ($details as $field => $value) {
+            $changes[$field] = ['after' => $value];
+        }
+
+        return self::record($owner, 'exported', 'report_export', null, $label, $changes);
     }
 
     /**
@@ -132,7 +275,12 @@ class FinanceAudit
             $model instanceof Account, $model instanceof Category => (string) $model->name,
             $model instanceof Transaction => ucfirst($model->type).' '.Money::format((int) $model->amount_cents, $model->currency).' on '.$model->date?->toDateString(),
             $model instanceof RecurringRule => ucfirst($model->recurrence_type).' '.$model->type.' '.Money::format((int) $model->amount_cents, $model->currency),
+            $model instanceof Party => 'Party '.$model->name,
+            $model instanceof Payment => ucfirst($model->direction === 'in' ? 'received' : 'paid').' '.Money::format((int) $model->amount_cents, $model->currency).' on '.$model->paid_on?->toDateString(),
+            $model instanceof PaymentAllocation => 'Allocation '.Money::format((int) $model->amount_cents),
             $model instanceof Budget => 'Budget '.sprintf('%04d-%02d', $model->year, $model->month).' '.$model->currency,
+            // R-44 Controls models describe themselves without free text.
+            method_exists($model, 'auditLabel') => $model->auditLabel(),
             default => class_basename($model),
         };
     }

@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\BudgetSpendCalculator;
 use App\Services\LegacyMoneyBackfill;
+use App\Support\Database\Checks;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -92,6 +93,10 @@ class IntegerMoneyTest extends TestCase
         $usd = Account::factory()->for($user)->currency('USD')->create();
         $category = Category::factory()->for($user)->create();
 
+        // The amount_cents > 0 rule (R-44 Phase 0) did not exist when these legacy rows were written; lift it for this test (rolled back with it).
+        Checks::drop('transactions', 'transactions_amount_positive');
+        Checks::drop('budgets', 'budgets_amount_positive');
+
         // Put the rows into the state the old code left them in.
         DB::table('accounts')->where('id', $zar->id)->update(['balance' => 1234.56, 'opening_balance_cents' => 0, 'opening_balance_date' => null]);
         DB::table('accounts')->where('id', $usd->id)->update(['balance' => -50.05, 'opening_balance_cents' => 0, 'opening_balance_date' => null]);
@@ -138,7 +143,22 @@ class IntegerMoneyTest extends TestCase
 
         $companyMigration = require database_path('migrations/2026_10_18_300000_add_company_context_to_ledger_tables.php');
 
+        // The R-44 migrations sit on top of these and have to come off first (newest first).
+        $bankMigration = require database_path('migrations/2026_11_09_400000_create_bank_tables.php');
+        $accountingMigration = require database_path('migrations/2026_11_09_110000_create_accounting_core_tables.php');
+        $phase0Migration = require database_path('migrations/2026_11_09_100000_r44_phase0_integrity_fixes.php');
+        // Reporting and planning tables point at gl_accounts, so they come off before the accounting core does.
+        $reportIndexes = require database_path('migrations/2026_11_10_500100_add_report_indexes.php');
+        $reportingMigration = require database_path('migrations/2026_11_10_500000_create_reporting_and_planning_tables.php');
+
         // Roll the schema back to the pre-ledger shape (newest migration first), then write rows exactly as the old code did.
+        $reportIndexes->down();
+        $reportingMigration->down();
+        $salesMigration = require database_path('migrations/2026_11_10_100000_create_sales_tables.php');   // R-44 Sales points at gl_accounts and transactions
+        $salesMigration->down();
+        $bankMigration->down();
+        $accountingMigration->down();
+        $phase0Migration->down();
         $companyMigration->down();
         $laterMigration->down();
         $migration->down();

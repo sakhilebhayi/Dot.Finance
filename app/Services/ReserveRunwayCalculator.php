@@ -46,18 +46,19 @@ class ReserveRunwayCalculator
      */
     public function calculate(LedgerContext $context, string $currency): array
     {
-        $liquidReserves = (int) Account::query()->forContext($context)->withBalance()
-            ->where('currency', $currency)
-            ->whereIn('type', self::LIQUID_ACCOUNT_TYPES)
-            ->get()
+        $liquidReserves = (int) app(AccountBalances::class)->forContext($context)
+            ->filter(fn (Account $a) => $a->currency === $currency && in_array($a->type, self::LIQUID_ACCOUNT_TYPES, true))
             ->sum(fn (Account $a) => $a->balanceCents());
 
-        $windowStart = now()->subMonths(self::TRAILING_MONTHS)->startOfMonth();
+        // The current calendar month plus the two before it: three calendar months, so the
+        // divisor below (distinct months present, at most three) matches the span summed.
+        // (It used subMonths(3), which spans four calendar months and overstated the burn by a third.)
+        $windowStart = now()->subMonths(self::TRAILING_MONTHS - 1)->startOfMonth();
 
-        $rows = Transaction::query()->forContext($context)
+        $rows = Transaction::query()->forContext($context)->counted()
             ->where('currency', $currency)
             ->whereIn('type', ['income', 'expense'])
-            ->whereDate('date', '>=', $windowStart->toDateString())
+            ->where('date', '>=', $windowStart->toDateString())
             ->selectRaw('type, date, SUM(amount_cents) AS total')
             ->groupBy('type', 'date')
             ->get();
@@ -70,6 +71,7 @@ class ReserveRunwayCalculator
                 'liquid_reserves_cents' => null,
                 'avg_monthly_burn_cents' => null,
                 'months' => null,
+                'no_reserves' => false,
                 'is_growing' => null,
                 'basis' => null,
                 'what_if' => null,
@@ -89,9 +91,9 @@ class ReserveRunwayCalculator
         $months = $isGrowing ? null : max(0, Money::divideRound($liquidReserves, $avgMonthlyBurn));
 
         $basis = sprintf(
-            'Liquid %s reserves (checking + savings + cash accounts only, from the ledger) divided by average monthly net spend over the trailing %d month(s) of transaction history, as of %s.',
+            'Liquid %s reserves (checking + savings + cash accounts only, from the ledger) divided by average monthly net spend over the trailing %s of transaction history, as of %s.',
             $currency,
-            $monthsSpanned,
+            $monthsSpanned === 1 ? '1 month' : $monthsSpanned.' months',
             now()->toDateString()
         );
 
@@ -102,6 +104,8 @@ class ReserveRunwayCalculator
             'liquid_reserves_cents' => $liquidReserves,
             'avg_monthly_burn_cents' => $avgMonthlyBurn,
             'months' => $months,
+            // Reserves that are zero or below are not a runway: "0 months" would read as a measurement when it is not one.
+            'no_reserves' => ! $isGrowing && $liquidReserves <= 0,
             'is_growing' => $isGrowing,
             'basis' => $basis,
             'what_if' => $this->computeWhatIf($context, $currency, $windowStart, $avgMonthlyBurn, $liquidReserves, $monthsSpanned),
@@ -110,10 +114,10 @@ class ReserveRunwayCalculator
 
     private function computeWhatIf(LedgerContext $context, string $currency, Carbon $windowStart, int $avgMonthlyBurn, int $liquidReserves, int $monthsSpanned): ?array
     {
-        $topCategory = Transaction::query()->forContext($context)
+        $topCategory = Transaction::query()->forContext($context)->counted()
             ->where('currency', $currency)
             ->where('type', 'expense')
-            ->whereDate('date', '>=', $windowStart->toDateString())
+            ->where('date', '>=', $windowStart->toDateString())
             ->whereNotNull('category_id')
             ->selectRaw('category_id, SUM(amount_cents) AS total')
             ->groupBy('category_id')

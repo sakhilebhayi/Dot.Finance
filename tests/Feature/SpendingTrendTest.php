@@ -152,7 +152,7 @@ class SpendingTrendTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk()
-            ->assertSee('Spending Trend')
+            ->assertSee('Spending trend')
             ->assertSee('<svg', false)
             ->assertDontSee('Not enough transaction history');
     }
@@ -164,7 +164,7 @@ class SpendingTrendTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk()
-            ->assertSee('Spending Trend')
+            ->assertSee('Spending trend')
             ->assertSee('Not enough transaction history');
     }
 }

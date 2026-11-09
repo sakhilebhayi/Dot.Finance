@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\FinanceAuditLog;
 use App\Models\User;
+use App\Support\Audit\AuditEntryView;
 use Illuminate\Http\Request;
 
 /**
@@ -16,7 +17,8 @@ use Illuminate\Http\Request;
  */
 class AuditController extends Controller
 {
-    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import'];
+    // member_role .. access_review: R-44 Controls; gl_account, period: R-44 accounting; assistant_draft, finance_insight, emall_sale: R-44 intelligence and integrations.
+    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import', 'member_role', 'approval_policy', 'approval_request', 'spend_limit', 'access_review', 'gl_account', 'period', 'assistant_draft', 'finance_insight', 'emall_sale', 'bank_statement', 'bank_reconciliation', 'bank_rule', 'bill', 'expense_claim', 'supplier_bank', 'payment_run', 'recurring_bill', 'purchase_setting', 'supplier_profile', 'plan_budget', 'scenario', 'dimension', 'report_preset', 'tax_profile', 'tax_return', 'tax_review', 'tax_estimate', 'tax_provisional', 'tax_payroll', 'tax_document', 'tax_correspondence', 'tax_export', 'report_export', 'tax_adjustment', 'tax_deadline', 'export'];
 
     public function index(Request $request)
     {
@@ -41,13 +43,8 @@ class AuditController extends Controller
         // account_id / category_id are shown by name (deleted ones included).
         $ids = ['account_id' => [], 'category_id' => []];
         foreach ($entries as $entry) {
-            foreach (['account_id', 'category_id'] as $field) {
-                foreach (['before', 'after'] as $side) {
-                    $value = $entry->changes[$field][$side] ?? null;
-                    if ($value !== null) {
-                        $ids[$field][] = (int) $value;
-                    }
-                }
+            foreach (AuditEntryView::referencedIds($entry) as $field => $found) {
+                $ids[$field] = [...$ids[$field], ...$found];
             }
         }
 
@@ -56,13 +53,20 @@ class AuditController extends Controller
             'category_id' => Category::withTrashed()->whereIn('id', array_unique($ids['category_id']))->pluck('name', 'id')->all(),
         ];
 
+        // each row is turned into readable lines on its own; a row that cannot be read shows as such and never takes the page down
+        $presenter = new AuditEntryView($names);
+        $views = [];
+        foreach ($entries as $entry) {
+            $views[$entry->id] = $presenter->present($entry);
+        }
+
         // Only people who actually appear in THIS ledger's log are offered, so the filter never lists anyone else.
         $actors = $context->isCompany()
             ? User::query()->whereIn('id', FinanceAuditLog::query()->whereNotNull('actor_user_id')->distinct()->pluck('actor_user_id'))->orderBy('name')->get(['id', 'name'])
             : collect();
 
         return view('audit.index', [
-            'entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names,
+            'entries' => $entries, 'subject' => $subject, 'subjects' => self::SUBJECTS, 'names' => $names, 'views' => $views,
             'actors' => $actors, 'actor' => $actor,
         ]);
     }

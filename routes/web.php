@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CashFlowController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ForecastController;
 use App\Http\Controllers\InsightController;
@@ -27,6 +28,13 @@ Route::post('/auth/ecosystem', [EcosystemAuthController::class, 'handle'])
 // Links minted before the token moved into a POST body carried it in the URL. They are no longer honoured:
 // the visitor is sent to the normal sign-in page and the token in the URL is never read.
 Route::get('/auth/ecosystem', [EcosystemAuthController::class, 'legacy']);
+// Browsers post Content-Security-Policy violation reports here without a session or a CSRF token; the controller keeps
+// only the directive and the blocked host. Throttled because anyone can call it.
+Route::post('/csp-report', CspReportController::class)
+    ->withoutMiddleware(['Illuminate\Foundation\Http\Middleware\PreventRequestForgery', 'Illuminate\Foundation\Http\Middleware\VerifyCsrfToken', 'Illuminate\Foundation\Http\Middleware\ValidateCsrfToken'])
+    ->middleware('throttle:30,1')
+    ->name('csp.report');
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -93,10 +101,54 @@ Route::middleware([
 
     // Read-only on purpose: the audit log has no create, update or delete route.
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
+
+    // --- accounting ---
+    require __DIR__.'/accounting.php';
+    // --- end accounting ---
 });
+
+// --- controls ---
+require __DIR__.'/controls.php';
+// --- end controls ---
 
 // Public sign-up is closed (accounts are created by InfoDot at first sign-in). Keep the named route so any link or
 // invitation email that points at it lands on the login page instead of failing.
 if (! Features::enabled(Features::registration())) {
     Route::redirect('/register', '/login')->name('register');
 }
+
+// --- intel ---
+require __DIR__.'/intel.php';
+// --- end intel ---
+
+// --- sales ---
+require __DIR__.'/sales.php';
+// --- end sales ---
+
+// --- shared ---
+require __DIR__.'/shared.php';
+// --- end shared ---
+
+// --- bank ---
+require __DIR__.'/bank.php';
+// --- end bank ---
+
+// --- purchases ---
+require __DIR__.'/purchases.php';
+// --- end purchases ---
+
+// --- reporting ---
+require __DIR__.'/reporting.php';
+// --- end reporting ---
+
+// --- planning ---
+require __DIR__.'/planning.php';
+// --- end planning ---
+
+// --- tax ---
+require __DIR__.'/tax.php';
+// --- end tax ---
+
+// --- tax ---
+require __DIR__.'/tax.php';
+// --- end tax ---

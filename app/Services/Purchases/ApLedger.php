@@ -1,0 +1,279 @@
+<?php
+
+namespace App\Services\Purchases;
+
+use App\Models\Accounting\GlAccount;
+use App\Models\Accounting\JournalLine;
+use App\Models\Purchases\Bill;
+use App\Models\Purchases\ExpenseClaim;
+use App\Models\Shared\Party;
+use App\Models\Shared\Payment;
+use App\Models\Shared\PaymentAllocation;
+use App\Services\Accounting\Chart;
+use App\Services\Accounting\GlQuery;
+use App\Support\Ledger\LedgerContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
+
+/**
+ * The accounts-payable subledger: what is owed to each supplier, document by document, aged, and the check that it equals the
+ * accounts-payable account in the books.
+ *
+ * Everything is read from rows, nothing is stored:
+ *   a posted bill or claim      owes  total - posted credit notes against it - live allocations of recorded payments
+ *   an unapplied credit note    is a (negative) amount the supplier owes us
+ *   money paid on account       is a (negative) amount too: a debit balance with the supplier
+ * In base currency the same three things are valued at what the books carry them at (see Settlement), so the sum of every
+ * supplier's balance equals the credit balance of the payable account, to the cent. reconcile() proves it, supplier by supplier.
+ * Balances are as they stand now; the "as at" date only moves the age buckets.
+ */
+final class ApLedger
+{
+    public const BUCKETS = ['current', 'd1_30', 'd31_60', 'd61_90', 'd91_120', 'over_120'];
+
+    public const BUCKET_LABELS = ['current' => 'Not yet due', 'd1_30' => '1-30 days', 'd31_60' => '31-60 days', 'd61_90' => '61-90 days', 'd91_120' => '91-120 days', 'over_120' => 'Over 120 days'];
+
+    public function __construct(private readonly Chart $chart, private readonly GlQuery $gl) {}
+
+    /**
+     * Every open item, newest-owed first by due date.
+     *
+     * @return Collection<int, array<string, mixed>> each: type (bill|expense_claim|credit_note|on_account), id, route, number, party_id, party, date, due_date, currency, total, open, open_base, days_overdue, bucket
+     */
+    public function openItems(LedgerContext $context, ?CarbonImmutable $asAt = null, ?int $partyId = null): Collection
+    {
+        $asAt ??= CarbonImmutable::today();
+
+        return LedgerContext::run($context, function () use ($asAt, $partyId) {
+            $items = collect();
+
+            // A paid bill owes nothing, so it is not loaded (a ledger keeps tens of thousands of them); if a "paid" bill were still
+            // owed in the books, reconcile() reports it as a difference between the books and this subledger.
+            $bills = Bill::query()->with('party')->whereIn('status', ['open', 'partially_paid'])->when($partyId, fn ($q) => $q->where('party_id', $partyId))->lazyById(1000); // 1,000 models at a time; only the finished item rows are kept
+            $claims = ExpenseClaim::query()->with('party')->whereIn('status', Bill::POSTED)->when($partyId, fn ($q) => $q->where('party_id', $partyId))->lazyById(1000);
+
+            // live allocations of recorded payments, summed per document, in two queries
+            $allocated = $this->allocationSums();
+            $credits = Bill::query()->where('kind', 'credit_note')->whereNotNull('credit_for_bill_id')->whereIn('status', Bill::POSTED)
+                ->toBase()->get(['credit_for_bill_id', 'total_cents', 'base_total_cents'])->groupBy('credit_for_bill_id');
+
+            foreach ($bills as $bill) {
+                if ($bill->isCreditNote()) {
+                    if ($bill->credit_for_bill_id === null && $bill->status === 'open') {
+                        $items->push($this->item($bill, 'credit_note', -$bill->total_cents, -($bill->base_total_cents ?? $bill->total_cents), $asAt));
+                    }
+
+                    continue;
+                }
+
+                $paid = $allocated['bill'][$bill->id] ?? ['amount' => 0, 'relief' => 0];
+                $creditRows = $credits->get($bill->id, collect());
+                $open = $bill->total_cents - (int) $creditRows->sum('total_cents') - $paid['amount'];
+                $openBase = ($bill->base_total_cents ?? $bill->total_cents) - (int) $creditRows->sum('base_total_cents') - $paid['relief'];
+
+                if ($open > 0) {
+                    $items->push($this->item($bill, 'bill', $open, $openBase, $asAt));
+                }
+            }
+
+            foreach ($claims as $claim) {
+                $paid = $allocated['expense_claim'][$claim->id] ?? ['amount' => 0, 'relief' => 0];
+                $open = $claim->total_cents - $paid['amount'];
+
+                if ($open > 0) {
+                    $items->push($this->item($claim, 'expense_claim', $open, $claim->total_cents - $paid['relief'], $asAt));
+                }
+            }
+
+            // Money paid out and not fully applied. The remainder is worked out in the query (amount less live allocations), so only
+            // payments that have one are loaded, and each is valued without a query of its own.
+            $allocated = PaymentAllocation::query()->whereNull('released_at')->groupBy('payment_id')
+                ->selectRaw('payment_id, SUM(amount_cents) AS applied_cents, SUM(COALESCE(base_relief_cents, amount_cents) - fx_diff_cents) AS applied_base');
+            Payment::query()->with('party')->where('direction', 'out')->where('status', 'recorded')->when($partyId, fn ($q) => $q->where('party_id', $partyId))
+                ->leftJoinSub($allocated, 'al', 'al.payment_id', '=', 'payments.id')
+                ->whereRaw('payments.amount_cents - COALESCE(al.applied_cents, 0) > 0')
+                ->select('payments.*')->selectRaw('COALESCE(al.applied_cents, 0) AS applied_cents, COALESCE(al.applied_base, 0) AS applied_base')
+                ->get()
+                ->each(function (Payment $payment) use ($items) {
+                    $cents = (int) $payment->amount_cents - (int) $payment->applied_cents;
+                    $baseCents = max(0, (int) ($payment->base_amount_cents ?? $payment->amount_cents) - (int) $payment->applied_base);
+                    $items->push([
+                        'type' => 'on_account', 'id' => $payment->id, 'route' => null, 'number' => 'Payment '.($payment->reference ?? '#'.$payment->id), 'party_id' => $payment->party_id,
+                        'party' => $payment->party?->name ?? 'Unknown supplier', 'date' => $payment->paid_on->toDateString(), 'due_date' => null, 'currency' => $payment->currency,
+                        'total' => -$payment->amount_cents, 'open' => -$cents, 'open_base' => -$baseCents, 'days_overdue' => 0, 'bucket' => 'current',
+                    ]);
+                });
+
+            return $items->sortBy([['party', 'asc'], ['due_date', 'asc']])->values();
+        });
+    }
+
+    /**
+     * Ageing by supplier in base currency.
+     *
+     * @return array{as_at: string, rows: list<array{party_id: ?int, party: string, buckets: array<string, int>, total: int}>, totals: array<string, int>, grand_total: int}
+     */
+    public function ageing(LedgerContext $context, ?CarbonImmutable $asAt = null, ?Collection $items = null): array
+    {
+        $asAt ??= CarbonImmutable::today();
+        $rows = [];
+        $totals = array_fill_keys(self::BUCKETS, 0);
+
+        foreach (($items ?? $this->openItems($context, $asAt))->groupBy('party_id') as $partyId => $partyItems) {
+            $buckets = array_fill_keys(self::BUCKETS, 0);
+            foreach ($partyItems as $item) {
+                $buckets[$item['bucket']] += $item['open_base'];
+            }
+            $rows[] = ['party_id' => $partyId === '' ? null : (int) $partyId, 'party' => (string) $partyItems->first()['party'], 'buckets' => $buckets, 'total' => array_sum($buckets)];
+            foreach ($buckets as $bucket => $amount) {
+                $totals[$bucket] += $amount;
+            }
+        }
+
+        usort($rows, fn ($a, $b) => strcasecmp($a['party'], $b['party']));
+
+        return ['as_at' => $asAt->toDateString(), 'rows' => $rows, 'totals' => $totals, 'grand_total' => array_sum($totals)];
+    }
+
+    /**
+     * Does the subledger equal the books? Total and supplier by supplier.
+     *
+     * @return array{ok: bool, books_cents: int, subledger_cents: int, difference_cents: int, suppliers: list<array{party_id: ?int, party: string, books_cents: int, subledger_cents: int, difference_cents: int, ok: bool}>, unassigned_books_cents: int, accounting_on: bool}
+     */
+    public function reconcile(LedgerContext $context, ?Collection $items = null): array
+    {
+        return LedgerContext::run($context, function () use ($context, $items) {
+            $ap = $this->apAccount($context);
+            if ($ap === null) {
+                return ['ok' => true, 'books_cents' => 0, 'subledger_cents' => 0, 'difference_cents' => 0, 'suppliers' => [], 'unassigned_books_cents' => 0, 'accounting_on' => false, 'items' => [], 'items_cents' => 0, 'remainder_cents' => 0];
+            }
+
+            // credit balance of the payable account, per supplier (journal lines carry the supplier)
+            $books = [];
+            JournalLine::query()->where('gl_account_id', $ap->id)->selectRaw('party_id, SUM(credit_cents) - SUM(debit_cents) AS net')->groupBy('party_id')
+                ->get()->each(function ($row) use (&$books) {
+                    $books[$row->party_id === null ? 0 : (int) $row->party_id] = (int) $row->net;
+                });
+
+            $sub = [];
+            foreach ($items ?? $this->openItems($context) as $item) {
+                $key = (int) ($item['party_id'] ?? 0);
+                $sub[$key] = ($sub[$key] ?? 0) + $item['open_base'];
+            }
+
+            $names = Party::query()->withTrashed()->whereIn('id', array_filter(array_unique([...array_keys($books), ...array_keys($sub)])))->pluck('name', 'id');
+            $suppliers = [];
+            foreach (array_unique([...array_keys($books), ...array_keys($sub)]) as $partyId) {
+                $b = $books[$partyId] ?? 0;
+                $s = $sub[$partyId] ?? 0;
+                if ($b === 0 && $s === 0) {
+                    continue;
+                }
+                $suppliers[] = [
+                    'party_id' => $partyId === 0 ? null : $partyId, 'party' => $partyId === 0 ? 'Not tied to a supplier' : (string) ($names[$partyId] ?? 'Supplier #'.$partyId),
+                    'books_cents' => $b, 'subledger_cents' => $s, 'difference_cents' => $b - $s, 'ok' => $b === $s,
+                ];
+            }
+            usort($suppliers, fn ($a, $b) => strcasecmp($a['party'], $b['party']));
+
+            $booksTotal = array_sum($books);
+            $subTotal = array_sum($sub);
+            $ok = $booksTotal === $subTotal && collect($suppliers)->every(fn ($s) => $s['ok']);
+            $items = $ok ? [] : $this->unexplainedEntries($context, $ap);
+            $itemsTotal = (int) array_sum(array_column($items, 'cents'));
+
+            return [
+                'ok' => $ok,
+                'books_cents' => $booksTotal, 'subledger_cents' => $subTotal, 'difference_cents' => $booksTotal - $subTotal,
+                'suppliers' => $suppliers, 'unassigned_books_cents' => $books[0] ?? 0, 'accounting_on' => true,
+                // the reconciling items: journal entries on accounts payable that no bill, claim or payment in Purchases owns
+                'items' => $items, 'items_cents' => $itemsTotal, 'remainder_cents' => ($booksTotal - $subTotal) - $itemsTotal,
+            ];
+        });
+    }
+
+    /**
+     * Journal entries on the payable account that no bill, expense claim or payment recorded in Purchases accounts for (a journal
+     * typed straight to payables, a bill posted without a bill record). They are what makes the account differ from the supplier
+     * ledger. Credit-positive (owed to suppliers), largest first.
+     *
+     * @return list<array{entry_id: int, number: int, date: string, memo: string, source: string, party_id: ?int, party: string, cents: int}>
+     */
+    public function unexplainedEntries(LedgerContext $context, ?GlAccount $ap = null): array
+    {
+        $ap ??= $this->apAccount($context);
+        if ($ap === null) {
+            return [];
+        }
+
+        // the journal entries that Purchases itself wrote, read through the scoped models
+        $owners = collect()
+            ->merge(Bill::query()->forContext($context)->pluck('posted_entry_id'))->merge(Bill::query()->forContext($context)->pluck('void_entry_id'))
+            ->merge(ExpenseClaim::query()->forContext($context)->pluck('posted_entry_id'))->merge(ExpenseClaim::query()->forContext($context)->pluck('void_entry_id'))
+            ->merge(Payment::query()->forContext($context)->pluck('gl_entry_id'))
+            ->filter()->map(fn ($id) => (int) $id)->flip();
+
+        $rows = $this->gl->ownedLines($context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+            ->where('l.gl_account_id', $ap->id)->groupBy('l.journal_entry_id', 'l.party_id', 'e.entry_number', 'e.entry_date', 'e.memo', 'e.source_type', 'e.reverses_entry_id')
+            ->selectRaw('l.journal_entry_id, l.party_id, e.entry_number, e.entry_date, e.memo, e.source_type, e.reverses_entry_id, SUM(l.credit_cents) - SUM(l.debit_cents) AS net')
+            ->get()->filter(fn ($r) => (int) $r->net !== 0 && ! $owners->has((int) $r->journal_entry_id) && ! ($r->reverses_entry_id !== null && $owners->has((int) $r->reverses_entry_id)));
+
+        $names = Party::query()->forContext($context)->withTrashed()->whereIn('id', $rows->pluck('party_id')->filter()->unique()->all())->pluck('name', 'id');
+
+        return $rows->map(fn ($r) => [
+            'entry_id' => (int) $r->journal_entry_id, 'number' => (int) $r->entry_number, 'date' => substr((string) $r->entry_date, 0, 10), 'memo' => (string) $r->memo,
+            'source' => (string) $r->source_type, 'party_id' => $r->party_id === null ? null : (int) $r->party_id,
+            'party' => $r->party_id === null ? 'Not tied to a supplier' : (string) ($names[$r->party_id] ?? 'Supplier #'.$r->party_id), 'cents' => (int) $r->net,
+        ])->sortByDesc(fn ($i) => abs($i['cents']))->values()->all();
+    }
+
+    public function apAccount(LedgerContext $context): ?GlAccount
+    {
+        $id = $this->chart->systemIds($context)['ap'] ?? null;
+
+        return $id === null ? null : GlAccount::query()->forContext($context)->find($id);
+    }
+
+    /** @return array{bill: array<int, array{amount: int, relief: int}>, expense_claim: array<int, array{amount: int, relief: int}>} */
+    private function allocationSums(): array
+    {
+        $out = ['bill' => [], 'expense_claim' => []];
+
+        PaymentAllocation::query()->whereNull('released_at')->whereIn('allocatable_type', ['bill', 'expense_claim'])
+            ->whereHas('payment', fn ($q) => $q->where('status', 'recorded'))
+            ->selectRaw('allocatable_type, allocatable_id, SUM(amount_cents) AS amount, SUM(COALESCE(base_relief_cents, amount_cents)) AS relief')
+            ->groupBy('allocatable_type', 'allocatable_id')->toBase()->get() // plain rows: one per document, not a model each
+            ->each(function ($row) use (&$out) {
+                $out[$row->allocatable_type][(int) $row->allocatable_id] = ['amount' => (int) $row->amount, 'relief' => (int) $row->relief];
+            });
+
+        return $out;
+    }
+
+    /** @return array<string, mixed> */
+    private function item(Bill|ExpenseClaim $doc, string $type, int $open, int $openBase, CarbonImmutable $asAt): array
+    {
+        $due = $doc instanceof Bill ? $doc->due_date : $doc->claim_date;
+        $date = $doc instanceof Bill ? $doc->bill_date : $doc->claim_date;
+        $overdue = $due === null || $type === 'credit_note' ? 0 : max(0, (int) CarbonImmutable::parse($due->toDateString())->diffInDays($asAt, false));
+
+        return [
+            'type' => $type, 'id' => $doc->id, 'route' => $doc instanceof Bill ? 'purchases.bills.show' : 'purchases.claims.show', 'number' => $doc->displayNumber(),
+            'party_id' => $doc->party_id, 'party' => $doc->party?->name ?? 'Unknown supplier', 'date' => $date->toDateString(), 'due_date' => $due?->toDateString(),
+            'currency' => $doc->currency, 'total' => $doc instanceof Bill ? $doc->total_cents : $doc->total_cents, 'open' => $open, 'open_base' => $openBase,
+            'days_overdue' => $overdue, 'bucket' => self::bucket($overdue),
+        ];
+    }
+
+    public static function bucket(int $daysOverdue): string
+    {
+        return match (true) {
+            $daysOverdue <= 0 => 'current',
+            $daysOverdue <= 30 => 'd1_30',
+            $daysOverdue <= 60 => 'd31_60',
+            $daysOverdue <= 90 => 'd61_90',
+            $daysOverdue <= 120 => 'd91_120',
+            default => 'over_120',
+        };
+    }
+}

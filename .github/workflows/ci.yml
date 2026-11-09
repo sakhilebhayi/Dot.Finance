@@ -17,7 +17,7 @@ concurrency:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,3 +59,109 @@ jobs:
           MAIL_MAILER: array
           BROADCAST_CONNECTION: log
         run: ./vendor/bin/phpunit --colors=never
+
+  # The suite again on PostgreSQL, the production engine. SQLite cannot show row locks, deferred constraint triggers,
+  # partial unique indexes or the append-only journal triggers behaving as they do in production, and the accounting
+  # layer depends on all four. The same tests run; the concurrency tests (real processes racing on row locks) only
+  # run here.
+  tests-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: finance
+          POSTGRES_PASSWORD: finance
+          POSTGRES_DB: finance_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finance -d finance_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          tools: composer:v2
+          coverage: none
+          extensions: pdo_pgsql, pgsql, mbstring, intl, bcmath, curl, pcntl
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: ${{ runner.os }}-php-8.4-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.4-composer-
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Run tests on PostgreSQL
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: "5432"
+          DB_DATABASE: finance_test
+          DB_USERNAME: finance
+          DB_PASSWORD: finance
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: array
+          MAIL_MAILER: array
+          BROADCAST_CONNECTION: "null"
+        run: ./vendor/bin/phpunit -c phpunit.pgsql.xml --colors=never
+
+  # Production runs `php artisan route:cache`, which refuses closure routes and duplicate route names and ignores
+  # anything a route file registers (aliases, gates, bindings). Cache the routes, then sign in and walk every page a
+  # person can open: a page that only works uncached, or that errors for a signed-in person, fails here.
+  signed-in-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          tools: composer:v2
+          coverage: none
+          extensions: sqlite3, pdo_sqlite, mbstring, intl, bcmath, curl
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Cache the routes exactly as production does
+        run: php artisan route:cache
+
+      - name: Walk every signed-in page against the cached routes
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          SESSION_DRIVER: array
+          MAIL_MAILER: array
+          BROADCAST_CONNECTION: "null"
+        run: ./vendor/bin/phpunit --colors=never --filter SignedInSmokeTest

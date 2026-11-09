@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ImportInterrupted;
 use App\Models\Account;
 use App\Models\Category;
+use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\TransactionImporter;
 use App\Support\ImportDates;
 use App\Support\Ledger\LedgerRule;
@@ -121,6 +123,11 @@ class TransactionImportController extends Controller
                 isset($validated['default_category_id']) ? (int) $validated['default_category_id'] : null,
                 array_map('intval', $validated['skip'] ?? []),
             );
+        } catch (ImportInterrupted $e) {
+            // earlier chunks of a large file are saved; say so, and how to finish
+            return redirect()->route('transactions.index')->withErrors(['import' => number_format($e->imported).' rows were imported before the import stopped: '.$e->getMessage().' Those rows are saved. Upload the same file again to import the rest; rows already imported are skipped.']);
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['token' => 'Nothing was imported. '.$e->getMessage().' Untick the rows in the closed period, or ask someone who can reopen it.']);
         } catch (UniqueConstraintViolationException) {
             return back()->withErrors(['token' => 'Some of these rows were imported by another request while you were reviewing. Nothing was saved; review the preview again.']);
         }

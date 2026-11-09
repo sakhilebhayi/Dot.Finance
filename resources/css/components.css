@@ -1,0 +1,1557 @@
+/* ===================================================================================================
+   fx components. Every class here is used by a Blade component in resources/views/components/fx.
+   =================================================================================================== */
+
+/* ---- Icons ----------------------------------------------------------------------------------------- */
+.fx-icon {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: -0.125em;
+}
+
+/* ---- Page header ----------------------------------------------------------------------------------- */
+.fx-pagehead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--s-3) var(--s-5);
+}
+
+.fx-pagehead__text {
+    min-width: 0;
+    flex: 1 1 24rem;
+}
+
+.fx-pagehead h1 {
+    font-size: var(--fs-title);
+    font-weight: 680;
+    line-height: 1.15;
+}
+
+.fx-pagehead__sub {
+    margin-top: var(--s-1);
+    max-width: 62ch;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-pagehead__sub a {
+    color: var(--ink);
+}
+
+.fx-pagehead__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+/* ---- Panels (white sheets laid on the paper) -------------------------------------------------------- */
+.fx-panel {
+    min-width: 0;
+    background: var(--sheet);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+}
+
+.fx-panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-1) var(--s-4);
+    padding: var(--s-4) var(--s-5) var(--s-3);
+}
+
+.fx-panel__title {
+    font-size: var(--fs-section);
+    font-weight: 650;
+}
+
+.fx-panel__meta {
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-panel__meta a {
+    color: var(--ink-2);
+}
+
+.fx-panel__body {
+    padding: var(--s-4) var(--s-5) var(--s-5);
+}
+
+.fx-panel__body--flush {
+    padding: 0;
+}
+
+.fx-panel__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-grid {
+    display: grid;
+    gap: var(--gap);
+    align-items: start;
+}
+
+@media (min-width: 900px) {
+    .fx-grid--split {
+        grid-template-columns: minmax(0, 1fr) 21rem;
+    }
+
+    .fx-grid--lead {
+        grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    }
+
+    .fx-grid--even {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fx-grid--form {
+        grid-template-columns: minmax(0, 1fr) 20rem;
+    }
+}
+
+.fx-stack {
+    display: grid;
+    gap: var(--gap);
+    align-content: start;
+    min-width: 0;
+}
+
+.fx-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2) var(--s-3);
+}
+
+/* ---- Buttons --------------------------------------------------------------------------------------- */
+.fx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    min-height: var(--control-h);
+    padding: 0 var(--s-4);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    background: var(--sheet);
+    color: var(--ink);
+    font-size: var(--fs-cell);
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 120ms var(--ease), border-color 120ms var(--ease), transform 120ms var(--ease);
+}
+
+.fx-btn:hover {
+    background: var(--sunk);
+    border-color: var(--ink);
+    text-decoration: none;
+}
+
+.fx-btn:active {
+    transform: translateY(1px);
+}
+
+.fx-btn .fx-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.fx-btn--primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+}
+
+.fx-btn--primary:hover {
+    background: var(--ink-2);
+    border-color: var(--ink-2);
+}
+
+.fx-btn--ghost {
+    border-color: transparent;
+    background: transparent;
+}
+
+/* A destructive action is never red: red means a variance or an overdue item. It is marked by its words, its icon and
+   the confirmation that always follows, and it takes the heavier ink outline. */
+.fx-btn--danger {
+    border-color: var(--ink);
+    border-width: 2px;
+}
+
+.fx-btn--danger:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.fx-btn--sm {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--s-3);
+    font-size: var(--fs-small);
+}
+
+.fx-btn[disabled],
+.fx-btn[aria-disabled='true'] {
+    opacity: 1;
+    border-color: var(--rule);
+    background: var(--sunk);
+    color: var(--ink-3);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.fx-link {
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration-color: var(--ink-3);
+}
+
+.fx-linkbtn {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: inherit;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--ink-3);
+    text-underline-offset: 0.2em;
+}
+
+.fx-linkbtn:hover {
+    text-decoration-color: currentColor;
+}
+
+.fx-linkbtn--danger {
+    color: var(--ink-2);
+}
+
+@media (pointer: coarse) {
+    .fx-btn {
+        min-height: var(--touch);
+    }
+
+    .fx-btn--sm {
+        min-height: var(--touch);
+    }
+}
+
+/* ---- Fields ---------------------------------------------------------------------------------------- */
+.fx-form {
+    display: grid;
+    gap: var(--s-4);
+    min-width: 0;
+}
+
+.fx-row {
+    display: grid;
+    gap: var(--s-4);
+}
+
+@media (min-width: 640px) {
+    .fx-row--2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fx-row--3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.fx-field {
+    display: grid;
+    gap: var(--s-1);
+    align-content: start;
+    min-width: 0;
+}
+
+.fx-label {
+    font-size: var(--fs-cell);
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.fx-label__opt {
+    font-weight: 400;
+    color: var(--ink-3);
+}
+
+.fx-input,
+.fx-select,
+.fx-textarea {
+    width: 100%;
+    min-height: var(--control-h);
+    padding: 0 var(--s-3);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    background: var(--sheet);
+    color: var(--ink);
+    font-size: var(--fs-body);
+    line-height: 1.3;
+    transition: border-color 120ms var(--ease);
+}
+
+.fx-textarea {
+    min-height: 6rem;
+    padding: var(--s-2) var(--s-3);
+}
+
+.fx-select {
+    appearance: none;
+    padding-right: 2.2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23788190' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1rem;
+}
+
+.fx-input:hover,
+.fx-select:hover,
+.fx-textarea:hover {
+    border-color: var(--ink-3);
+}
+
+.fx-input:focus,
+.fx-select:focus,
+.fx-textarea:focus {
+    border-color: var(--ink);
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+}
+
+.fx-input::placeholder,
+.fx-textarea::placeholder {
+    color: var(--ink-3);
+    opacity: 1;
+}
+
+.fx-input[disabled],
+.fx-select[disabled],
+.fx-textarea[disabled] {
+    background: var(--sunk);
+    color: var(--ink-2);
+    border-color: var(--rule-strong);
+    cursor: not-allowed;
+}
+
+.fx-input[aria-invalid='true'],
+.fx-select[aria-invalid='true'],
+.fx-textarea[aria-invalid='true'] {
+    border-color: var(--pencil);
+}
+
+.fx-input--figure {
+    font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums slashed-zero;
+    text-align: right;
+}
+
+.fx-input[type='color'] {
+    padding: 2px;
+    width: 3.5rem;
+    cursor: pointer;
+}
+
+.fx-input[type='file'] {
+    padding: 0.4rem var(--s-3);
+}
+
+.fx-hint {
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-1);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--pencil);
+}
+
+.fx-error .fx-icon {
+    margin-top: 0.15rem;
+}
+
+.fx-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-check input {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0.15rem 0 0;
+    accent-color: var(--ink);
+}
+
+.fx-formactions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3);
+    padding-top: var(--s-2);
+}
+
+/* Error summary (validation) */
+.fx-alert {
+    display: flex;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--pencil-line);
+    border-radius: var(--r-panel);
+    background: var(--pencil-bg);
+    color: var(--ink);
+    font-size: var(--fs-cell);
+}
+
+.fx-alert .fx-icon {
+    margin-top: 0.15rem;
+    color: var(--pencil);
+}
+
+.fx-alert__title {
+    font-weight: 700;
+    color: var(--pencil);
+}
+
+.fx-alert ul {
+    margin-top: var(--s-1);
+    padding-left: 1.1rem;
+}
+
+.fx-alert--ok {
+    border-color: var(--tick-line);
+    background: var(--tick-bg);
+}
+
+.fx-alert--ok .fx-icon,
+.fx-alert--ok .fx-alert__title {
+    color: var(--tick);
+}
+
+/* ---- Money, figures and the provenance mark ---------------------------------------------------------- */
+.fx-money {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    color: inherit;
+}
+
+/* A positive amount keeps a transparent bracket-width on the right, so decimals line up with (negatives). */
+.fx-money:not(.is-neg)::after {
+    content: '';
+    display: inline-block;
+    width: 1ch;
+}
+
+.fx-money.is-variance {
+    color: var(--pencil);
+}
+
+.fx-money.is-ticked {
+    color: var(--tick);
+}
+
+.fx-money.is-lead {
+    font-size: var(--fs-answer);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.fx-money.is-quiet {
+    color: var(--ink-3);
+}
+
+.fx-figure-line {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    white-space: nowrap;
+}
+
+.fx-trace {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: var(--r-chip);
+    color: var(--ink-3);
+    text-decoration: none;
+    transition: color 120ms var(--ease), background-color 120ms var(--ease);
+}
+
+/* The mark is small but the target is not: 24px box, 44px hit area (R-44 polish, D-1716). */
+.fx-trace::after {
+    content: '';
+    position: absolute;
+    inset: -0.625rem;
+}
+
+.fx-trace .fx-icon {
+    width: 0.85rem;
+    height: 0.85rem;
+    stroke-width: 2;
+}
+
+.fx-trace:hover {
+    background: var(--sunk);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.fx-trace.is-ticked {
+    color: var(--tick);
+}
+
+/* The tick draws itself once when it appears (the one motion verb of the product). */
+.fx-tick-draw path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: fx-tick var(--dur-tick) var(--ease) 60ms forwards;
+}
+
+@keyframes fx-tick {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@media (pointer: coarse) {
+    .fx-trace {
+        width: 1.75rem;
+        height: 1.75rem;
+    }
+}
+
+/* ---- Tables ---------------------------------------------------------------------------------------- */
+.fx-tablewrap {
+    min-width: 0;
+    container: fxt / inline-size;
+}
+
+.fx-tablewrap--scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.fx-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-cell);
+}
+
+.fx-table caption {
+    padding: var(--s-3) var(--s-5);
+    text-align: left;
+    caption-side: top;
+}
+
+.fx-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: var(--s-2) var(--s-3);
+    background: var(--sheet);
+    border-bottom: 1px solid var(--ink);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    text-align: left;
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+
+.fx-tablewrap--scroll .fx-table thead th {
+    position: static;
+}
+
+@media (min-width: 1024px) {
+    .fx-table thead th {
+        top: var(--top-h);
+    }
+}
+
+.fx-table th:first-child,
+.fx-table td:first-child {
+    padding-left: var(--s-5);
+}
+
+.fx-table th:last-child,
+.fx-table td:last-child {
+    padding-right: var(--s-5);
+}
+
+.fx-table tbody th,
+.fx-table tbody td {
+    padding: var(--s-3);
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    text-align: left;
+    font-weight: 400;
+}
+
+.fx-table tbody tr:last-child th,
+.fx-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.fx-table tbody tr:hover {
+    background: rgb(var(--sunk-rgb) / 0.55);
+}
+
+.fx-table .is-num {
+    text-align: right;
+}
+
+.fx-table .is-center {
+    text-align: center;
+}
+
+.fx-table .is-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.fx-table .is-actions > * + * {
+    margin-left: var(--s-3);
+}
+
+.fx-table .is-actions form {
+    display: inline;
+}
+
+.fx-table td[data-label='Account'] {
+    white-space: nowrap;
+}
+
+.fx-table td.is-lead {
+    min-width: 10rem;
+}
+
+.fx-cell-main {
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.fx-cell-sub {
+    margin-top: 1px;
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+/* Subtotals are ruled once; grand totals twice, exactly as a printed ledger does. */
+.fx-table tr.is-subtotal th,
+.fx-table tr.is-subtotal td {
+    border-top: 1px solid var(--ink);
+    font-weight: 600;
+}
+
+.fx-table tr.is-total th,
+.fx-table tr.is-total td {
+    border-top: 1px solid var(--ink);
+    border-bottom: 4px double var(--ink);
+    font-weight: 700;
+}
+
+.fx-table tfoot th,
+.fx-table tfoot td {
+    padding: var(--s-3);
+    border-top: 1px solid var(--ink);
+    font-weight: 600;
+    text-align: left;
+}
+
+.fx-table tfoot .is-num {
+    text-align: right;
+}
+
+.fx-table tfoot tr:last-child th,
+.fx-table tfoot tr:last-child td {
+    border-bottom: 4px double var(--ink);
+}
+
+/* A table becomes a list of cards when ITS OWN container is narrow (container query, so a table in a half-width panel
+   behaves the same as one on a phone): below 760px for a normal table, below 480px for a `compact` one (a few short columns).
+   The first cell is the heading, every other cell carries its own label from data-label. Nothing is dropped and the page
+   never scrolls sideways. `keep` stops card mode altogether. The two blocks are the same rules under two selectors. */
+@container fxt (max-width: 759.98px) {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact),
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tfoot,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr {
+        display: block;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody tr,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tfoot tr {
+        padding: var(--s-3) var(--s-4);
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th:first-child,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:first-child,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th:last-child,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:last-child {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--s-4);
+        padding: var(--s-1) 0;
+        border: 0;
+        text-align: right;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td::before {
+        content: attr(data-label);
+        flex: none;
+        font-size: var(--fs-small);
+        font-weight: 500;
+        text-align: left;
+        color: var(--ink-3);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td[data-label='']::before,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:not([data-label])::before {
+        content: none;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td.is-lead,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) th.is-lead {
+        display: block;
+        order: -1;
+        padding-bottom: var(--s-1);
+        text-align: left;
+        font-size: var(--fs-body);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td.is-lead::before {
+        content: none;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tbody tr,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tfoot tr {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td.is-actions {
+        justify-content: flex-start;
+        padding-top: var(--s-2);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-total,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-subtotal {
+        border-top: 1px solid var(--ink);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-total {
+        border-bottom: 4px double var(--ink);
+    }
+
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-total td,
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) tr.is-subtotal td {
+        border: 0;
+    }
+}
+
+/* A card that reads as a definition list (R-44 polish, D-1713): label column and value column sit at the same x on every card,
+   values left-aligned beside their label instead of pushed to the far edge. Opt in with class fx-table--defs. */
+@container fxt (max-width: 759.98px) {
+    .fx-table.fx-table--defs:not(.fx-table--keep) td:not(.is-lead):not(.is-actions) {
+        display: grid;
+        grid-template-columns: minmax(6.5rem, 9rem) minmax(0, 1fr);
+        justify-content: start;
+        align-items: baseline;
+        gap: var(--s-1) var(--s-4);
+        text-align: left;
+    }
+
+    .fx-table.fx-table--defs:not(.fx-table--keep) td.is-num {
+        text-align: left;
+    }
+
+    .fx-table.fx-table--defs:not(.fx-table--keep) td > .fx-cell-sub {
+        grid-column: 2;
+    }
+}
+
+@container fxt (max-width: 479.98px) {
+    .fx-table--compact:not(.fx-table--keep) thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .fx-table--compact:not(.fx-table--keep),
+    .fx-table--compact:not(.fx-table--keep) tbody,
+    .fx-table--compact:not(.fx-table--keep) tfoot,
+    .fx-table--compact:not(.fx-table--keep) tr {
+        display: block;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tbody tr,
+    .fx-table--compact:not(.fx-table--keep) tfoot tr {
+        padding: var(--s-3) var(--s-4);
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) th,
+    .fx-table--compact:not(.fx-table--keep) td,
+    .fx-table--compact:not(.fx-table--keep) th:first-child,
+    .fx-table--compact:not(.fx-table--keep) td:first-child,
+    .fx-table--compact:not(.fx-table--keep) th:last-child,
+    .fx-table--compact:not(.fx-table--keep) td:last-child {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--s-4);
+        padding: var(--s-1) 0;
+        border: 0;
+        text-align: right;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td::before {
+        content: attr(data-label);
+        flex: none;
+        font-size: var(--fs-small);
+        font-weight: 500;
+        text-align: left;
+        color: var(--ink-3);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td[data-label='']::before,
+    .fx-table--compact:not(.fx-table--keep) td:not([data-label])::before {
+        content: none;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td.is-lead,
+    .fx-table--compact:not(.fx-table--keep) th.is-lead {
+        display: block;
+        order: -1;
+        padding-bottom: var(--s-1);
+        text-align: left;
+        font-size: var(--fs-body);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td.is-lead::before {
+        content: none;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tbody tr,
+    .fx-table--compact:not(.fx-table--keep) tfoot tr {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fx-table--compact:not(.fx-table--keep) td.is-actions {
+        justify-content: flex-start;
+        padding-top: var(--s-2);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tr.is-total,
+    .fx-table--compact:not(.fx-table--keep) tr.is-subtotal {
+        border-top: 1px solid var(--ink);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tr.is-total {
+        border-bottom: 4px double var(--ink);
+    }
+
+    .fx-table--compact:not(.fx-table--keep) tr.is-total td,
+    .fx-table--compact:not(.fx-table--keep) tr.is-subtotal td {
+        border: 0;
+    }
+}
+
+/* ---- Pills ------------------------------------------------------------------------------------------ */
+.fx-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-height: 1.375rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-chip);
+    background: var(--sunk);
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--ink-2);
+    /* A long label wraps inside its card instead of running out of it (R-44 polish, D-1716). */
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.fx-pill .fx-icon {
+    width: 0.75rem;
+    height: 0.75rem;
+    stroke-width: 2.2;
+}
+
+.fx-pill--ticked {
+    border-color: var(--tick-line);
+    background: var(--tick-bg);
+    color: var(--tick);
+}
+
+.fx-pill--variance {
+    border-color: var(--pencil-line);
+    background: var(--pencil-bg);
+    color: var(--pencil);
+}
+
+.fx-pill--plain {
+    background: transparent;
+}
+
+/* ---- Meter / ageing bar (drawn as SVG so widths are attributes, not inline styles) ---------------------- */
+.fx-meter {
+    display: block;
+    width: 100%;
+    height: 0.4rem;
+    border-radius: 1px;
+    overflow: hidden;
+}
+
+.fx-meter__track {
+    fill: var(--sunk);
+}
+
+.fx-meter__fill {
+    fill: var(--ink);
+}
+
+.fx-meter__fill.is-variance {
+    fill: var(--pencil);
+}
+
+.fx-meter__mark {
+    fill: var(--sheet);
+}
+
+/* ---- Empty states ---------------------------------------------------------------------------------------- */
+.fx-empty {
+    display: grid;
+    justify-items: start;
+    gap: var(--s-2);
+    padding: var(--s-5);
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--r-panel);
+    color: var(--ink-2);
+    font-size: var(--fs-cell);
+}
+
+.fx-panel > .fx-empty,
+.fx-panel__body > .fx-empty {
+    border: 0;
+}
+
+.fx-empty__title {
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-weight: 620;
+    font-size: var(--fs-section);
+    color: var(--ink);
+}
+
+.fx-empty p {
+    max-width: 60ch;
+}
+
+.fx-empty .fx-btn {
+    margin-top: var(--s-2);
+}
+
+/* ---- Tabs ------------------------------------------------------------------------------------------------ */
+.fx-tabs {
+    display: flex;
+    gap: var(--s-5);
+    overflow-x: auto;
+    border-bottom: 1px solid var(--rule);
+    /* A strip that scrolls shows it: an edge shadow appears on the side that still has tabs hidden and vanishes at the end (D-1716). */
+    background:
+        linear-gradient(to right, var(--paper), var(--paper)) left center / 1.25rem 100% no-repeat local,
+        linear-gradient(to left, var(--paper), var(--paper)) right center / 1.25rem 100% no-repeat local,
+        linear-gradient(to right, var(--rule-strong), transparent) left center / 0.9rem 100% no-repeat scroll,
+        linear-gradient(to left, var(--rule-strong), transparent) right center / 0.9rem 100% no-repeat scroll;
+}
+
+.fx-tab {
+    padding: var(--s-2) 0 var(--s-3);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-size: var(--fs-cell);
+    font-weight: 600;
+    color: var(--ink-3);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.fx-tab:hover {
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.fx-tab[aria-current='page'],
+.fx-tab[aria-selected='true'] {
+    border-bottom-color: var(--ink);
+    color: var(--ink);
+}
+
+/* ---- Filter bar ------------------------------------------------------------------------------------------------ */
+.fx-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3) var(--s-3);
+    padding: var(--s-4) var(--s-5);
+    align-items: flex-end;
+}
+
+/* Filters fold away on a phone so the list starts on the first screen; they stay open when a filter is active and on larger screens. */
+.fx-collapse > summary {
+    display: none;
+    list-style: none;
+    cursor: pointer;
+}
+
+.fx-collapse > summary::-webkit-details-marker {
+    display: none;
+}
+
+@media (max-width: 719.98px) {
+    .fx-collapse > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: var(--touch);
+        padding: 0 var(--s-4);
+        font-size: var(--fs-cell);
+        font-weight: 600;
+    }
+
+    .fx-collapse[open] > summary {
+        border-bottom: 1px solid var(--rule);
+    }
+}
+
+.fx-filters > .fx-field {
+    flex: 1 1 9rem;
+}
+
+.fx-filters > .fx-filters__wide {
+    flex: 2 1 16rem;
+}
+
+.fx-filters__actions {
+    display: flex;
+    gap: var(--s-2);
+    align-items: center;
+}
+
+/* ---- Statement (ruled figures with dot leaders) ---------------------------------------------------------- */
+.fx-statement {
+    display: grid;
+    margin: 0;
+}
+
+.fx-statement__row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-2);
+    padding: var(--s-2) 0;
+}
+
+.fx-statement__row dt {
+    flex: none;
+    max-width: 70%;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-statement__row::after {
+    content: none;
+}
+
+.fx-statement__leader {
+    flex: 1;
+    min-width: 1rem;
+    align-self: end;
+    margin-bottom: 0.3rem;
+    border-bottom: 1px dotted var(--rule-strong);
+}
+
+.fx-statement__row dd {
+    margin: 0;
+    flex: none;
+    font-size: var(--fs-body);
+}
+
+.fx-statement__row.is-subtotal {
+    border-top: 1px solid var(--ink);
+    margin-top: var(--s-1);
+}
+
+.fx-statement__row.is-total {
+    border-top: 1px solid var(--ink);
+    border-bottom: 4px double var(--ink);
+    margin-top: var(--s-1);
+}
+
+.fx-statement__row.is-subtotal dt,
+.fx-statement__row.is-total dt {
+    font-weight: 650;
+    color: var(--ink);
+}
+
+.fx-statement__row.is-total dd {
+    font-weight: 700;
+}
+
+/* ---- Glossary tooltip ------------------------------------------------------------------------------------ */
+.fx-gloss {
+    position: relative;
+    display: inline;
+    border-bottom: 1px dotted var(--ink-3);
+    cursor: help;
+}
+
+.fx-gloss__tip {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 6px);
+    z-index: 20;
+    width: max-content;
+    max-width: min(18rem, 78vw);
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-control);
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-text);
+    font-size: var(--fs-small);
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms var(--ease), visibility 0s linear 120ms;
+}
+
+.fx-gloss:hover .fx-gloss__tip,
+.fx-gloss:focus .fx-gloss__tip,
+.fx-gloss:focus-within .fx-gloss__tip {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 120ms var(--ease), visibility 0s;
+}
+
+/* ---- Dialogs, sheets and the command bar ----------------------------------------------------------------- */
+dialog.fx-dialog {
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: min(40rem, calc(100dvh - 2rem));
+    padding: 0;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-float);
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: var(--shadow-float);
+    overflow: hidden;
+}
+
+dialog.fx-dialog::backdrop {
+    background: var(--scrim);
+}
+
+.fx-dialog__inner {
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-5);
+}
+
+.fx-dialog__title {
+    font-size: var(--fs-section);
+}
+
+.fx-dialog__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--s-2);
+    padding-top: var(--s-2);
+}
+
+dialog.fx-dialog--drawer {
+    margin: 0 0 0 auto;
+    width: min(26rem, 100vw);
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    border-width: 0 0 0 1px;
+}
+
+dialog.fx-command {
+    width: min(38rem, calc(100vw - 1.5rem));
+    margin-top: 10vh;
+}
+
+.fx-command__field {
+    position: relative;
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-command__field .fx-icon {
+    position: absolute;
+    left: var(--s-4);
+    top: 50%;
+    width: 1.1rem;
+    height: 1.1rem;
+    transform: translateY(-50%);
+    color: var(--ink-3);
+}
+
+.fx-command__input {
+    width: 100%;
+    height: 3.25rem;
+    padding: 0 var(--s-4) 0 2.75rem;
+    border: 0;
+    background: transparent;
+    font-size: var(--fs-body);
+}
+
+.fx-command__input:focus {
+    outline: none;
+}
+
+.fx-command__list {
+    max-height: min(24rem, 55dvh);
+    overflow-y: auto;
+    list-style: none;
+    padding: var(--s-2);
+}
+
+.fx-command__group {
+    padding: var(--s-2) var(--s-3) var(--s-1);
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    color: var(--ink-3);
+}
+
+.fx-command__opt a,
+.fx-command__opt button {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    width: 100%;
+    min-height: var(--touch);
+    padding: 0 var(--s-3);
+    border: 0;
+    border-radius: var(--r-control);
+    background: none;
+    font-size: var(--fs-cell);
+    color: var(--ink);
+    text-align: left;
+    text-decoration: none;
+}
+
+.fx-command__opt a:hover,
+.fx-command__opt a[data-active='true'],
+.fx-command__opt button:hover,
+.fx-command__opt button[data-active='true'] {
+    background: var(--sunk);
+}
+
+.fx-command__opt .fx-icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--ink-3);
+}
+
+.fx-command__empty {
+    padding: var(--s-4);
+    font-size: var(--fs-cell);
+    color: var(--ink-3);
+}
+
+/* ---- Toasts ------------------------------------------------------------------------------------------------ */
+.fx-toasts {
+    position: fixed;
+    z-index: 70;
+    right: var(--s-4);
+    bottom: calc(var(--bar-h) + var(--s-4) + env(safe-area-inset-bottom));
+    left: var(--s-4);
+    display: grid;
+    gap: var(--s-2);
+    justify-items: end;
+    pointer-events: none;
+}
+
+.fx-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    max-width: 28rem;
+    padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
+    border: 1px solid var(--ink);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+    box-shadow: var(--shadow-float);
+    font-size: var(--fs-cell);
+    pointer-events: auto;
+    animation: fx-rise 200ms var(--ease);
+}
+
+.fx-toast .fx-icon {
+    margin-top: 0.15rem;
+}
+
+.fx-toast--ok .fx-icon {
+    color: var(--tick);
+}
+
+.fx-toast--bad .fx-icon {
+    color: var(--pencil);
+}
+
+.fx-toast__close {
+    margin-left: var(--s-2);
+    padding: 0 var(--s-1);
+    border: 0;
+    background: none;
+    color: var(--ink-3);
+}
+
+@keyframes fx-rise {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+@media (min-width: 1024px) {
+    .fx-toasts {
+        bottom: var(--s-5);
+        left: auto;
+        right: var(--s-5);
+    }
+}
+
+/* ---- Pagination -------------------------------------------------------------------------------------------- */
+.fx-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-pager__pages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+}
+
+.fx-pager a,
+.fx-pager span.fx-pager__page {
+    display: inline-grid;
+    place-items: center;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0 var(--s-2);
+    border: 1px solid transparent;
+    border-radius: var(--r-control);
+    font-family: var(--font-figure);
+    text-decoration: none;
+    color: var(--ink);
+}
+
+.fx-pager a {
+    border-color: var(--rule-strong);
+}
+
+.fx-pager a:hover {
+    background: var(--sunk);
+    border-color: var(--ink);
+}
+
+.fx-pager .is-current {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.fx-pager .is-gap,
+.fx-pager .is-off {
+    color: var(--ink-3);
+}
+
+/* ---- a file field with a drop target (x-fx.dropzone) ---------------------------------------------------------------
+   The browser's own file input is stretched over the whole box, so click, keyboard, screen readers and dropping a file
+   all work with nothing added. The box only makes it large and says what it takes. */
+.fx-drop {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 7.5rem;
+    padding: var(--s-4);
+    border: 1px dashed var(--rule-strong);
+    border-radius: var(--r-panel);
+    background: var(--sunk);
+    color: var(--ink-2);
+    text-align: center;
+}
+.fx-drop:hover { border-color: var(--ink-3); background: var(--sheet); }
+.fx-drop:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fx-drop.is-over { border-style: solid; border-color: var(--ink); background: var(--sheet); }
+.fx-drop__input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.fx-drop__input::file-selector-button { cursor: pointer; }
+.fx-drop__body { display: grid; justify-items: center; gap: var(--s-1); pointer-events: none; }
+.fx-drop__body .fx-icon { width: 1.5rem; height: 1.5rem; color: var(--ink-3); }
+.fx-drop__title { color: var(--ink); font-weight: 600; }
+.fx-drop__sub { font-size: var(--fs-small); color: var(--ink-3); }
+.fx-drop__name { font-family: var(--font-figure); font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
+.fx-drop__name:not(:empty) { margin-top: var(--s-1); padding: 0 var(--s-2); border: 1px solid var(--rule-strong); border-radius: var(--r-chip); background: var(--sheet); }
+
+/* ---- a reading of a document: the figures, how sure the reader was of each, and a cue when a person must look ---- */
+.pu-read { display: grid; gap: var(--s-2); min-width: 0; max-width: 34rem; }
+.pu-read__fields { display: grid; gap: var(--s-1); margin: 0; }
+.pu-read__row { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--s-2); align-items: baseline; }
+.pu-read__row dt { color: var(--ink-3); font-size: var(--fs-small); }
+.pu-read__row dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-2); }
+.pu-read__none { color: var(--ink-3); }
+.pu-read__check { margin: 0; font-size: var(--fs-small); color: var(--ink-2); }
+.pu-read__check .fx-pill { margin-right: var(--s-1); }
+
+/* ---- Touch targets on a phone (R-44 acceptance QA, criterion 32) ------------------------------------------------
+   Everything a thumb has to hit is at least 44 by 44 CSS px at phone widths. Inline links inside a sentence are left alone;
+   standalone links, tabs, buttons-as-links, controls and the small "trace" icon links get the room. The trace icon keeps its
+   drawn size and grows its hit area with a pseudo-element, so the figures beside it do not move. */
+@media (max-width: 759.98px) {
+    :root {
+        --control-h: 2.75rem;
+    }
+
+    .fx-top__brand,
+    .fx-tab,
+    .fx-linkbtn,
+    a.fx-link:not(p a, .fx-hint a, .fx-sub a, .fx-cell-sub a, dd a, li > a:only-child) {
+        display: inline-flex;
+        align-items: center;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    .sx-lead > a.fx-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
+    }
+
+    .fx-tab {
+        flex: none;
+        justify-content: center;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .fx-trace {
+        position: relative;
+    }
+
+    .fx-trace::after {
+        content: '';
+        position: absolute;
+        inset: -0.75rem;
+    }
+
+    .fx-check {
+        min-height: 2.75rem;
+        align-items: center;
+    }
+
+    .fx-check input {
+        margin: 0;
+    }
+
+    .tax-drill > summary,
+    .tax-rules > summary,
+    .intel-evidence > summary {
+        display: flex;
+        align-items: center;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    .fx-pill .fx-money {
+        font-size: var(--fs-small);
+    }
+
+    /* the small second line under a figure is still money someone has to read */
+    .fx-cell-sub .fx-money,
+    .fx-cell-sub .fx-fig {
+        font-size: var(--fs-cell);
+    }
+}
+
+/* A line editor row in card mode (bill lines, claim receipts, repeating bills): each field is its own full-width row with its
+   label above it, so the fields line up instead of shrinking to their content beside a label. */
+@container fxt (max-width: 759.98px) {
+    .fx-table:not(.fx-table--keep):not(.fx-table--compact) td:has(> .fx-input, > .fx-select) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--s-1);
+        padding: var(--s-2) 0;
+        text-align: left;
+    }
+}

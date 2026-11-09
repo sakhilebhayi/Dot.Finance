@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Casts\DateOnly;
+use App\Models\Accounting\GlAccount;
 use App\Models\Concerns\HasLedgerContext;
+use App\Services\AccountBalances;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,6 +35,14 @@ class Account extends Model
         'opening_balance_date' => DateOnly::class,
     ];
 
+    protected static function booted(): void
+    {
+        $flush = static fn () => app(AccountBalances::class)->flush();
+        static::saved($flush);
+        static::deleted($flush);
+        static::restored($flush);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -41,6 +51,11 @@ class Account extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function glAccount(): BelongsTo
+    {
+        return $this->belongsTo(GlAccount::class, 'gl_account_id');
     }
 
     public function transactions(): HasMany

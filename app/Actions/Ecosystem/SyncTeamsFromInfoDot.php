@@ -4,6 +4,7 @@ namespace App\Actions\Ecosystem;
 
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Controls\LedgerRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -91,6 +92,9 @@ class SyncTeamsFromInfoDot
 
         if ($user->belongsToTeam($team)) {
             $team->users()->updateExistingPivot($user->id, ['role' => $localRole]);
+            // R-44: InfoDot is the ceiling for local finance roles. The sync never raises one; it removes
+            // any local grant that is now above what InfoDot allows for this person.
+            app(LedgerRoles::class)->reconcile($team, $user);
         } else {
             $team->users()->attach($user->id, ['role' => $localRole]);
         }
@@ -112,6 +116,7 @@ class SyncTeamsFromInfoDot
             }
 
             $team->users()->detach($user->id);
+            app(LedgerRoles::class)->memberRemoved($team, $user); // R-44: their local role, limits and pending asks go with them
 
             if ($user->current_team_id === $team->id) {
                 $user->forceFill(['current_team_id' => null])->save();

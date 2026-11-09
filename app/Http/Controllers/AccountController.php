@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Bank\ReconciliationRefused;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Rules\MoneyAmount;
+use App\Services\Accounting\Exceptions\PeriodClosed;
+use App\Services\Accounting\GlSync;
 use App\Support\FinanceAudit;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
@@ -52,14 +55,23 @@ class AccountController extends Controller
             'institution' => ['nullable', 'string', 'max:255'],
         ]);
 
-        Account::create($this->ledger()->ownerAttributes() + [
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'currency' => $validated['currency'],
-            'institution' => $validated['institution'] ?? null,
-            'opening_balance_cents' => Money::parse((string) $validated['opening_balance']),
-            'opening_balance_date' => $validated['opening_balance_date'] ?? now()->toDateString(),
-        ]);
+        try {
+            DB::transaction(function () use ($validated) {
+                $account = Account::create($this->ledger()->ownerAttributes() + [
+                    'name' => $validated['name'],
+                    'type' => $validated['type'],
+                    'currency' => $validated['currency'],
+                    'institution' => $validated['institution'] ?? null,
+                    'opening_balance_cents' => Money::parse((string) $validated['opening_balance']),
+                    'opening_balance_date' => $validated['opening_balance_date'] ?? now()->toDateString(),
+                ]);
+
+                // With accounting on, a new account gets its GL account and its opening entry straight away.
+                app(GlSync::class)->account($account);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['opening_balance_date' => $e->getMessage().' An account cannot open inside a closed period.'])->withInput();
+        }
 
         return redirect()->route('accounts.index')->with('status', 'Account added.');
     }
@@ -132,7 +144,16 @@ class AccountController extends Controller
             'opening_balance_date' => $validated['opening_balance_date'],
         ]);
 
-        $reason !== null ? FinanceAudit::withContext($reason, $apply) : $apply();
+        try {
+            DB::transaction(function () use ($account, $reason, $apply) {
+                $reason !== null ? FinanceAudit::withContext($reason, $apply) : $apply();
+
+                // The cut-off date decides which rows count, so with accounting on the account's journals follow it.
+                app(GlSync::class)->account($account);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['opening_balance_date' => $e->getMessage().' The opening balance cannot be moved into or out of a closed period.'])->withInput();
+        }
 
         return redirect()->route('accounts.edit', $account)->with('status', 'Opening balance adjusted and recorded in the audit log.');
     }
@@ -165,13 +186,30 @@ class AccountController extends Controller
             return back()->withErrors(['confirm' => "This account has {$count} transaction".($count === 1 ? '' : 's').'. Confirm to delete the account and those transactions.']);
         }
 
-        DB::transaction(function () use ($account) {
-            Transaction::withoutTransferCascade(function () use ($account) {
-                Transaction::where('account_id', $account->id)->get()->each->delete();
-            });
+        $sync = app(GlSync::class);
 
-            $account->delete();
-        });
+        // With accounting on, an account with money in it is not deleted: the books would be left holding a
+        // balance on an account nobody can see. Move it out or adjust the opening balance first.
+        if ($sync->isEnabled($account->ledgerContext()) && Account::withBalance()->findOrFail($account->id)->balanceCents() !== 0) {
+            return back()->withErrors(['confirm' => 'This account still holds a balance. With accounting on, move the money out with a transfer (or adjust the opening balance) before deleting it.']);
+        }
+
+        try {
+            DB::transaction(function () use ($account, $sync) {
+                Transaction::withoutTransferCascade(function () use ($account) {
+                    Transaction::where('account_id', $account->id)->get()->each->delete();
+                });
+
+                $account->delete();
+
+                // Reverse everything the account posted (a surviving transfer leg is re-journalled against suspense).
+                $sync->account($account);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['confirm' => $e->getMessage().' Entries in a closed period cannot be reversed, so the account cannot be deleted now.']);
+        } catch (ReconciliationRefused $e) {
+            return back()->withErrors(['confirm' => 'This account has entries matched to a bank statement, so it cannot be deleted. '.$e->getMessage()]);
+        }
 
         return redirect()->route('accounts.index')->with('status', 'Account deleted'.($count > 0 ? " along with {$count} transaction".($count === 1 ? '' : 's') : '').'. The audit log keeps a record.');
     }

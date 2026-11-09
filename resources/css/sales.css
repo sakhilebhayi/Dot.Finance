@@ -1,0 +1,144 @@
+/*
+ * Sales screens. Built on the Tie-Out tokens and the fx components; only what those do not already give.
+ * Colour keeps its two meanings: ledger green = checked, pencil red = a variance. Nothing is coloured for decoration.
+ */
+
+.sx-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sx-muted { color: var(--ink-3); }
+.sx-dash { color: var(--ink-3); }
+.sx-pre { white-space: pre-line; margin: 0 0 var(--s-2); }
+.sx-hint { margin: var(--s-2) 0 0; font-size: var(--fs-small); color: var(--ink-3); }
+.sx-hint--variance { color: var(--pencil); }
+.sx-lead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-4); font-size: var(--fs-body); }
+.sx-logo { display: block; max-height: 4rem; max-width: 14rem; }
+
+/* ---- a divided strip of peer figures (not tiles) --------------------------------------------------------- */
+.sx-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 0 var(--s-4); border: 1px solid var(--rule); border-radius: var(--r-panel); background: var(--sheet); }
+.sx-strip__item { display: grid; gap: var(--s-1); align-content: start; padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--rule); min-width: 0; }
+.sx-strip__item:nth-child(odd) { border-right: 1px solid var(--rule); }
+.sx-strip__item:nth-last-child(-n + 2) { border-bottom: 0; }
+.sx-strip__label { font-size: var(--fs-small); color: var(--ink-3); }
+.sx-strip__item--proof { align-content: center; justify-items: start; }
+@media (min-width: 900px) {
+    .sx-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sx-strip__item, .sx-strip__item:nth-child(odd), .sx-strip__item:nth-last-child(-n + 2) { border: 0; border-right: 1px solid var(--rule); }
+    .sx-strip__item:last-child { border-right: 0; }
+}
+
+/* ---- the invoice editor --------------------------------------------------------------------------------- */
+.sx-lines { display: grid; container: sxl / inline-size; }
+.sx-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--rule); align-items: start; }
+.sx-line__desc { grid-column: 1 / -1; }
+.sx-line__tax { grid-column: 1 / -1; }
+.sx-line__amount { display: grid; gap: var(--s-1); }
+.sx-line__actions { display: flex; align-items: end; justify-content: end; }
+.sx-line__more { grid-column: 1 / -1; font-size: var(--fs-small); color: var(--ink-2); }
+.sx-line__more summary { cursor: pointer; min-height: var(--touch); display: flex; align-items: center; color: var(--ink-2); }
+.sx-line__more[open] summary { margin-bottom: var(--s-2); }
+.sx-line__notax { display: inline-flex; align-items: center; min-height: var(--control-h); color: var(--ink-3); }
+.sx-lines__foot { padding: var(--s-3) var(--s-5); }
+@container sxl (min-width: 520px) {
+    .sx-line { grid-template-columns: 5rem 7rem 5rem minmax(9rem, 1fr); gap: var(--s-2) var(--s-3); padding: var(--s-3) var(--s-5); }
+    .sx-line__desc { grid-column: 1 / -1; }
+    .sx-line__tax { grid-column: auto; }
+    .sx-line__amount { grid-column: 1 / 4; text-align: left; }
+    .sx-line__actions { grid-column: 4; }
+    .sx-line__more { grid-column: 1 / -1; }
+}
+@container sxl (min-width: 800px) {
+    .sx-line { grid-template-columns: minmax(10rem, 1fr) 4.5rem 7rem 4.5rem 9rem 7rem 4rem; }
+    .sx-line__desc { grid-column: auto; }
+    .sx-line__amount { grid-column: auto; text-align: right; align-content: center; padding-top: 1.6rem; }
+    .sx-line__actions { grid-column: auto; }
+    .sx-lines > .sx-line:not(:first-child) .sx-line__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .sx-lines > .sx-line:not(:first-child) .sx-line__amount { padding-top: 0.3rem; }
+}
+
+.sx-preview { display: grid; gap: var(--gap); align-content: start; min-width: 0; }
+@media (min-width: 900px) { .sx-preview { position: sticky; top: calc(var(--top-h) + var(--s-3)); max-height: calc(100vh - var(--top-h) - var(--s-5)); overflow-y: auto; overscroll-behavior: contain; } }
+.sx-preview__status { margin: 0 0 var(--s-3); font-size: var(--fs-small); color: var(--ink-3); }
+.sx-preview__base, .sx-preview__due { margin: var(--s-2) 0 0; font-size: var(--fs-small); color: var(--ink-2); }
+.sx-preview__summary { margin: var(--s-3) 0 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--ink-3); }
+.sx-warnings { margin: var(--s-3) 0 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--pencil); }
+.sx-warnings li + li { margin-top: var(--s-1); }
+.sx-savebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+
+/* ---- the valid tax invoice checklist: a glyph and a word, never colour alone ------------------------------ */
+.sx-checklist { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-2); font-size: var(--fs-small); }
+.sx-checklist li { display: grid; grid-template-columns: 1.1rem minmax(0, 1fr); gap: var(--s-2); align-items: start; }
+.sx-checklist li > .fx-icon { margin-top: 2px; }
+.sx-checklist .is-ok > .fx-icon { color: var(--tick); }
+.sx-checklist .is-bad > .fx-icon, .sx-checklist .is-bad strong { color: var(--pencil); }
+.sx-checklist__mark { display: none; }
+form[data-sx-editor] .sx-checklist li { grid-template-columns: 3.25rem minmax(0, 1fr); }
+form[data-sx-editor] .sx-checklist__mark { display: inline-block; font-size: var(--fs-small); font-weight: 700; letter-spacing: 0.01em; color: var(--ink-2); }
+form[data-sx-editor] .sx-checklist .is-ok .sx-checklist__mark { color: var(--tick); }
+form[data-sx-editor] .sx-checklist .is-bad .sx-checklist__mark { color: var(--pencil); }
+
+/* ---- the document page ---------------------------------------------------------------------------------- */
+.sx-totalsbox { padding: var(--s-4) var(--s-5); border-top: 1px solid var(--rule); }
+.sx-acts { display: grid; gap: var(--s-3); }
+.sx-act { border-top: 1px solid var(--rule); padding-top: var(--s-2); }
+.sx-act:first-child { border-top: 0; padding-top: 0; }
+.sx-act > summary { cursor: pointer; min-height: var(--touch); display: flex; align-items: center; font-weight: 600; font-size: var(--fs-cell); }
+.sx-act[open] > summary { margin-bottom: var(--s-2); }
+.sx-act:focus-within > summary, .sx-act > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sx-inline > summary { cursor: pointer; display: inline-flex; min-height: var(--touch); align-items: center; }
+.sx-inline form { margin-top: var(--s-2); }
+.sx-inlineform { display: inline; }
+.sx-cta { margin-top: var(--s-3); }
+.sx-trail { margin: 0; padding: 0; list-style: none; }
+.sx-trail li { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: var(--s-3); padding: var(--s-2) var(--s-5); border-bottom: 1px solid var(--rule); font-size: var(--fs-cell); }
+.sx-trail li:last-child { border-bottom: 0; }
+.sx-trail__when { color: var(--ink-3); font-size: var(--fs-small); }
+@media (max-width: 560px) { .sx-trail li { grid-template-columns: 1fr; gap: 0; } }
+.sx-credits, .sx-links { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-3); font-size: var(--fs-cell); }
+.sx-credits li, .sx-links li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-2) var(--s-3); }
+.sx-credits li > form { flex-basis: 100%; }
+
+/* ---- receivables: does it agree with the books --------------------------------------------------------- */
+.sx-reconcile { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); gap: var(--s-3); margin: 0 0 var(--s-4); padding: var(--s-3) var(--s-4); border: 1px solid var(--rule); border-radius: var(--r-panel); background: var(--sheet); font-size: var(--fs-cell); }
+.sx-reconcile p { margin: 0 0 var(--s-2); }
+.sx-reconcile ul { margin: 0 0 var(--s-2); padding-left: 1.1rem; }
+.sx-reconcile.is-ok { border-color: var(--tick-line); background: var(--tick-bg); }
+.sx-reconcile.is-ok > .fx-icon { color: var(--tick); }
+.sx-reconcile.is-bad { border-color: var(--pencil-line); background: var(--pencil-bg); }
+.sx-reconcile.is-bad > .fx-icon { color: var(--pencil); }
+
+.sx-reconcile__rows { max-width: 34rem; margin: 0 0 var(--s-2); }
+.sx-strip .fx-money.is-lead { font-size: 1.5rem; }
+@media (max-width: 560px) {
+    .sx-reconcile { grid-template-columns: 1.25rem minmax(0, 1fr); padding: var(--s-3); }
+    .sx-reconcile .fx-statement__row { flex-wrap: wrap; gap: 0 var(--s-3); }
+    .sx-reconcile .fx-statement__leader { display: none; }
+    .sx-reconcile .fx-statement__row dt { flex: 1 1 100%; }
+    .sx-reconcile .fx-statement__row dd { margin-left: 0; }
+}
+
+/* A panel holding a scrolling table must not widen the page on a phone: it shrinks, and the table scrolls inside it. */
+.fx-page > .fx-panel, .fx-page > .fx-grid > .fx-panel, .fx-page > .fx-grid > .fx-stack, .fx-page > .fx-grid > aside { min-width: 0; max-width: 100%; }
+.fx-panel__body--flush { min-width: 0; }
+
+/* ---- one definition of "owed to you": the note under the headline, and the reconciling items ------------------- */
+.sx-strip__note { font-size: var(--fs-small); color: var(--ink-3); }
+.sx-reconcile__list { margin: 0 0 var(--s-2); font-size: var(--fs-small); }
+.sx-reconcile__list > summary { cursor: pointer; color: var(--ink-2); }
+.sx-reconcile .fx-table, .sx-reconcile table { margin: var(--s-2) 0; }
+.sx-credit { color: var(--ink-2); white-space: nowrap; }
+
+/* ---- the invoice editor: the document as the customer reads it ------------------------------------------------ */
+.sx-paper { font-size: var(--fs-cell); color: var(--ink); }
+.sx-paper__empty { margin: 0; color: var(--ink-3); }
+.sx-paper__head { display: flex; justify-content: space-between; gap: var(--s-4); padding-bottom: var(--s-3); border-bottom: 2px solid var(--ink); }
+.sx-paper__title { text-align: right; font-weight: 600; }
+.sx-paper__meta { display: grid; gap: var(--s-1); margin: var(--s-3) 0; }
+.sx-paper__meta > div { display: flex; gap: var(--s-3); }
+.sx-paper__meta dt { flex: 0 0 5rem; color: var(--ink-3); }
+.sx-paper__meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sx-paper__lines { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+.sx-paper__line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-1) var(--s-3); padding: var(--s-2) 0; border-bottom: 1px dotted var(--rule); }
+.sx-paper__what { min-width: 0; overflow-wrap: anywhere; }
+.sx-paper__totals { margin: var(--s-3) 0 0; }
+.sx-paper__note { margin: var(--s-3) 0 0; white-space: pre-line; }
+.sx-paper [hidden] { display: none; }
+.sx-paper__line .fx-money { white-space: nowrap; margin-left: auto; }

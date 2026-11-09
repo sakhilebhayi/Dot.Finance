@@ -4,8 +4,11 @@ namespace App\Models;
 
 use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
+use App\Services\AccountBalances;
+use App\Services\Bank\ReconciliationLock;
 use App\Support\Money;
 use Database\Factories\TransactionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,11 +29,12 @@ class Transaction extends Model
 
     protected $fillable = [
         'account_id', 'category_id', 'user_id', 'team_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'date', 'notes',
-        'transfer_direction', 'transfer_group', 'recurring_rule_id', 'import_fingerprint', 'import_batch_id',
+        'transfer_direction', 'transfer_group', 'recurring_rule_id', 'import_fingerprint', 'import_batch_id', 'client_token',
     ];
 
     protected $casts = [
         'amount_cents' => 'integer',
+        'version' => 'integer',
         'date' => DateOnly::class,
     ];
 
@@ -65,6 +69,25 @@ class Transaction extends Model
             $transaction->attributes['amount'] = Money::toDecimalString((int) ($transaction->attributes['amount_cents'] ?? 0));
         });
 
+        // Optimistic lock: every real change moves the version on, so a form opened at version n
+        // can tell that someone saved version n+1 in the meantime (see TransactionController::update).
+        static::updating(function (Transaction $transaction): void {
+            if ($transaction->isDirty() && ! $transaction->isDirty('version') && ! $transaction->isDirty('deleted_at')) {
+                // (a model created in this request has not read the column default back, so a missing version counts as 1)
+                $transaction->version = max(1, (int) $transaction->getOriginal('version')) + 1;
+            }
+        });
+
+        // R-44 Bank: a row the bank has vouched for (matched or reconciled) keeps the figures it was matched on.
+        static::updating(fn (Transaction $transaction) => ReconciliationLock::guardUpdate($transaction));
+        static::deleting(fn (Transaction $transaction) => ReconciliationLock::guardDelete($transaction));
+
+        // Anything that changes a balance invalidates the request-scoped balance cache.
+        $flush = static fn () => app(AccountBalances::class)->flush();
+        static::saved($flush);
+        static::deleted($flush);
+        static::restored($flush);
+
         // A transfer is one event with two legs: removing either removes both,
         // so a balance can never be left holding half of a movement.
         static::deleting(function (Transaction $transaction): void {
@@ -93,6 +116,39 @@ class Transaction extends Model
             if ($transaction->import_fingerprint !== null && ! $transaction->isForceDeleting()) {
                 DB::table('transactions')->where('id', $transaction->id)->update(['import_fingerprint' => null]);
             }
+        });
+    }
+
+    /**
+     * A delete is atomic with its cascade: removing one leg of a transfer removes the other,
+     * and a crash between the two can no longer leave half a transfer behind. Nested inside a
+     * caller's own transaction this is a savepoint, so it composes.
+     */
+    public function delete(): ?bool
+    {
+        return DB::transaction(fn () => parent::delete());
+    }
+
+    /** A save is atomic with the audit row the observer writes for it. */
+    public function save(array $options = []): bool
+    {
+        return DB::transaction(fn () => parent::save($options));
+    }
+
+    /**
+     * Rows that count: dated on or after their account's opening date (or on an account with no
+     * opening date). This is exactly the rule the derived balance uses (Account::scopeWithBalance),
+     * so a report built on this scope can never disagree with a balance. Earlier rows are history
+     * the opening balance already absorbed: kept, shown in the list, never counted.
+     */
+    public function scopeCounted(Builder $query): Builder
+    {
+        return $query->whereExists(function ($sub) {
+            $sub->selectRaw('1')->from('accounts as a')
+                ->whereColumn('a.id', 'transactions.account_id')
+                ->where(function ($q) {
+                    $q->whereNull('a.opening_balance_date')->orWhereColumn('transactions.date', '>=', 'a.opening_balance_date');
+                });
         });
     }
 

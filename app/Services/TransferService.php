@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Accounting\GlSync;
 use App\Support\Ledger\LedgerContextViolation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -81,6 +82,9 @@ class TransferService
                 'date' => $date,
                 'notes' => $notes,
             ]);
+
+            // With accounting on, the pair is journalled in the same transaction (a closed period refuses the transfer).
+            app(GlSync::class)->transferGroup($from->ledgerContext(), $group);
 
             return ['out' => $out, 'in' => $in];
         });

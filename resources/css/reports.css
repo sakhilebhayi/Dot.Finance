@@ -1,0 +1,397 @@
+/*
+ * Reports and planning (R-44 wave 2). Everything here is built from the design-system tokens: no new colour is
+ * introduced, only the two signals (ledger green for a check that agrees, pencil red for one that does not).
+ * Projected figures are drawn with a hatch and a dashed rule, and always carry the word "projected", so they can
+ * never be mistaken for actual ones.
+ */
+.rp-toolbar {
+    display: grid;
+    gap: var(--s-3) var(--s-4);
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    align-items: start;
+    padding: var(--s-4);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+    margin-block-end: var(--s-5);
+}
+
+.rp-toolbar__wide {
+    grid-column: span 2;
+}
+
+.rp-toolbar__actions {
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    align-items: center;
+}
+
+.rp-header {
+    margin: 0 0 var(--s-4);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.rp-header__dl,
+dl.rp-header {
+    display: grid;
+    gap: var(--s-1) var(--s-5);
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.rp-header__line {
+    margin: 0;
+    color: var(--ink);
+}
+
+.rp-header__working {
+    margin-block-start: var(--s-1);
+}
+
+.rp-header__working > summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    width: fit-content;
+    padding: var(--s-1) 0;
+    min-height: 24px;
+}
+
+.rp-header__dl {
+    margin: var(--s-2) 0 0;
+}
+
+.rp-header__dl dt {
+    color: var(--ink-3);
+}
+
+.rp-header__dl dd {
+    margin: 0;
+    color: var(--ink);
+}
+
+.rp-checks {
+    display: grid;
+    gap: var(--s-2);
+    margin: 0 0 var(--s-5);
+    padding: 0;
+    list-style: none;
+}
+
+.rp-check {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--s-2) var(--s-3);
+    align-items: start;
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.rp-check > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 47.5rem) {
+    .rp-check {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--s-1);
+    }
+
+    .rp-check .fx-pill {
+        justify-self: start;
+        max-width: 100%;
+        white-space: normal;
+    }
+}
+
+.rp-check strong {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.rp-assumptions {
+    margin: var(--s-2) 0 0;
+    padding: 0 0 0 var(--s-5);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+    max-width: 72ch;
+}
+
+.rp-notes {
+    margin: var(--s-4) 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+    max-width: 72ch;
+    display: grid;
+    gap: var(--s-2);
+}
+
+.rp-table tr.rp-section th {
+    padding-block: var(--s-4) var(--s-2);
+    font-family: var(--font-display);
+    font-size: var(--fs-section);
+    font-weight: 650;
+    background: transparent;
+}
+
+.rp-table tr.is-subtotal th,
+.rp-table tr.is-subtotal td {
+    border-top: 1px solid var(--rule-strong);
+    font-weight: 600;
+}
+
+.rp-table .rp-d2 { padding-inline-start: var(--s-5); }
+.rp-table .rp-d3 { padding-inline-start: var(--s-6); }
+
+.rp-table td.is-pct,
+.rp-table td.is-text-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+.rp-table .rp-quiet {
+    color: var(--ink-3);
+}
+
+/* A figure that is a projection: hatched, so it is not told apart from an actual one by colour alone. */
+.rp-projected {
+    background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgb(var(--ink-rgb) / 0.07) 6px 7px);
+}
+
+.rp-key {
+    display: inline-flex;
+    gap: var(--s-2);
+    align-items: center;
+}
+
+.rp-key__swatch {
+    display: inline-block;
+    width: 1.1rem;
+    height: 0.75rem;
+    border: 1px solid var(--edge);
+}
+
+.rp-key__swatch--projected {
+    background-image: repeating-linear-gradient(135deg, transparent 0 3px, rgb(var(--ink-rgb) / 0.35) 3px 4px);
+}
+
+.rp-split {
+    display: grid;
+    gap: var(--s-5);
+}
+
+@media (min-width: 64rem) {
+    .rp-split {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        align-items: start;
+    }
+}
+
+.rp-hub {
+    display: grid;
+    gap: var(--s-5);
+}
+
+.rp-hub__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+}
+
+.rp-hub__item {
+    display: grid;
+    gap: var(--s-1);
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.rp-hub__item:last-child {
+    border-bottom: 0;
+}
+
+.rp-hub__item a {
+    font-weight: 600;
+}
+
+.rp-hub__item p {
+    margin: 0;
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+    max-width: 62ch;
+}
+
+.rp-lead {
+    font-family: var(--font-figure);
+    font-size: var(--fs-answer);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.rp-answer {
+    margin: 0 0 var(--s-5);
+    max-width: 62ch;
+}
+
+.rp-answer p {
+    margin: var(--s-2) 0 0;
+    color: var(--ink-2);
+}
+
+.rp-matrix {
+    min-width: 62rem;
+}
+
+.rp-matrix td input {
+    width: 100%;
+    min-width: 5.5rem;
+    text-align: end;
+}
+
+.rp-banner {
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-panel);
+    padding: var(--s-3) var(--s-4);
+    margin: 0 0 var(--s-5);
+    background: var(--sunk);
+    font-size: var(--fs-small);
+}
+
+.rp-chart text {
+    fill: var(--ink-3);
+    font-family: var(--font-figure);
+    font-size: 11px;
+}
+
+.rp-chart__actual { fill: none; stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.rp-chart__projected { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.rp-chart__scenario { fill: none; stroke: var(--ink-2); stroke-width: 3; stroke-dasharray: 1 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.rp-chart__buffer { stroke: var(--pencil); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.rp-chart__band { fill: rgb(var(--ink-rgb) / 0.06); }
+
+@media print {
+    .rp-toolbar, .rp-noprint, .fx-side, .fx-top, .fx-bar { display: none !important; }
+    .rp-table { font-size: 11px; }
+}
+
+.rp-more {
+    margin: 0 0 var(--s-4);
+    font-size: var(--fs-small);
+}
+
+.rp-more > summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    padding: var(--s-1) 0;
+    width: fit-content;
+}
+
+.rp-more__body {
+    align-items: end;
+    gap: var(--s-4);
+    padding: var(--s-3) 0;
+}
+
+.rp-saved {
+    margin: 0 0 var(--s-3);
+}
+
+@media (max-width: 40rem) {
+    .rp-toolbar__wide {
+        grid-column: auto;
+    }
+
+    .rp-toolbar {
+        gap: var(--s-2) var(--s-3);
+        padding: var(--s-3);
+    }
+
+    .rp-toolbar .fx-hint {
+        display: none;
+    }
+}
+
+/* A report keeps its columns on a phone: one header row, name and amounts aligned, and a wide one scrolls inside its panel. */
+.fx-tablewrap:has(> .rp-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.rp-table .is-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+@media (max-width: 47.5rem) {
+    .fx-table.rp-table thead th {
+        position: static;
+        white-space: normal;
+        vertical-align: bottom;
+        padding-inline: var(--s-2);
+    }
+
+    .fx-table.rp-table tbody th,
+    .fx-table.rp-table tbody td {
+        padding: var(--s-2);
+        vertical-align: baseline;
+    }
+
+    .fx-table.rp-table th:first-child,
+    .fx-table.rp-table td:first-child {
+        padding-left: var(--s-3);
+    }
+
+    .fx-table.rp-table th:last-child,
+    .fx-table.rp-table td:last-child {
+        padding-right: var(--s-3);
+    }
+
+    .fx-table.rp-table tbody th[scope='row'],
+    .fx-table.rp-table thead th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--sheet);
+        min-width: 6rem;
+        max-width: 11rem;
+    }
+
+    .fx-table.rp-table tr.rp-section th {
+        position: static;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+.rp-settings > summary {
+    display: none;
+    cursor: pointer;
+    min-height: 44px;
+    align-items: center;
+    padding: var(--s-2) var(--s-3);
+    margin-block-end: var(--s-3);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+    color: var(--ink);
+    font-size: var(--fs-small);
+    list-style: none;
+}
+
+.rp-settings > summary::-webkit-details-marker {
+    display: none;
+}
+
+@media (max-width: 47.5rem) {
+    .rp-settings > summary {
+        display: flex;
+    }
+
+    .rp-settings[open] > summary {
+        margin-block-end: var(--s-2);
+    }
+}

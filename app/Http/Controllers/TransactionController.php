@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Bank\ReconciliationRefused;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Rules\MoneyAmount;
+use App\Services\Accounting\Exceptions\PeriodClosed;
+use App\Services\Accounting\GlSync;
 use App\Services\TransactionRecurrenceService;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerRule;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -39,19 +43,25 @@ class TransactionController extends Controller
         }
 
         if ($categoryId = $request->query('category_id')) {
-            $query->where('category_id', $categoryId);
+            if ($categoryId === 'none') {
+                // "No category": the state line links here. Transfers carry no category by design, so they are not "uncategorised".
+                $query->whereNull('category_id')->whereIn('type', ['income', 'expense']);
+            } else {
+                $query->where('category_id', $categoryId);
+            }
         }
 
         if ($accountId = $request->query('account_id')) {
             $query->where('account_id', $accountId);
         }
 
-        if ($from = $request->query('from')) {
-            $query->whereDate('date', '>=', $from);
+        // Plain range comparisons (dates are stored as bare Y-m-d), so the date index stays usable.
+        if ($from = $this->dateOrNull($request->query('from'))) {
+            $query->where('date', '>=', $from);
         }
 
-        if ($to = $request->query('to')) {
-            $query->whereDate('date', '<=', $to);
+        if ($to = $this->dateOrNull($request->query('to'))) {
+            $query->where('date', '<', Carbon::parse($to)->addDay()->toDateString());
         }
 
         $transactions = $query->latest('date')->latest('id')->paginate(20)->withQueryString();
@@ -87,32 +97,55 @@ class TransactionController extends Controller
         $validated = $this->validateTransaction($request, $context);
         $validated += $context->ownerAttributes();
 
+        // A one-time token from the form: a double click, a retry or a re-submit records the transaction once.
+        $token = $request->validate(['client_token' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/']])['client_token'] ?? null;
+        if ($token !== null && $token !== '') {
+            if (Transaction::query()->where('client_token', $token)->exists()) {
+                return redirect()->route('transactions.index')->with('status', 'That transaction was already added; it was not recorded twice.');
+            }
+            $validated['client_token'] = $token;
+        }
+
         $recurrence = $this->validateRecurrence($request);
 
-        DB::transaction(function () use ($validated, $recurrence, $context) {
-            // A repeat creates a rule (the editable, pausable schedule) and links
-            // this first entry to it. The scheduler writes the later ones.
-            if ($recurrence['recurrence_type']) {
-                $start = Carbon::parse($validated['date'])->startOfDay();
+        try {
+            DB::transaction(function () use ($validated, $recurrence, $context) {
+                // A repeat creates a rule (the editable, pausable schedule) and links
+                // this first entry to it. The scheduler writes the later ones.
+                if ($recurrence['recurrence_type']) {
+                    $start = Carbon::parse($validated['date'])->startOfDay();
 
-                $rule = RecurringRule::create($context->ownerAttributes() + [
-                    'account_id' => $validated['account_id'],
-                    'category_id' => $validated['category_id'] ?? null,
-                    'description' => $validated['description'],
-                    'amount' => $validated['amount'],
-                    'type' => $validated['type'],
-                    'notes' => $validated['notes'] ?? null,
-                    'recurrence_type' => $recurrence['recurrence_type'],
-                    'recurrence_interval' => $recurrence['recurrence_interval'],
-                    'start_date' => $start,
-                    'next_occurrence_date' => $this->recurrenceService->occurrenceAt($start, $recurrence['recurrence_type'], $recurrence['recurrence_interval'], 1),
-                ]);
+                    $rule = RecurringRule::create($context->ownerAttributes() + [
+                        'account_id' => $validated['account_id'],
+                        'category_id' => $validated['category_id'] ?? null,
+                        'description' => $validated['description'],
+                        'amount' => $validated['amount'],
+                        'type' => $validated['type'],
+                        'notes' => $validated['notes'] ?? null,
+                        'recurrence_type' => $recurrence['recurrence_type'],
+                        'recurrence_interval' => $recurrence['recurrence_interval'],
+                        'start_date' => $start,
+                        'next_occurrence_date' => $this->recurrenceService->occurrenceAt($start, $recurrence['recurrence_type'], $recurrence['recurrence_interval'], 1),
+                    ]);
 
-                $validated['recurring_rule_id'] = $rule->id;
+                    $validated['recurring_rule_id'] = $rule->id;
+                }
+
+                $created = Transaction::create($validated);
+
+                // With accounting on, the entry is journalled in this same transaction.
+                app(GlSync::class)->transaction($created);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['date' => $e->getMessage().' Record it in an open period, or ask someone who can reopen the period.'])->withInput();
+        } catch (UniqueConstraintViolationException) {
+            // two copies of the same submit raced: the other one won
+            if (isset($validated['client_token']) && Transaction::query()->where('client_token', $validated['client_token'])->exists()) {
+                return redirect()->route('transactions.index')->with('status', 'That transaction was already added; it was not recorded twice.');
             }
 
-            Transaction::create($validated);
-        });
+            throw ValidationException::withMessages(['client_token' => 'That form was already used. Reload the page and try again.']);
+        }
 
         return redirect()->route('transactions.index')->with('status', 'Transaction added.');
     }
@@ -158,7 +191,28 @@ class TransactionController extends Controller
             return back()->withErrors(['account_id' => "This transaction is in {$transaction->currency}. Pick an account in the same currency, or delete it and enter it again."])->withInput();
         }
 
-        $transaction->update($validated);
+        $request->validate(['version' => ['nullable', 'integer', 'min:1']]);
+
+        try {
+            DB::transaction(function () use ($request, $transaction, $validated) {
+                // Re-read under a row lock and compare the version the form was opened at: someone else
+                // saving in between makes this a clear refusal instead of a silent overwrite.
+                $locked = Transaction::query()->lockForUpdate()->findOrFail($transaction->id);
+
+                if ($request->filled('version') && (int) $request->input('version') !== (int) $locked->version) {
+                    throw ValidationException::withMessages(['version' => 'This transaction was changed by someone else while you were editing it. Reload it and try again.']);
+                }
+
+                $locked->update($validated);
+                $locked->unsetRelation('account');
+
+                app(GlSync::class)->transaction($locked);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['date' => $e->getMessage().' This entry sits in a closed period, so it cannot be changed. Record an adjustment in an open period instead.'])->withInput();
+        } catch (ReconciliationRefused $e) {
+            return back()->withErrors(['transaction' => $e->getMessage()])->withInput();
+        }
 
         return redirect()->route('transactions.index')->with('status', 'Transaction updated.');
     }
@@ -172,7 +226,20 @@ class TransactionController extends Controller
 
         $isTransfer = $transaction->isLinkedTransferLeg();
 
-        $transaction->delete();
+        try {
+            DB::transaction(function () use ($transaction) {
+                // Deleting is atomic with its cascade (both legs of a transfer) and with the reversing journal entry.
+                $transaction->delete();
+
+                $transaction->transfer_group !== null
+                    ? app(GlSync::class)->transferGroup($transaction->ledgerContext(), $transaction->transfer_group)
+                    : app(GlSync::class)->transaction($transaction);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['transaction' => $e->getMessage().' It sits in a closed period, so it cannot be deleted. Record an adjustment in an open period instead.']);
+        } catch (ReconciliationRefused $e) {
+            return back()->withErrors(['transaction' => $e->getMessage()]);
+        }
 
         return redirect()->route('transactions.index')->with('status', $isTransfer ? 'Transfer deleted (both legs).' : 'Transaction deleted.');
     }
@@ -219,6 +286,12 @@ class TransactionController extends Controller
         }
 
         return $validated;
+    }
+
+    /** A YYYY-MM-DD string or null; anything else is ignored rather than passed to the query. */
+    private function dateOrNull(mixed $value): ?string
+    {
+        return is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 && checkdate((int) substr($value, 5, 2), (int) substr($value, 8, 2), (int) substr($value, 0, 4)) ? $value : null;
     }
 
     private function transferLocked()

@@ -323,12 +323,12 @@ class RolesMatrixTest extends TestCase
         $this->inCompany($w[self::VIEWER], $w['company']);
 
         $pages = [
-            'accounts.index' => ['Add Account', route('accounts.edit', $w['account']), route('accounts.confirm-delete', $w['account'])],
-            'categories.index' => ['Add Category', route('categories.edit', $w['category'])],
-            'budgets.index' => ['Add Budget', route('budgets.edit', $w['budget'])],
-            'transactions.index' => ['Add Transaction', 'Import CSV', route('transfers.create'), route('transactions.edit', $w['entry'])],
+            'accounts.index' => ['Add account', route('accounts.edit', $w['account']), route('accounts.confirm-delete', $w['account'])],
+            'categories.index' => ['Add category', route('categories.edit', $w['category'])],
+            'budgets.index' => ['Add budget', route('budgets.edit', $w['budget'])],
+            'transactions.index' => ['Add transaction', 'Import CSV', route('transfers.create'), route('transactions.edit', $w['entry'])],
             'recurring.index' => [route('recurring.edit', $w['rule']), route('recurring.pause', $w['rule']), route('recurring.stop', $w['rule'])],
-            'dashboard' => ['Add Transaction', route('transactions.create')],
+            'dashboard' => ['Add transaction', route('transactions.create')],
         ];
 
         foreach ($pages as $route => $forbiddenStrings) {
@@ -348,11 +348,11 @@ class RolesMatrixTest extends TestCase
         $this->inCompany($w[self::EDITOR], $w['company']);
 
         $accounts = $this->get(route('accounts.index'))->assertOk();
-        $accounts->assertSee('Add Account')->assertSee(route('accounts.edit', $w['account']))->assertDontSee(route('accounts.confirm-delete', $w['account']));
+        $accounts->assertSee('Add account')->assertSee(route('accounts.edit', $w['account']))->assertDontSee(route('accounts.confirm-delete', $w['account']));
         $this->get(route('accounts.edit', $w['account']))->assertOk()->assertDontSee(route('accounts.opening-balance', $w['account']));
-        $this->get(route('categories.index'))->assertSee('Add Category')->assertSee(route('categories.edit', $w['category']))->assertDontSee('action="'.route('categories.destroy', $w['category']).'"', false);
-        $this->get(route('budgets.index'))->assertSee('Add Budget')->assertDontSee('action="'.route('budgets.destroy', $w['budget']).'"', false);
-        $this->get(route('transactions.index'))->assertSee('Add Transaction')->assertSee('Import CSV')->assertSee('action="'.route('transactions.destroy', $w['entry']).'"', false);
+        $this->get(route('categories.index'))->assertSee('Add category')->assertSee(route('categories.edit', $w['category']))->assertDontSee('action="'.route('categories.destroy', $w['category']).'"', false);
+        $this->get(route('budgets.index'))->assertSee('Add budget')->assertDontSee('action="'.route('budgets.destroy', $w['budget']).'"', false);
+        $this->get(route('transactions.index'))->assertSee('Add transaction')->assertSee('Import CSV')->assertSee('action="'.route('transactions.destroy', $w['entry']).'"', false);
         $this->get(route('dashboard'))->assertDontSee(route('audit.index'))->assertDontSee('Audit log');
     }
 
@@ -361,7 +361,7 @@ class RolesMatrixTest extends TestCase
         $w = $this->world();
         $this->inCompany($w[self::ADMIN], $w['company']);
 
-        $this->get(route('accounts.index'))->assertSee(route('accounts.confirm-delete', $w['account']))->assertSee('Add Account');
+        $this->get(route('accounts.index'))->assertSee(route('accounts.confirm-delete', $w['account']))->assertSee('Add account');
         $this->get(route('accounts.edit', $w['account']))->assertSee(route('accounts.opening-balance', $w['account']));
         $this->get(route('categories.index'))->assertSee('action="'.route('categories.destroy', $w['category']).'"', false);
         $this->get(route('budgets.index'))->assertSee('action="'.route('budgets.destroy', $w['budget']).'"', false);

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?OFX OFXHEADER="200" VERSION="211" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>
+<OFX>
+  <BANKMSGSRSV1>
+    <STMTTRNRS>
+      <STMTRS>
+        <CURDEF>ZAR</CURDEF>
+        <BANKTRANLIST>
+          <DTSTART>20261001</DTSTART>
+          <DTEND>20261015</DTEND>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20261002</DTPOSTED>
+            <TRNAMT>-1,250.00</TRNAMT>
+            <FITID>A1</FITID>
+            <NAME>Telkom &amp; Co</NAME>
+            <MEMO>Fibre October</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20261012</DTPOSTED>
+            <TRNAMT>800.00</TRNAMT>
+            <FITID>A2</FITID>
+            <NAME>Refund</NAME>
+          </STMTTRN>
+        </BANKTRANLIST>
+        <LEDGERBAL><BALAMT>10550.00</BALAMT><DTASOF>20261015</DTASOF></LEDGERBAL>
+      </STMTRS>
+    </STMTTRNRS>
+  </BANKMSGSRSV1>
+</OFX>

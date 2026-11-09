@@ -25,10 +25,10 @@ class CashFlowReport
         $start = CarbonImmutable::now()->startOfMonth()->subMonths($months - 1);
         $end = CarbonImmutable::now()->endOfMonth();
 
-        $rows = Transaction::query()->forContext($context)
+        $rows = Transaction::query()->forContext($context)->counted()
             ->whereIn('type', ['income', 'expense'])
-            ->whereDate('date', '>=', $start->toDateString())
-            ->whereDate('date', '<=', $end->toDateString())
+            ->where('date', '>=', $start->toDateString())
+            ->where('date', '<', $end->addDay()->toDateString())
             ->selectRaw('currency, type, date, SUM(amount_cents) AS total')
             ->groupBy('currency', 'type', 'date')
             ->get();
