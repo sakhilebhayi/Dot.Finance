@@ -104,3 +104,7 @@ require __DIR__.'/controls.php';
 if (! Features::enabled(Features::registration())) {
     Route::redirect('/register', '/login')->name('register');
 }
+
+// --- shared ---
+require __DIR__.'/shared.php';
+// --- end shared ---

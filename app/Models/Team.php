@@ -39,12 +39,18 @@ class Team extends JetstreamTeam
     public const LEDGER_TABLES = ['accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights'];
 
     /**
+     * R-44 shared data layer (parties, numbering, attachments, payments) and a company's own tax/FX overrides.
+     * Kept apart from LEDGER_TABLES so other R-44 modules can add theirs without touching one line.
+     */
+    public const SHARED_DATA_TABLES = ['parties', 'document_sequences', 'attachments', 'payments', 'payment_allocations', 'tax_codes', 'tax_rules', 'tax_rates', 'fx_rates'];
+
+    /**
      * Whether this company has any ledger rows here. A company's books are never deleted along
      * with a team or a person (the database refuses it too: the team_id keys restrict deletes).
      */
     public function hasLedgerData(): bool
     {
-        foreach (self::LEDGER_TABLES as $table) {
+        foreach ([...self::LEDGER_TABLES, ...self::SHARED_DATA_TABLES] as $table) {
             if (DB::table($table)->where('team_id', $this->id)->exists()) {
                 return true;
             }
