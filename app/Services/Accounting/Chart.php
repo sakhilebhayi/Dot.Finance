@@ -359,7 +359,11 @@ class Chart
         $taken = Category::query()->forContext($context)->withTrashed()->whereNotNull('gl_account_id')->pluck('gl_account_id')
             ->merge(Account::query()->forContext($context)->withTrashed()->whereNotNull('gl_account_id')->pluck('gl_account_id'))->flip();
 
-        return GlAccount::query()->forContext($context)->where('class', $class)->where('is_active', true)->where('is_postable', true)->get()
+        // Only a plain account is ever shared: never a control, tax or other account the posting engine owns (bank charges and salaries are the two a category may share).
+        return GlAccount::query()->forContext($context)->where('class', $class)->where('is_active', true)->where('is_postable', true)
+            ->where(fn ($q) => $q->whereNull('system_key')->orWhereIn('system_key', ['bank_charges', 'salaries_expense']))
+            ->where(fn ($q) => $q->whereNull('subtype')->orWhereIn('subtype', ['bank_charges', 'payroll']))
+            ->get()
             ->first(fn (GlAccount $a) => self::normaliseName($a->name) === $wanted && ! $taken->has($a->id));
     }
 

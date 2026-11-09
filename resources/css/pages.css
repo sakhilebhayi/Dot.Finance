@@ -236,6 +236,8 @@
     stroke: var(--sheet);
     stroke-width: 4px;
     stroke-linejoin: round;
+}
+
 .fx-chart__direct {
     fill: var(--ink);
     font-weight: 600;

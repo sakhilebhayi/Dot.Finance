@@ -185,7 +185,6 @@
     <p class="fx-panel__title">@if ($cushion['months'] < 1)Less than a month of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.@else About {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.@endif</p>
     @endif
     <p class="fx-hint">{{ $cushion['basis'] }}</p>
-    @endif
     @if ($cushion['what_if'] && ! $cushion['no_reserves'])
     <p class="fx-hint">If {{ $company ? 'its' : 'your' }} <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.</p>
     @endif
