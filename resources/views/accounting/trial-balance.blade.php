@@ -2,7 +2,12 @@
 @php
     $balanced = $report['balanced'];
     $currency = $settings->base_currency;
-    $groups = collect($report['rows'])->groupBy(fn ($row) => $row['account']->class);
+    // Accounts with nothing posted are noise on a statement: hidden unless asked for (the totals are unaffected).
+    $showAll = request()->boolean('all');
+    $allRows = collect($report['rows']);
+    $shown = $showAll ? $allRows : $allRows->filter(fn ($row) => $row['debit_balance'] !== 0 || $row['credit_balance'] !== 0);
+    $hidden = $allRows->count() - $shown->count();
+    $groups = $shown->groupBy(fn ($row) => $row['account']->class);
     $classLabels = ['asset' => 'Assets', 'liability' => 'Liabilities', 'equity' => 'Equity', 'income' => 'Income', 'expense' => 'Expenses'];
     $eq = $report['equation'];
 @endphp
@@ -35,7 +40,7 @@
 </x-fx.empty>
 @else
 <x-fx.panel flush>
-    <x-fx.table caption="Trial balance as of {{ $asOf }}" keep class="fx-table--statement">
+    <x-fx.table caption="Trial balance as of {{ $asOf }}" keep class="fx-table--statement fx-table--stack">
         <thead>
             <tr>
                 <th scope="col" class="fx-col-code">Code</th>
@@ -53,25 +58,36 @@
             <tr>
                 <td class="fx-col-code"><span class="fx-figure">{{ $row['account']->code }}</span></td>
                 <th scope="row" class="fx-acct"><a href="{{ route('accounting.general-ledger', ['account' => $row['account']->id, 'to' => $asOf]) }}">{{ $row['account']->name }}</a><span class="fx-acct__code"><span class="fx-figure">{{ $row['account']->code }}</span></span></th>
-                <td class="is-num">@if ($row['debit_balance'])<x-fx.money :cents="$row['debit_balance']" :trace="route('accounting.general-ledger', ['account' => $row['account']->id, 'to' => $asOf])" trace-label="Show the postings behind {{ $row['account']->name }}" />@endif</td>
-                <td class="is-num">@if ($row['credit_balance'])<x-fx.money :cents="$row['credit_balance']" :trace="route('accounting.general-ledger', ['account' => $row['account']->id, 'to' => $asOf])" trace-label="Show the postings behind {{ $row['account']->name }}" />@endif</td>
+                <td data-label="Debit" @class(['is-num', 'is-blank' => ! $row['debit_balance']])>@if ($row['debit_balance'])<x-fx.money :cents="$row['debit_balance']" :trace="route('accounting.general-ledger', ['account' => $row['account']->id, 'to' => $asOf])" trace-label="Show the postings behind {{ $row['account']->name }}" />@endif</td>
+                <td data-label="Credit" @class(['is-num', 'is-blank' => ! $row['credit_balance']])>@if ($row['credit_balance'])<x-fx.money :cents="$row['credit_balance']" :trace="route('accounting.general-ledger', ['account' => $row['account']->id, 'to' => $asOf])" trace-label="Show the postings behind {{ $row['account']->name }}" />@endif</td>
             </tr>
             @endforeach
             <tr class="is-subtotal">
                 <th scope="row" colspan="2">Total {{ strtolower($label) }}</th>
-                <td class="is-num"><x-fx.money :cents="$rows->sum('debit_balance')" /></td>
-                <td class="is-num"><x-fx.money :cents="$rows->sum('credit_balance')" /></td>
+                <td data-label="Debit" @class(['is-num', 'is-blank' => $rows->sum('debit_balance') === 0])>@if ($rows->sum('debit_balance') !== 0)<x-fx.money :cents="$rows->sum('debit_balance')" />@endif</td>
+                <td data-label="Credit" @class(['is-num', 'is-blank' => $rows->sum('credit_balance') === 0])>@if ($rows->sum('credit_balance') !== 0)<x-fx.money :cents="$rows->sum('credit_balance')" />@endif</td>
             </tr>
         </tbody>
         @endforeach
         <tfoot>
             <tr>
                 <th scope="row" colspan="2">Total ({{ $currency }})</th>
-                <td class="is-num"><x-fx.money :cents="$report['total_debits']" :ticked="$balanced" :variance="! $balanced" /></td>
-                <td class="is-num"><x-fx.money :cents="$report['total_credits']" :ticked="$balanced" :variance="! $balanced" /></td>
+                <td data-label="Debit" class="is-num"><x-fx.money :cents="$report['total_debits']" :ticked="$balanced" :variance="! $balanced" /></td>
+                <td data-label="Credit" class="is-num"><x-fx.money :cents="$report['total_credits']" :ticked="$balanced" :variance="! $balanced" /></td>
             </tr>
         </tfoot>
     </x-fx.table>
+    @if ($hidden > 0 || $showAll)
+    <x-slot name="foot">
+        @if ($showAll)
+        <span>Showing every account, including those with no balance.</span>
+        <a href="{{ route('accounting.trial-balance', ['as_of' => $asOf]) }}" class="fx-link">Hide accounts with no balance</a>
+        @else
+        <span>{{ $hidden }} {{ Str::plural('account', $hidden) }} with no balance {{ $hidden === 1 ? 'is' : 'are' }} left out.</span>
+        <a href="{{ route('accounting.trial-balance', ['as_of' => $asOf, 'all' => 1]) }}" class="fx-link">Show them</a>
+        @endif
+    </x-slot>
+    @endif
 </x-fx.panel>
 
 <x-fx.panel title="The accounting equation" meta="What the books own, against what they owe and have earned">

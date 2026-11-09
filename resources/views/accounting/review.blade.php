@@ -55,6 +55,9 @@
 
         <div class="fx-mapgroup">
             <h3 class="fx-subhead">Categories</h3>
+            @if ($categories->isEmpty())
+            <p class="fx-hint">You have no categories yet. When you add some, they appear here and can be matched too.</p>
+            @else
             <x-fx.table caption="Which GL account each category posts to" class="fx-table--compact">
                 <thead><tr><th scope="col">Category</th><th scope="col">Type</th><th scope="col">Books account</th></tr></thead>
                 <tbody>
@@ -74,6 +77,7 @@
                 @endforeach
                 </tbody>
             </x-fx.table>
+            @endif
         </div>
 
         <p class="fx-hint">Anything without a category posts to Uncategorised income or expense.</p>

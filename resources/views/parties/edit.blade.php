@@ -1,6 +1,6 @@
 <x-app-layout :title="'Edit '.$party->name">
 <x-fx.page-head :title="'Edit '.$party->name">
-    <x-slot name="actions"><x-fx.button :href="route('parties.show', $party)" icon="arrow-left-right">Back to {{ $party->name }}</x-fx.button></x-slot>
+    <x-slot name="actions"><x-fx.button :href="route('parties.show', $party)">Back to {{ $party->name }}</x-fx.button></x-slot>
 </x-fx.page-head>
 
 <form method="POST" action="{{ route('parties.update', $party) }}" class="fx-stack">

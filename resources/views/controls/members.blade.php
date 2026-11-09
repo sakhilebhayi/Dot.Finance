@@ -35,15 +35,15 @@
                 <th scope="row" data-label="Person" class="is-lead">
                     <span class="fx-person"><x-fx.avatar :name="$user->name" /><span><span class="fx-cell-main">{{ $user->name }}</span><span class="fx-cell-sub">{{ $user->email }}</span></span></span>
                 </th>
-                <td data-label="From InfoDot">{{ ucfirst($row['infodot']) }} <span class="fx-cell-sub">({{ $target->baselineRole()->label() }})</span></td>
-                <td data-label="Local role">
+                <td data-label="From InfoDot"><span class="fx-cellbody">{{ ucfirst($row['infodot']) }} <span class="fx-cell-sub">({{ $target->baselineRole()->label() }})</span></span></td>
+                <td data-label="Local role"><span class="fx-cellbody">
                     @if ($target->hasLocalRole())
                         {{ $target->financeRole()->label() }}
                         @if ($row['grant']?->grantor) <span class="fx-cell-sub">set by {{ $row['grant']->grantor->name }}</span> @endif
                     @else
                         <span class="fx-quiet">None</span>
                     @endif
-                </td>
+                </span></td>
                 <td data-label="Role in force"><x-fx.pill kind="plain">{{ $target->financeRole()->label() }}</x-fx.pill></td>
                 <td data-label="Change">
                     @if ($canChange)

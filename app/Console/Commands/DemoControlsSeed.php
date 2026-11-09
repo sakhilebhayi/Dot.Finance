@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Accounting\ChartTemplates;
 use App\Services\Accounting\FxRateProvider;
 use App\Services\Accounting\GlBackfill;
+use App\Services\Accounting\GlSync;
 use App\Services\Accounting\Periods;
 use App\Services\Controls\AccessReviews;
 use App\Services\Controls\ApprovalPolicies;
@@ -26,7 +27,6 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -75,6 +75,7 @@ class DemoControlsSeed extends Command
                 };
             }
         });
+        app()->forgetScopedInstances();
         $backfill = app()->make(GlBackfill::class);
 
         // Members: InfoDot role (the team pivot) plus, for some, a narrower or different local role.
@@ -168,22 +169,27 @@ class DemoControlsSeed extends Command
             $reviews->record($owner, $context, 'Checked after Ayesha joined. Everyone listed still works here.');
         }
 
-        if (! ApprovalRequest::query()->forContext($context)->exists()) {
+        LedgerContext::run($context, function () use ($context, $company, $members): void {
+            if (ApprovalRequest::query()->exists()) {
+                return;
+            }
             $policy = ApprovalPolicy::query()->forContext($context)->first();
+            // Stand-in subjects: the bill and invoice modules do not exist on this branch, so the inbox is shown with two requests
+            // whose subject is a labelled placeholder. They exist only in this local database.
             foreach ([['Bill B-0007 Cerrado Green Coffee', 'bill', 7_450_000], ['Bill B-0008 Woodstock Print and Pack', 'bill', 1_240_000]] as $i => [$label, $kind, $cents]) {
-                DB::table('approval_requests')->insert([
-                    'user_id' => null, 'team_id' => $company->id, 'approval_policy_id' => $policy?->id, 'subject_kind' => $kind,
+                ApprovalRequest::create([
+                    'team_id' => $company->id, 'approval_policy_id' => $policy?->id, 'subject_kind' => $kind,
                     'approvable_type' => 'demo.bill', 'approvable_id' => 9000 + $i, 'label' => $label, 'amount_cents' => $cents, 'currency' => 'ZAR',
-                    'snapshot' => json_encode(['kind' => $kind, 'amount_cents' => $cents, 'currency' => 'ZAR', 'label' => $label]),
+                    'snapshot' => ['kind' => $kind, 'amount_cents' => $cents, 'currency' => 'ZAR', 'label' => $label],
                     'requested_by' => $members['ayesha@karoo.test']->id, 'requested_at' => now()->subHours(5 + $i * 20), 'status' => 'pending',
                     'approver_capability' => 'approve-bill', 'min_role' => null, 'steps_required' => 1, 'steps_done' => 0, 'allow_self_approval' => false,
-                    'created_at' => now(), 'updated_at' => now(),
                 ]);
             }
-        }
+        });
 
-        $this->info('Demo controls ready: accounting on, '.Party::query()->count().' parties (in the demo company), 4 members, presets, limits, a review.');
-        $this->line('Closed periods: '.AccountingPeriod::query()->whereNotNull('closed_at')->count());
+        LedgerContext::run($context, function () use ($context): void {
+            $this->info('Demo controls ready: accounting '.(app(GlSync::class)->isEnabled($context) ? 'on' : 'still off (see the review page)').', '.Party::query()->count().' parties, '.AccountingPeriod::query()->whereNotNull('closed_at')->count().' closed months, 4 members, presets, limits, a review.');
+        });
 
         return self::SUCCESS;
     }

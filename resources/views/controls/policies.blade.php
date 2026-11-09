@@ -50,7 +50,7 @@
                 <div class="fx-preset__controls">
                     @if ($preset['takes_amount'])
                     <x-fx.input name="amount" id="preset-{{ $key }}-amount" label="Over this amount" inputmode="decimal" :value="\App\Support\Money::toDecimalString($preset['default_cents'])" :bind="false" figure />
-                    <x-fx.input name="currency" id="preset-{{ $key }}-currency" label="Currency" maxlength="3" :value="$currency" :bind="false" figure />
+                    <x-fx.input name="currency" id="preset-{{ $key }}-currency" label="Currency" maxlength="3" :value="$currency" :bind="false" />
                     @endif
                     <x-fx.button variant="primary" icon="shield-check">Turn on<span class="sr-only"> {{ $key }}</span></x-fx.button>
                 </div>
@@ -74,7 +74,7 @@
         </div>
         <div class="fx-row fx-row--2">
             <x-fx.input name="amount" id="custom-amount" label="Needs approval over" optional inputmode="decimal" figure hint="Leave empty for every amount." />
-            <x-fx.input name="currency" id="custom-currency" label="Currency" maxlength="3" :value="$currency" figure />
+            <x-fx.input name="currency" id="custom-currency" label="Currency" maxlength="3" :value="$currency" />
         </div>
         <div class="fx-row fx-row--2">
             <x-fx.select name="min_role" id="custom-role" label="Approver must be at least">

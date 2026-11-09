@@ -53,10 +53,10 @@
             @php $journal = route('accounting.journals.show', $line->entry_id); @endphp
             <tr>
                 <td data-label="Date"><span class="fx-figure">{{ substr((string) $line->entry_date, 0, 10) }}</span></td>
-                <td data-label="Entry"><a href="{{ $journal }}" class="fx-link"><span class="fx-figure">JE-{{ str_pad((string) $line->entry_number, 6, '0', STR_PAD_LEFT) }}</span></a>@if($line->status === 'reversed') <x-fx.pill>reversed</x-fx.pill>@endif</td>
+                <td data-label="Entry"><span class="fx-cellbody"><a href="{{ $journal }}" class="fx-link"><span class="fx-figure">JE-{{ str_pad((string) $line->entry_number, 6, '0', STR_PAD_LEFT) }}</span></a>@if($line->status === 'reversed') <x-fx.pill>reversed</x-fx.pill>@endif</span></td>
                 <td data-label="Description" class="is-lead">{{ $line->description ?: $line->memo }}</td>
-                <td data-label="Debit" class="is-num">@if ($line->debit_cents)<x-fx.money :cents="$line->debit_cents" />@endif</td>
-                <td data-label="Credit" class="is-num">@if ($line->credit_cents)<x-fx.money :cents="$line->credit_cents" />@endif</td>
+                <td data-label="Debit" @class(['is-num', 'is-blank' => ! $line->debit_cents])>@if ($line->debit_cents)<x-fx.money :cents="$line->debit_cents" />@endif</td>
+                <td data-label="Credit" @class(['is-num', 'is-blank' => ! $line->credit_cents])>@if ($line->credit_cents)<x-fx.money :cents="$line->credit_cents" />@endif</td>
                 <td data-label="Balance" class="is-num"><x-fx.money :cents="$line->running_cents" :trace="$journal" trace-label="Open journal entry JE-{{ str_pad((string) $line->entry_number, 6, '0', STR_PAD_LEFT) }}" /></td>
             </tr>
             @endforeach

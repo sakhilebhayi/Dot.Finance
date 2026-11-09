@@ -30,7 +30,7 @@
             <div class="fx-request__decide">
                 <form method="POST" action="{{ route('controls.approvals.approve', $r) }}" class="fx-decide">
                     @csrf
-                    <x-fx.input name="reason" id="approve-{{ $r->id }}" label="Note (optional)" optional maxlength="1000" :bind="false" />
+                    <x-fx.input name="reason" id="approve-{{ $r->id }}" label="Note" optional maxlength="1000" :bind="false" />
                     <x-fx.button variant="primary" icon="check">Approve<span class="sr-only"> {{ $r->label }}</span></x-fx.button>
                 </form>
                 <form method="POST" action="{{ route('controls.approvals.reject', $r) }}" class="fx-decide" data-fx-confirm="Reject {{ $r->subject_kind->label() }} {{ $r->label }}? The person who asked is told your reason." data-fx-confirm-label="Reject">
@@ -57,7 +57,7 @@
                     <th scope="row" data-label="What" class="is-lead"><span class="fx-cell-main">{{ $r->subject_kind->label() }} {{ $r->label }}</span></th>
                     <td data-label="Amount" class="is-num"><x-fx.money :cents="$r->amount_cents" :currency="$r->currency" /></td>
                     <td data-label="Asked"><span class="fx-figure">{{ $r->requested_at?->toDateString() }}</span></td>
-                    <td data-label="Status">{{ ucfirst($r->status) }}@if ($r->isPending()) <span class="fx-cell-sub">(step {{ $r->steps_done }} of {{ $r->steps_required }} done)</span> @endif</td>
+                    <td data-label="Status"><span class="fx-cellbody">{{ ucfirst($r->status) }}@if ($r->isPending()) <span class="fx-cell-sub">(step {{ $r->steps_done }} of {{ $r->steps_required }} done)</span> @endif</span></td>
                     <td class="is-actions">
                         @if ($r->isPending())
                         <form method="POST" action="{{ route('controls.approvals.cancel', $r) }}" data-fx-confirm="Cancel this request? Nobody will be asked to approve it." data-fx-confirm-label="Cancel request">@csrf <x-fx.button size="sm">Cancel request<span class="sr-only"> {{ $r->label }}</span></x-fx.button></form>

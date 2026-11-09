@@ -26,9 +26,9 @@
 <x-fx.panel title="Tax and registration" meta="Only fill these in if they have them">
     <div class="fx-form">
         <div class="fx-row fx-row--2">
-            <x-fx.input name="tax_number" id="party-tax-number" label="VAT number" optional maxlength="50" autocomplete="off" :value="$party->tax_number" figure
+            <x-fx.input name="tax_number" id="party-tax-number" label="VAT number" optional maxlength="50" autocomplete="off" :value="$party->tax_number"
                 hint="Only if they are registered for VAT. A customer's number goes on the tax invoice. Two active customers or suppliers cannot share one." />
-            <x-fx.input name="registration_number" id="party-reg" label="Company registration number" optional maxlength="50" autocomplete="off" :value="$party->registration_number" figure />
+            <x-fx.input name="registration_number" id="party-reg" label="Company registration number" optional maxlength="50" autocomplete="off" :value="$party->registration_number" />
         </div>
     </div>
 </x-fx.panel>
@@ -65,7 +65,7 @@
             @endforeach
             <div class="fx-row fx-row--2">
                 <x-fx.input :name="$which.'[city]'" :id="$which.'-city'" label="City or town" optional maxlength="120" autocomplete="off" :value="$address($which, 'city')" :bind="false" />
-                <x-fx.input :name="$which.'[postal_code]'" :id="$which.'-postal_code'" label="Postal code" optional maxlength="120" autocomplete="off" :value="$address($which, 'postal_code')" :bind="false" figure />
+                <x-fx.input :name="$which.'[postal_code]'" :id="$which.'-postal_code'" label="Postal code" optional maxlength="120" autocomplete="off" :value="$address($which, 'postal_code')" :bind="false" />
             </div>
         </div>
     </x-fx.panel>

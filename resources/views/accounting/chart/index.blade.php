@@ -45,7 +45,7 @@
     [$classLabel, $classHelp] = $classMeta[$class] ?? [ucfirst($class), ''];
 @endphp
 <x-fx.panel flush :title="$classLabel" :meta="$classHelp" :id="'class-'.$class">
-    <x-fx.table caption="{{ ucfirst($class) }} accounts" class="fx-table--statement fx-table--tree" keep>
+    <x-fx.table caption="{{ ucfirst($class) }} accounts" class="fx-table--statement fx-table--tree fx-table--stack" keep>
         <thead>
             <tr>
                 <th scope="col">Account</th>
@@ -59,15 +59,16 @@
             @php $balance = $natural($account->id); @endphp
             <tr @class(['is-header' => ! $account->is_postable, 'is-inactive' => ! $account->is_active])>
                 <th scope="row" class="fx-acct fx-depth-{{ $depth }}">
-                    <span class="fx-acct__line"><span class="fx-figure fx-acct__num">{{ $account->code }}</span> <span class="fx-acct__name">{{ $account->name }}</span></span>
-                    @if($account->isSystem())<span class="fx-acct__code">Used by the app (system)</span>@endif
+                    <span class="fx-acct__line"><span class="fx-figure fx-acct__num">{{ $account->code }}</span> <span class="fx-acct__name">{{ $account->name }}</span>@if($account->isSystem()) <x-fx.pill kind="plain" icon="lock">System</x-fx.pill>@endif</span>
                 </th>
-                <td>
+                <td @class(['fx-col-status', 'is-default' => $account->is_active && $account->is_postable])>
                     {{ $account->is_active ? 'Active' : 'Inactive' }}@unless($account->is_postable), report line @endunless
                 </td>
-                <td class="is-num">
-                    @if ($account->is_postable)
+                <td data-label="Balance" class="is-num">
+                    @if ($account->is_postable && $balance !== 0)
                     <x-fx.money :cents="$balance" :trace="route('accounting.general-ledger', ['account' => $account->id])" trace-label="Show the postings behind {{ $account->name }}" />
+                    @elseif ($account->is_postable)
+                    <x-fx.money :cents="0" quiet />
                     @endif
                 </td>
                 @if ($canManage)

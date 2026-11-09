@@ -8,7 +8,7 @@
         @if ($limits->isEmpty())
         <x-fx.empty title="No spend limits.">No spend limits. Approvers can approve any amount their policy allows.</x-fx.empty>
         @else
-        <x-fx.table caption="Limits in force">
+        <x-fx.table caption="Limits in force" class="fx-table--compact">
             <thead><tr><th scope="col">Applies to</th><th scope="col" class="is-num">Limit</th><th scope="col">Period</th>@if ($canManage)<th scope="col"><span class="sr-only">Action</span></th>@endif</tr></thead>
             <tbody>
             @foreach ($limits as $limit)
@@ -46,7 +46,7 @@
             </x-fx.select>
             <div class="fx-row fx-row--2">
                 <x-fx.input name="amount" id="limit-amount" label="Amount" inputmode="decimal" required figure />
-                <x-fx.input name="currency" id="limit-currency" label="Currency" maxlength="3" required :value="$currency" figure />
+                <x-fx.input name="currency" id="limit-currency" label="Currency" maxlength="3" required :value="$currency" />
             </div>
             <x-fx.select name="period" id="limit-period" label="Per">
                 @foreach ($periods as $value => $label)

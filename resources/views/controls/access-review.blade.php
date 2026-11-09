@@ -24,12 +24,9 @@
         <thead>
             <tr>
                 <th scope="col">Person</th>
-                <th scope="col">From InfoDot</th>
-                <th scope="col">Local role</th>
                 <th scope="col">Role in force</th>
                 <th scope="col">Can do</th>
-                <th scope="col">Last session activity</th>
-                <th scope="col">Last action here</th>
+                <th scope="col">Last activity</th>
                 <th scope="col">Role history</th>
             </tr>
         </thead>
@@ -39,12 +36,16 @@
                 <th scope="row" data-label="Person" class="is-lead">
                     <span class="fx-person"><x-fx.avatar :name="$row['name']" /><span><span class="fx-cell-main">{{ $row['name'] }}</span><span class="fx-cell-sub">{{ $row['email'] }}</span></span></span>
                 </th>
-                <td data-label="From InfoDot">{{ ucfirst($row['infodot_role']) }}</td>
-                <td data-label="Local role">{{ $row['local_role']?->label() ?? 'None' }}@if ($row['granted_by']) <span class="fx-cell-sub">set by {{ $row['granted_by'] }} on {{ $row['granted_at']?->toDateString() }}</span> @endif</td>
-                <td data-label="Role in force"><x-fx.pill kind="plain">{{ $row['role']->label() }}</x-fx.pill></td>
+                <td data-label="Role in force"><span class="fx-cellbody">
+                    <x-fx.pill kind="plain">{{ $row['role']->label() }}</x-fx.pill>
+                    <div class="fx-cell-sub">From InfoDot: {{ ucfirst($row['infodot_role']) }}</div>
+                    <div class="fx-cell-sub">Local role: {{ $row['local_role']?->label() ?? 'None' }}@if ($row['granted_by']), set by {{ $row['granted_by'] }} on {{ $row['granted_at']?->toDateString() }}@endif</div>
+                </span></td>
                 <td data-label="Can do">{{ $row['capability_count'] }} of {{ count(\App\Enums\Capability::cases()) }} capabilities</td>
-                <td data-label="Last session activity">{{ $row['last_session_activity']?->toDateTimeString() ?? 'No live session' }}</td>
-                <td data-label="Last action here">{{ $row['last_action_here']?->toDateTimeString() ?? 'Nothing recorded' }}</td>
+                <td data-label="Last activity"><span class="fx-cellbody">
+                    <div>Session: {{ $row['last_session_activity']?->toDateTimeString() ?? 'No live session' }}</div>
+                    <div class="fx-cell-sub">Last action here: {{ $row['last_action_here']?->toDateTimeString() ?? 'Nothing recorded' }}</div>
+                </span></td>
                 <td data-label="Role history">
                     @if ($row['history']->isEmpty())
                         No changes
@@ -63,7 +64,7 @@
         @endforeach
         </tbody>
     </x-fx.table>
-    <x-slot name="foot">The app does not record sign-ins. "Last session activity" is the latest activity of a session that is still stored (sessions expire, so it is a lower bound). "Last action here" comes from this ledger's audit log.</x-slot>
+    <x-slot name="foot">The app does not record sign-ins. "Session" is the latest activity of a session that is still stored (sessions expire, so it is a lower bound). "Last action here" comes from this ledger's audit log.</x-slot>
 </x-fx.panel>
 
 <div class="fx-grid fx-grid--even r-stack">

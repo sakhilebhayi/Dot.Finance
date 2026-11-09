@@ -1,13 +1,12 @@
 <x-app-layout :title="$party->name">
 @php
     $typeLabel = ['customer' => 'Customer', 'supplier' => 'Supplier', 'both' => 'Customer and supplier'][$party->type];
-    $hasTerms = $party->payment_terms_days !== null || $party->credit_limit_cents !== null || $party->currency;
 @endphp
 
 <x-fx.page-head :title="$party->name">
     <x-slot name="sub">{{ $typeLabel }}@if ($party->legal_name), registered as {{ $party->legal_name }}@endif @if ($party->trashed()) <x-fx.pill icon="ban">Archived</x-fx.pill> @endif</x-slot>
     <x-slot name="actions">
-        <x-fx.button :href="route('parties.index')" icon="arrow-left-right">Back to the list</x-fx.button>
+        <x-fx.button :href="route('parties.index')">Back to the list</x-fx.button>
         @unless ($party->trashed())
         @can('update', $party)<x-fx.button variant="primary" :href="route('parties.edit', $party)" icon="pencil">Edit details</x-fx.button>@endcan
         @endunless
@@ -17,13 +16,11 @@
 <x-fx.flash />
 <x-fx.errors />
 
-@if ($hasTerms)
 <dl class="fx-facts" aria-label="Terms at a glance">
     <div><dt><x-fx.gloss term="payment_terms">Payment terms</x-fx.gloss></dt><dd>{{ $party->payment_terms_days !== null ? $party->payment_terms_days.' days' : 'Not set' }}</dd></div>
     <div><dt><x-fx.gloss term="credit_limit">Credit limit</x-fx.gloss></dt><dd>{{ $party->credit_limit_cents !== null ? \App\Support\Money::format((int) $party->credit_limit_cents, $party->currency) : 'No limit' }}</dd></div>
     <div><dt>Usual currency</dt><dd>{{ $party->currency ?? 'Not set' }}</dd></div>
 </dl>
-@endif
 
 <div class="fx-grid fx-grid--lead r-stack">
     <div class="fx-stack">
@@ -34,16 +31,13 @@
                 <div><dt>Phone</dt><dd>{{ $party->phone ?? 'Not set' }}</dd></div>
                 <div><dt><x-fx.gloss term="vat_registration">VAT number</x-fx.gloss></dt><dd>@if ($party->tax_number)<span class="fx-figure">{{ $party->tax_number }}</span>@else<span class="fx-quiet">Not set</span>@endif</dd></div>
                 <div><dt>Company registration</dt><dd>@if ($party->registration_number)<span class="fx-figure">{{ $party->registration_number }}</span>@else<span class="fx-quiet">Not set</span>@endif</dd></div>
-                <div><dt>Usual currency</dt><dd>{{ $party->currency ?? 'Not set' }}</dd></div>
-                <div><dt>Payment terms</dt><dd>{{ $party->payment_terms_days !== null ? $party->payment_terms_days.' days' : 'Not set' }}</dd></div>
-                <div><dt>Credit limit</dt><dd>{{ $party->credit_limit_cents !== null ? \App\Support\Money::format((int) $party->credit_limit_cents, $party->currency) : 'No limit' }}</dd></div>
                 <div><dt>Your reference</dt><dd>{{ $party->external_ref ?? 'Not set' }}</dd></div>
             </dl>
         </x-fx.panel>
 
         @php $addresses = collect(['billing_address' => 'Billing address', 'shipping_address' => 'Delivery address'])->filter(fn ($label, $which) => $party->{$which}); @endphp
         @if ($addresses->isNotEmpty())
-        <div class="fx-grid fx-grid--even r-stack">
+        <div @class(['fx-grid r-stack', 'fx-grid--even' => $addresses->count() > 1])>
             @foreach ($addresses as $which => $label)
             <x-fx.panel :title="$label">
                 <address class="fx-address">
@@ -74,7 +68,7 @@
                     <x-fx.icon name="file-text" class="fx-line__icon" />
                     <div class="fx-line__main">
                         <p class="fx-line__title">{{ $item['file']->original_name }}</p>
-                        <p class="fx-line__sub">{{ number_format($item['file']->size / 1024, 0) }} KB, added <span class="fx-figure">{{ $item['file']->created_at->toDateString() }}</span></p>
+                        <p class="fx-line__sub">{{ $item['file']->size < 1024 ? $item['file']->size.' bytes' : number_format($item['file']->size / 1024, 0).' KB' }}, added <span class="fx-figure">{{ $item['file']->created_at->toDateString() }}</span></p>
                     </div>
                     <div class="fx-line__side">
                         @if ($item['file']->isInline())<x-fx.button size="sm" :href="$item['url']" target="_blank" rel="noopener" icon="external-link">Open<span class="sr-only"> {{ $item['file']->original_name }}</span></x-fx.button>@endif

@@ -8,11 +8,11 @@
     </x-slot>
 
     <x-slot name="content">
-        <div class="max-w-xl text-sm text-gray-600 dark:text-gray-400">
+        <p class="fx-lede">
             {{ __('Once a team is deleted, all of its resources and data will be permanently deleted. Before deleting this team, please download any data or information regarding this team that you wish to retain.') }}
-        </div>
+        </p>
 
-        <div class="mt-5">
+        <div class="fx-formactions">
             <x-danger-button wire:click="$toggle('confirmingTeamDeletion')" wire:loading.attr="disabled">
                 {{ __('Delete Team') }}
             </x-danger-button>
@@ -26,7 +26,7 @@
 
             <x-slot name="content">
                 {{ __('Are you sure you want to delete this team? Once a team is deleted, all of its resources and data will be permanently deleted.') }}
-                <x-input-error for="team" class="mt-3" />
+                <x-input-error for="team" />
             </x-slot>
 
             <x-slot name="footer">
@@ -34,7 +34,7 @@
                     {{ __('Cancel') }}
                 </x-secondary-button>
 
-                <x-danger-button class="ms-3" wire:click="deleteTeam" wire:loading.attr="disabled">
+                <x-danger-button wire:click="deleteTeam" wire:loading.attr="disabled">
                     {{ __('Delete Team') }}
                 </x-danger-button>
             </x-slot>

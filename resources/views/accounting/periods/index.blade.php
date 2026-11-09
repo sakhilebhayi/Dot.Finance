@@ -54,21 +54,21 @@
             @foreach ($periods as $period)
             <tr @class(['is-locked' => $period->isClosed()])>
                 <th scope="row" data-label="Period" class="is-lead"><span class="fx-cell-main">{{ $period->label() }}</span>@if($period->is_year_end)<div class="fx-cell-sub">financial year-end</div>@endif</th>
-                <td data-label="Dates"><span class="fx-figure">{{ $period->start_date->toDateString() }}</span> to <span class="fx-figure">{{ $period->end_date->toDateString() }}</span></td>
+                <td data-label="Dates"><span class="fx-nowrap"><span class="fx-figure">{{ $period->start_date->toDateString() }}</span> to <span class="fx-figure">{{ $period->end_date->toDateString() }}</span></span></td>
                 <td data-label="Status">
                     @if ($period->isClosed())<x-fx.pill icon="lock">Closed</x-fx.pill>@else<x-fx.pill kind="plain" icon="clock">Open</x-fx.pill>@endif
                 </td>
-                <td data-label="Detail">
+                <td data-label="Detail" @class(['is-blank' => ! $period->isClosed() && ! $period->reopened_at])><span class="fx-cellbody">
                     @if ($period->isClosed()) closed {{ $period->closed_at?->toDayDateTimeString() }}@if($period->closing_entry_id), <a href="{{ route('accounting.journals.show', $period->closing_entry_id) }}" class="fx-link">year-end entry</a>@endif @endif
                     @if ($period->reopened_at) reopened {{ $period->reopened_at->toDayDateTimeString() }}: {{ $period->reopen_reason }}@endif
-                </td>
+                </span></td>
                 @if ($canClose)
-                <td class="is-actions" data-label="Action">
+                <td class="is-actions">
                     @if ($period->isClosed())
                     <form method="POST" action="{{ route('accounting.periods.reopen', $period) }}" class="fx-inline" data-fx-confirm="Reopen {{ $period->label() }}? Entries can be posted into it again, and your reason is kept in the record." data-fx-confirm-label="Reopen {{ $period->label() }}">
                         @csrf
                         <label class="sr-only" for="reason-{{ $period->id }}">Reason for reopening {{ $period->label() }}</label>
-                        <input id="reason-{{ $period->id }}" name="reason" class="fx-input" required maxlength="255" placeholder="Reason">
+                        <input id="reason-{{ $period->id }}" name="reason" class="fx-input fx-input--reason" required maxlength="255" placeholder="Reason">
                         <x-fx.button size="sm" icon="play">Reopen</x-fx.button>
                     </form>
                     @else

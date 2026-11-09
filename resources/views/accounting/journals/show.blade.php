@@ -6,7 +6,7 @@
 
 <x-fx.page-head title="Journal entry {{ $entry->reference() }}">
     <x-slot name="sub">A posted entry is never changed. If it is wrong, a reversal mirrors it and both stay in the books.</x-slot>
-    <x-slot name="actions"><x-fx.button :href="route('accounting.journals.index')" icon="arrow-left-right">All journals</x-fx.button></x-slot>
+    <x-slot name="actions"><x-fx.button :href="route('accounting.journals.index')">All journals</x-fx.button></x-slot>
 </x-fx.page-head>
 
 @include('accounting._nav')
@@ -30,21 +30,14 @@
         <div><dt>Memo</dt><dd>{{ $entry->memo }}</dd></div>
         <div>
             <dt>Source</dt>
-            <dd>
-                @if ($sourceLinked)
-                <a href="{{ route($source['route'], $source['parameter'] !== null ? [$source['parameter']] : []) }}" class="fx-link">{{ $source['label'] }}</a>
-                @else
-                {{ $source['label'] }}
-                @endif
-                , version {{ $entry->source_version }}
-            </dd>
+            <dd>@if ($sourceLinked)<a href="{{ route($source['route'], $source['parameter'] !== null ? [$source['parameter']] : []) }}" class="fx-link">{{ $source['label'] }}</a>@else{{ $source['label'] }}@endif{{ ', version '.$entry->source_version }}</dd>
         </div>
         <div><dt>Posted</dt><dd>{{ $entry->posted_at->toDayDateTimeString() }}</dd></div>
         @if ($entry->reverses)<div><dt>Reverses</dt><dd><a href="{{ route('accounting.journals.show', $entry->reverses) }}" class="fx-link"><span class="fx-figure">{{ $entry->reverses->reference() }}</span></a></dd></div>@endif
         @if ($entry->reversedBy)<div><dt>Reversed by</dt><dd><a href="{{ route('accounting.journals.show', $entry->reversedBy) }}" class="fx-link"><span class="fx-figure">{{ $entry->reversedBy->reference() }}</span></a></dd></div>@endif
     </dl>
 
-    <x-fx.table caption="Lines of {{ $entry->reference() }}" keep class="fx-table--statement fx-table--voucher">
+    <x-fx.table caption="Lines of {{ $entry->reference() }}" keep class="fx-table--statement fx-table--voucher fx-table--stack">
         <thead>
             <tr>
                 <th scope="col">Account</th>
@@ -59,15 +52,14 @@
             <tr>
                 <th scope="row" class="fx-acct">
                     <a href="{{ route('accounting.general-ledger', ['account' => $line->gl_account_id]) }}">{{ $line->glAccount->label() }}</a>
-                    @if ($line->description)<span class="fx-acct__code fx-acct__code--text">{{ $line->description }}</span>@endif
                 </th>
-                <td class="fx-col-desc">
+                <td @class(['fx-col-desc', 'is-blank' => ! $line->description && ! $line->cashAccount && ! $line->category])>
                     {{ $line->description }}@if($line->cashAccount) <span class="fx-cell-sub">cash account {{ $line->cashAccount->name }}</span>@endif @if($line->category) <span class="fx-cell-sub">category {{ $line->category->name }}</span>@endif
                 </td>
-                <td class="is-num">@if ($line->debit_cents)<x-fx.money :cents="$line->debit_cents" />@endif</td>
-                <td class="is-num">@if ($line->credit_cents)<x-fx.money :cents="$line->credit_cents" />@endif</td>
+                <td data-label="Debit" @class(['is-num', 'is-blank' => ! $line->debit_cents])>@if ($line->debit_cents)<x-fx.money :cents="$line->debit_cents" />@endif</td>
+                <td data-label="Credit" @class(['is-num', 'is-blank' => ! $line->credit_cents])>@if ($line->credit_cents)<x-fx.money :cents="$line->credit_cents" />@endif</td>
                 @if ($hasForeign)
-                <td class="is-num fx-col-desc">@if($line->txn_currency)<x-fx.money :cents="$line->txn_amount_cents" :currency="$line->txn_currency" /><div class="fx-cell-sub">at {{ number_format($line->fx_rate_e8 / 100000000, 8) }} (rate implied or supplied, see the source)</div>@endif</td>
+                <td @class(['is-num fx-col-desc', 'is-blank' => ! $line->txn_currency])>@if($line->txn_currency)<x-fx.money :cents="$line->txn_amount_cents" :currency="$line->txn_currency" /><div class="fx-cell-sub">at {{ number_format($line->fx_rate_e8 / 100000000, 8) }} (rate implied or supplied, see the source)</div>@endif</td>
                 @endif
             </tr>
             @endforeach
@@ -75,8 +67,8 @@
         <tfoot>
             <tr>
                 <th scope="row" colspan="{{ 2 }}">Total ({{ $entry->currency }})</th>
-                <td class="is-num"><x-fx.money :cents="$entry->total_cents" ticked /></td>
-                <td class="is-num"><x-fx.money :cents="$entry->total_cents" ticked /></td>
+                <td data-label="Debit" class="is-num"><x-fx.money :cents="$entry->total_cents" ticked /></td>
+                <td data-label="Credit" class="is-num"><x-fx.money :cents="$entry->total_cents" ticked /></td>
                 @if ($hasForeign)<td class="fx-col-desc"></td>@endif
             </tr>
         </tfoot>

@@ -8,23 +8,21 @@
     </x-slot>
 
     <x-slot name="form">
-        <div class="col-span-6">
+        <div class="fx-field">
             <x-label value="{{ __('Team Owner') }}" />
-
-            <div class="flex items-center mt-2">
+            <div class="fx-ownerline">
                 <x-fx.avatar :name="$this->user->name" :large="true" />
-
-                <div class="ms-4 leading-tight">
-                    <div class="text-gray-900 dark:text-white">{{ $this->user->name }}</div>
-                    <div class="text-gray-700 dark:text-gray-300 text-sm">{{ $this->user->email }}</div>
+                <div>
+                    <div class="fx-cell-main">{{ $this->user->name }}</div>
+                    <div class="fx-cell-sub">{{ $this->user->email }}</div>
                 </div>
             </div>
         </div>
 
-        <div class="col-span-6 sm:col-span-4">
+        <div class="fx-field">
             <x-label for="name" value="{{ __('Team Name') }}" />
-            <x-input id="name" type="text" class="mt-1 block w-full" wire:model="state.name" autofocus />
-            <x-input-error for="name" class="mt-2" />
+            <x-input id="name" type="text" wire:model="state.name" autofocus />
+            <x-input-error for="name" />
         </div>
     </x-slot>
 

@@ -538,39 +538,123 @@
     width: 1%;
 }
 
-/* Narrow containers: the code moves under the name and the description column folds away, so two figure columns fit. */
-@container fxt (max-width: 539.98px) {
-    .fx-table--statement .fx-col-code,
-    .fx-table--statement .fx-col-desc {
-        display: none;
-    }
-
-    .fx-table--statement .fx-acct__code {
-        display: block;
-    }
-
-    .fx-table--statement .fx-acct__code--text {
-        display: block;
-    }
-
-    .fx-table--statement th:first-child,
-    .fx-table--statement td:first-child {
-        padding-left: var(--s-3);
-    }
-
-    .fx-table--statement th:last-child,
-    .fx-table--statement td:last-child {
-        padding-right: var(--s-3);
-    }
-
-    .fx-table--statement .fx-money {
-        font-size: 0.8125rem;
-    }
-}
-
 @container fxt (min-width: 540px) {
     .fx-acct__code--text {
         display: none;
+    }
+}
+
+/* Narrow containers (a phone): a statement row becomes a two-column line, the name on the left and its figure on the
+   right, with the unused side of a debit/credit pair dropped. Nothing is lost: the code moves under the name, the
+   description and any original amount run underneath, and each figure carries its own small label. */
+@container fxt (max-width: 539.98px) {
+    .fx-table.fx-table--stack thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .fx-table.fx-table--stack,
+    .fx-table.fx-table--stack tbody,
+    .fx-table.fx-table--stack tfoot {
+        display: block;
+    }
+
+    .fx-table.fx-table--stack tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: var(--s-3);
+        align-items: start;
+        padding: var(--s-2) var(--s-3);
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .fx-table.fx-table--stack tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .fx-table.fx-table--stack th,
+    .fx-table.fx-table--stack td {
+        display: block;
+        padding: 2px 0;
+        border: 0;
+        text-align: left;
+    }
+
+    .fx-table.fx-table--stack th[scope='row'],
+    .fx-table.fx-table--stack td.fx-lead {
+        grid-column: 1;
+    }
+
+    .fx-table.fx-table--stack td.is-num {
+        grid-column: 2;
+        text-align: right;
+    }
+
+    .fx-table.fx-table--stack td.is-num::before {
+        content: attr(data-label);
+        display: block;
+        font-size: var(--fs-meta);
+        font-weight: 500;
+        color: var(--ink-3);
+    }
+
+    .fx-table.fx-table--stack td.is-num:not([data-label])::before {
+        content: none;
+    }
+
+    .fx-table.fx-table--stack td.is-blank,
+    .fx-table.fx-table--stack td.fx-col-code,
+    .fx-table.fx-table--stack td.is-default {
+        display: none;
+    }
+
+    .fx-table.fx-table--stack td.fx-col-desc,
+    .fx-table.fx-table--stack td.fx-col-status,
+    .fx-table.fx-table--stack td.is-actions {
+        grid-column: 1 / -1;
+        font-size: var(--fs-small);
+        color: var(--ink-3);
+        text-align: left;
+    }
+
+    .fx-table.fx-table--stack td.is-actions {
+        padding-top: var(--s-2);
+    }
+
+    .fx-table.fx-table--stack .fx-acct__code {
+        display: block;
+    }
+
+    .fx-table.fx-table--stack tr.is-group {
+        display: block;
+        padding: 0;
+    }
+
+    .fx-table.fx-table--stack tr.is-group th {
+        display: block;
+        padding: var(--s-4) var(--s-3) var(--s-1);
+    }
+
+    .fx-table.fx-table--stack tr.is-subtotal :is(th, td),
+    .fx-table.fx-table--stack tfoot :is(th, td) {
+        border: 0;
+    }
+
+    .fx-table.fx-table--stack tr.is-subtotal,
+    .fx-table.fx-table--stack tfoot tr {
+        border-top: 1px solid var(--ink);
+    }
+
+    .fx-table.fx-table--stack tfoot tr:last-child {
+        border-bottom: 4px double var(--ink);
+    }
+
+    .fx-table.fx-table--stack tfoot th[colspan],
+    .fx-table.fx-table--stack tr.is-subtotal th[colspan] {
+        grid-column: 1;
     }
 }
 
@@ -615,24 +699,19 @@
 
 @container fxt (max-width: 539.98px) {
     .fx-table--tree th.fx-depth-1:first-child {
-        padding-left: calc(var(--s-3) + 0.75rem);
+        padding-left: 0.75rem;
     }
 
     .fx-table--tree th.fx-depth-2:first-child {
-        padding-left: calc(var(--s-3) + 1.5rem);
+        padding-left: 1.5rem;
     }
 
     .fx-table--tree th.fx-depth-3:first-child {
-        padding-left: calc(var(--s-3) + 2.25rem);
+        padding-left: 2.25rem;
     }
 
     .fx-table--tree .fx-acct__code {
         margin-left: 0;
-    }
-
-    .fx-table--tree thead th:nth-child(2),
-    .fx-table--tree tbody td:nth-child(2) {
-        display: none;
     }
 }
 
@@ -856,4 +935,183 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--s-6);
     }
+}
+
+/* ---- Refinements found in the browser pass ------------------------------------------------------------------ */
+.fx-nowrap {
+    white-space: nowrap;
+}
+
+.fx-input--reason {
+    min-width: 0;
+    width: 11rem;
+}
+
+.fx-voucher .fx-cell-sub {
+    display: block;
+}
+
+.fx-table td .fx-select {
+    min-width: 12rem;
+}
+
+.fx-table--compact td .fx-select {
+    min-width: 0;
+}
+
+.fx-table .fx-pill + .fx-cell-sub {
+    margin-top: var(--s-1);
+}
+
+/* A cell with nothing in it disappears in the card layout rather than showing a label with no value. */
+@container fxt (max-width: 759.98px) {
+    .fx-table:not(.fx-table--keep) td.is-blank {
+        display: none;
+    }
+}
+
+/* Visually-hidden text inside a horizontally scrolling table must be clipped by the scroller, or its static position
+   (far to the right in a wide row) widens the whole page on a phone. */
+.fx-tablewrap {
+    position: relative;
+}
+
+/* A cell that holds several lines of its own: one block, so the card layout does not split it into columns. */
+.fx-cellbody {
+    display: block;
+    min-width: 0;
+}
+
+@container fxt (max-width: 759.98px) {
+    .fx-table:not(.fx-table--keep) td > .fx-cellbody {
+        text-align: right;
+    }
+}
+
+/* A glossary tip in a right-aligned column opens leftwards, so it never runs off the screen edge. */
+.is-num .fx-gloss__tip,
+.fx-pagehead__actions .fx-gloss__tip {
+    left: auto;
+    right: 0;
+}
+
+/* ---- Livewire inner markup: team, profile and API token pages ------------------------------------------------ */
+.fx-lede {
+    max-width: 62ch;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-lede--strong {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.fx-ownerline {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding-top: var(--s-1);
+}
+
+.fx-field--modal {
+    margin-top: var(--s-4);
+}
+
+.fx-ok-note {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--tick);
+}
+
+/* A role picker: a group of toggle buttons, each with a plain-language description. */
+.fx-roles {
+    display: grid;
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    overflow: hidden;
+}
+
+.fx-roleopt {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    padding: var(--s-3) var(--s-4);
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    background: var(--sheet);
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 120ms var(--ease);
+}
+
+.fx-roleopt:last-child {
+    border-bottom: 0;
+}
+
+.fx-roleopt:hover {
+    background: rgb(var(--sunk-rgb) / 0.6);
+}
+
+.fx-roleopt[aria-pressed='true'] {
+    background: var(--sunk);
+}
+
+.fx-roleopt__name {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--fs-cell);
+    font-weight: 600;
+}
+
+.fx-roleopt[aria-pressed='true'] .fx-roleopt__name .fx-icon {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2.2;
+}
+
+.fx-roleopt__desc {
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-roleopt:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline-offset: -3px;
+}
+
+.fx-qr {
+    display: inline-block;
+    justify-self: start;
+    padding: var(--s-2);
+    border-radius: var(--r-control);
+    background: #fff;
+}
+
+.fx-codes {
+    display: grid;
+    gap: var(--s-1);
+    max-width: 24rem;
+    padding: var(--s-4);
+    border-radius: var(--r-control);
+    background: var(--sunk);
+    font-family: var(--font-figure);
+    font-size: var(--fs-cell);
+}
+
+.fx-input--token {
+    font-family: var(--font-figure);
+    font-size: var(--fs-cell);
+    overflow-wrap: anywhere;
+}
+
+.fx-section-title h3 {
+    font-family: var(--font-display);
+    font-stretch: 108%;
 }
