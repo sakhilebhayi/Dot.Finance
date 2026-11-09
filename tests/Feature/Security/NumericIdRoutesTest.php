@@ -46,9 +46,23 @@ class NumericIdRoutesTest extends TestCase
                 }
                 $uri = '/'.ltrim(str_replace(array_map(fn ($n) => '{'.$n.'}', $route->parameterNames()), array_map(fn ($n) => in_array($n, $numeric, true) ? rawurlencode($bad) : $params[$n], $route->parameterNames()), $route->uri()), '/');
 
-                $response = $this->inCompany($user, $company)->call($method, $uri, $method === 'GET' ? [] : ['x' => 1]);
+                // a savepoint per request: on PostgreSQL one failed query would otherwise abort the whole test transaction and hide which route did it
+                \DB::beginTransaction();
+                try {
+                    $response = $this->inCompany($user, $company)->call($method, $uri, $method === 'GET' ? [] : ['x' => 1]);
+                    $dbFailed = false;
+                    try {
+                        \DB::select('select 1');
+                    } catch (\Throwable) {
+                        $dbFailed = true;
+                    }
+                } finally {
+                    \DB::rollBack();
+                }
                 $tried++;
-                if ($response->getStatusCode() >= 500) {
+                if ($dbFailed) {
+                    $problems[] = "{$method} {$uri} -> a database error was swallowed (status ".$response->getStatusCode().')';
+                } elseif ($response->getStatusCode() >= 500) {
                     $problems[] = "{$method} {$uri} -> ".$response->getStatusCode().' '.substr((string) $response->exception?->getMessage(), 0, 100);
                 }
             }

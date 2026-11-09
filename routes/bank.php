@@ -44,7 +44,7 @@ Route::middleware([
     Route::get('/reconciliation/{reconciliation}/report.csv', [ReconciliationController::class, 'csv'])->where('reconciliation', '[0-9]{1,18}')->name('reconciliation.csv');
 
     // What a person does inside a session (all POST, all re-checked on the server)
-    Route::prefix('/reconciliation/{reconciliation}')->where(['reconciliation' => '[0-9]+'])->name('reconciliation.')->group(function () {
+    Route::prefix('/reconciliation/{reconciliation}')->where(['reconciliation' => '[0-9]{1,18}'])->name('reconciliation.')->group(function () {
         Route::post('/accept', [ReconciliationActionController::class, 'accept'])->name('accept');
         Route::post('/match', [ReconciliationActionController::class, 'match'])->name('match');
         Route::post('/matches/{bankMatch}/release', [ReconciliationActionController::class, 'unmatch'])->where('bankMatch', '[0-9]{1,18}')->name('unmatch');
