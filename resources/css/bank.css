@@ -1,0 +1,132 @@
+/*
+ * Bank: statement import and reconciliation. Uses the Tie-Out tokens and the fx components; only what they do not
+ * already say is here. No colour of its own: green (ticked) and red (variance) are applied by the components.
+ */
+
+/* A sentence under a panel title that says why the panel is there. */
+.fx-panel__why {
+    margin: 0;
+    padding: var(--s-3) var(--s-5) 0;
+    color: var(--ink-2);
+    font-size: var(--fs-cell);
+    max-width: 62ch;
+}
+
+/* A fold-away block inside a panel (works at every width, unlike the filter fold, which is phone only). */
+.bk-fold {
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+}
+
+.bk-fold > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    min-height: var(--touch);
+    padding: 0 var(--s-4);
+    font-size: var(--fs-cell);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+}
+
+.bk-fold > summary::-webkit-details-marker {
+    display: none;
+}
+
+.bk-fold > summary:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+.bk-fold[open] > summary {
+    border-bottom: 1px solid var(--rule);
+}
+
+.bk-fold > :not(summary) {
+    margin: var(--s-4);
+}
+
+.bk-fold > table,
+.bk-fold > .fx-tablewrap {
+    margin: 0;
+}
+
+/* The report: a sheet that prints as itself. */
+.bk-report {
+    max-width: 52rem;
+}
+
+.bk-report__sign {
+    display: grid;
+    gap: var(--s-6);
+    margin-top: var(--s-7);
+}
+
+.bk-report__line {
+    display: grid;
+    gap: var(--s-1);
+    padding-top: var(--s-6);
+    border-top: 1px solid var(--ink);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+@media (min-width: 640px) {
+    .bk-report__sign {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s-7);
+    }
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 16mm;
+    }
+
+    .bk-noprint {
+        display: none !important;
+    }
+
+    .bk-report {
+        max-width: none;
+    }
+
+    .fx-panel {
+        break-inside: avoid;
+    }
+}
+
+/* A statement of figures on a phone: the label and the figure wrap onto their own lines rather than push the page wide. */
+@media (max-width: 640px) {
+    .bk-statement .fx-statement__row {
+        flex-wrap: wrap;
+    }
+
+    .bk-statement .fx-statement__row dt {
+        max-width: 100%;
+    }
+
+    .bk-statement .fx-statement__leader {
+        display: none;
+    }
+
+    .bk-statement .fx-statement__row dd {
+        margin-left: auto;
+    }
+}
+
+/* Two lists side by side (match by hand): each column may shrink below its table's width and scroll inside its own wrapper. */
+.fx-grid--even > *,
+.fx-grid--lead > * {
+    min-width: 0;
+}
+
+.fx-panel__body--flush > .fx-section-title,
+.fx-panel__body--flush .fx-grid > div > .fx-section-title {
+    padding: var(--s-4) var(--s-5) var(--s-2);
+    margin: 0;
+}

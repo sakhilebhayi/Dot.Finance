@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Account;
+use App\Models\Bank\BankReconciliationEvent;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
@@ -62,6 +63,15 @@ class DemoSeed extends Command
         $existing = User::query()->where('email', self::EMAIL)->first();
         if ($existing && ! $this->option('fresh')) {
             $this->error('The demo ledger already exists. Run with --fresh to rebuild it.');
+
+            return self::FAILURE;
+        }
+
+        // Bank history (statements, matches, reconciliations) is append-only and locks the entries it cleared, so a ledger that has it
+        // cannot be wiped and rebuilt in place.
+        $demoCompany = $existing ? Team::query()->where('user_id', $existing->id)->where('name', self::COMPANY)->first() : null;
+        if ($existing && collect([LedgerContext::personal($existing), $demoCompany ? LedgerContext::company($demoCompany) : null])->filter()->contains(fn (LedgerContext $c) => LedgerContext::run($c, fn () => BankReconciliationEvent::query()->exists()))) {
+            $this->error('The demo ledger has bank reconciliation history, which is append-only and cannot be rebuilt in place. Run `php artisan migrate:fresh` on the local database, then finance:demo-seed again.');
 
             return self::FAILURE;
         }

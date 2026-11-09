@@ -5,3 +5,4 @@ import './fx/dialogs';
 import './fx/forms';
 import './fx/toasts';
 import './fx/journal';
+import './fx/print';

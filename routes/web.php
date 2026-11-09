@@ -124,3 +124,7 @@ require __DIR__.'/intel.php';
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---
+
+// --- bank ---
+require __DIR__.'/bank.php';
+// --- end bank ---

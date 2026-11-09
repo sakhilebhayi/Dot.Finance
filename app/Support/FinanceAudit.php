@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Account;
+use App\Models\Bank\BankRule;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Controls\AccessReview;
@@ -85,6 +86,12 @@ class FinanceAudit
             'text' => ['notes'],
         ],
         // ----- end R-44 Controls -----
+        // R-44 Bank: rules are audited per row; statements, matches and reconciliations are logged by their services.
+        BankRule::class => [
+            'type' => 'bank_rule',
+            'values' => ['account_id', 'match_field', 'operator', 'direction', 'min_cents', 'max_cents', 'category_id', 'priority', 'is_active'],
+            'text' => ['name', 'pattern', 'new_description'],
+        ],
         // R-44 shared data layer (F2)
         Party::class => [
             'type' => 'party',

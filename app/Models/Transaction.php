@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
 use App\Services\AccountBalances;
+use App\Services\Bank\ReconciliationLock;
 use App\Support\Money;
 use Database\Factories\TransactionFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -76,6 +77,10 @@ class Transaction extends Model
                 $transaction->version = max(1, (int) $transaction->getOriginal('version')) + 1;
             }
         });
+
+        // R-44 Bank: a row the bank has vouched for (matched or reconciled) keeps the figures it was matched on.
+        static::updating(fn (Transaction $transaction) => ReconciliationLock::guardUpdate($transaction));
+        static::deleting(fn (Transaction $transaction) => ReconciliationLock::guardDelete($transaction));
 
         // Anything that changes a balance invalidates the request-scoped balance cache.
         $flush = static fn () => app(AccountBalances::class)->flush();

@@ -1,6 +1,7 @@
 <?php
 
 use App\Providers\AppServiceProvider;
+use App\Providers\BankServiceProvider;
 use App\Providers\ControlsServiceProvider;
 use App\Providers\FortifyServiceProvider;
 use App\Providers\HealthCheckServiceProvider;
@@ -16,4 +17,5 @@ return [
     ControlsServiceProvider::class,
     SharedDataServiceProvider::class,
     IntelligenceServiceProvider::class,
+    BankServiceProvider::class,
 ];
