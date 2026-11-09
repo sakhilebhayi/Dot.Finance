@@ -6,6 +6,11 @@ use App\Models\Account;
 use App\Models\Accounting\AccountingPeriod;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Bank\BankMatch;
+use App\Models\Bank\BankReconciliation;
+use App\Models\Bank\BankRule;
+use App\Models\Bank\BankStatement;
+use App\Models\Bank\BankStatementLine;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
@@ -49,10 +54,12 @@ class ContextIsolationRoutesTest extends TestCase
         'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments',
         // R-44 accounting tables
         'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+        // R-44 bank tables
+        'bank_statements', 'bank_statement_lines', 'bank_reconciliations', 'bank_matches', 'bank_reconciliation_events', 'bank_adjustments', 'bank_rules',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'statement' => 'statement', 'reconciliation' => 'reconciliation', 'bankMatch' => 'bankMatch', 'bankRule' => 'bankRule'];
 
     private User $me;
 
@@ -99,6 +106,9 @@ class ContextIsolationRoutesTest extends TestCase
             'mime' => 'application/pdf', 'size' => 10,
         ]);
 
+        // R-44 bank: a statement with a line, an open reconciliation with a match, and a rule.
+        $bank = $this->seedBank($label, $owner, $account);
+
         // A staged import is bound to the context it was staged in.
         $token = (string) Str::uuid();
         Storage::disk('local')->put("finance-imports/{$this->me->id}/{$token}.csv", "date,description,amount\n2026-08-01,Sentinel row {$label},-1.00\n");
@@ -124,7 +134,19 @@ class ContextIsolationRoutesTest extends TestCase
             AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
         ]);
 
-        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+        return $bank + ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+    }
+
+    /** @return array<string, int> */
+    private function seedBank(string $label, array $owner, Account $account): array
+    {
+        $statement = BankStatement::create($owner + ['account_id' => $account->id, 'source' => 'csv', 'original_name' => "Sentinel file {$label}.csv", 'file_sha256' => hash('sha256', $label), 'currency' => 'ZAR', 'date_from' => '2026-10-01', 'date_to' => '2026-10-31', 'line_count' => 1]);
+        BankStatementLine::create($owner + ['bank_statement_id' => $statement->id, 'account_id' => $account->id, 'line_no' => 1, 'posted_on' => '2026-10-02', 'amount_cents' => 1234, 'currency' => 'ZAR', 'description' => "Sentinel row {$label}", 'fingerprint' => hash('sha256', 'line'.$label)]);
+        $session = BankReconciliation::create($owner + ['account_id' => $account->id, 'status' => 'draft', 'statement_date' => '2026-10-31', 'statement_closing_cents' => 1234, 'currency' => 'ZAR', 'started_at' => now()]);
+        $match = BankMatch::create($owner + ['account_id' => $account->id, 'bank_reconciliation_id' => $session->id, 'ref' => (string) Str::uuid(), 'method' => 'manual', 'shape' => 'ledger_only', 'reason' => 'seed', 'amount_cents' => 0, 'line_count' => 0, 'transaction_count' => 0, 'state' => 'active', 'matched_at' => now()]);
+        $rule = BankRule::create($owner + ['name' => "Sentinel rule bank {$label}", 'pattern' => "sentinel-{$label}"]);
+
+        return ['statement' => $statement->id, 'reconciliation' => $session->id, 'bankMatch' => $match->id, 'bankRule' => $rule->id];
     }
 
     private function keyFor(array $owner): string
@@ -272,7 +294,8 @@ class ContextIsolationRoutesTest extends TestCase
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
         $pages = ['dashboard', 'parties.index', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create',
-            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create'];
+            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create',
+            'bank.statements.index', 'bank.reconciliation.index', 'bank.rules.index', 'bank.import.create'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -287,7 +310,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'file'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }
@@ -303,6 +326,8 @@ class ContextIsolationRoutesTest extends TestCase
         $this->get(route('categories.index'))->assertSee('Sentinel category mine');
         $this->get(route('recurring.index'))->assertSee('Sentinel rule mine');
         $this->get(route('parties.index'))->assertSee('Sentinel party mine');
+        $this->get(route('bank.statements.index'))->assertSee('Sentinel file mine');
+        $this->get(route('bank.rules.index'))->assertSee('Sentinel rule bank mine');
     }
 
     // ── foreign ids smuggled in the request body ───────────────────────────
@@ -328,6 +353,11 @@ class ContextIsolationRoutesTest extends TestCase
                     'budget for a foreign category' => ['post', route('budgets.store'), ['category_id' => $foreign['category'], 'amount' => '1.00', 'currency' => 'ZAR', 'month' => 3, 'year' => 2027]],
                     'edit own budget onto a foreign category' => ['put', route('budgets.update', $own['budget']), ['category_id' => $foreign['category'], 'amount' => '1.00', 'currency' => 'ZAR', 'month' => 3, 'year' => 2027]],
                     'edit own rule onto a foreign category' => ['put', route('recurring.update', $own['rule']), ['description' => 'x', 'amount' => '1.00', 'category_id' => $foreign['category'], 'recurrence_type' => 'monthly', 'recurrence_interval' => 1]],
+                    'bank statement into a foreign account' => ['post', route('bank.import.upload'), ['account_id' => $foreign['account'], 'file' => UploadedFile::fake()->createWithContent('s.csv', "date,description,amount\n2026-08-01,x,-1.00\n")]],
+                    'reconciliation of a foreign account' => ['post', route('bank.reconciliation.start'), ['account_id' => $foreign['account'], 'statement_date' => '2026-10-31', 'closing' => '1.00']],
+                    'reconciliation from a foreign statement' => ['post', route('bank.reconciliation.start'), ['account_id' => $own['account'], 'bank_statement_id' => $foreign['statement']]],
+                    'bank rule with a foreign category' => ['post', route('bank.rules.store'), ['name' => 'x', 'pattern' => 'x', 'match_field' => 'any', 'operator' => 'contains', 'direction' => 'any', 'category_id' => $foreign['category']]],
+                    'match foreign lines in my session' => ['post', route('bank.reconciliation.match', $own['reconciliation']), ['line_ids' => [$foreign['statement']], 'entry_ids' => [$foreign['transaction']]]],
                     'import into a foreign account' => ['post', route('transactions.import.upload'), ['account_id' => $foreign['account'], 'file' => UploadedFile::fake()->createWithContent('s.csv', "date,description,amount\n2026-08-01,x,-1.00\n")]],
                 ];
 

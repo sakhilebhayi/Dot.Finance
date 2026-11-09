@@ -83,6 +83,18 @@ class LedgerScopeGuardTest extends TestCase
             'Services/Accounting/GlVerifier.php' => 'integrity checks over the one ledger it was handed, with an explicit owner condition',
             'Services/Accounting/JournalPoster.php' => 'bulk insert of journal lines and the single guarded reversal-link update (append-only rows have no model path for either)',
             'Services/Accounting/Periods.php' => 'year-end aggregate over the one ledger it was handed, with an explicit owner condition',
+            // R-44 Bank: every one of these keys its set-based read or write by ids first loaded through a scoped model in the same
+            // transaction (the session, the account, the statement, the match), or states the owner condition itself (BankIsolationTest proves it).
+            'Services/Bank/StatementImporter.php' => 'chunked insert of statement lines for the one account it was handed (owner copied from that account) and a held-fingerprint lookup bounded by that account',
+            'Services/Bank/MatchingService.php' => 'chunked insert of matches and CASE links of lines and rows already loaded and locked through scoped queries for one session',
+            'Services/Bank/MatchRecorder.php' => 'links the lines and rows of one match inside a locked session',
+            'Services/Bank/ReconciliationService.php' => 'releases or locks the rows of one session (ids read through the scoped session and its matches)',
+            'Services/Bank/ReconciliationReport.php' => 'counts the rows of one session by match id',
+            'Services/Bank/ReconciliationBalances.php' => 'journal balance of one cash account with an explicit owner condition',
+            'Services/Bank/ExceptionClassifier.php' => 'reads held lines of the session account and of the ledger\'s other accounts (ids from scoped Account queries)',
+            'Services/Bank/LineActions.php' => 'bumps the use counter of one bank rule already loaded through a scoped model',
+            'Http/Controllers/Bank/StatementController.php' => 'existence checks on the lines of one statement the route already bound through the scope',
+            'Http/Controllers/Bank/ReconciliationController.php' => 'lists the lines and rows of matches that were loaded through the scoped session',
         ];
 
         $found = [];

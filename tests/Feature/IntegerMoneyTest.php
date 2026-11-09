@@ -144,10 +144,12 @@ class IntegerMoneyTest extends TestCase
         $companyMigration = require database_path('migrations/2026_10_18_300000_add_company_context_to_ledger_tables.php');
 
         // The R-44 migrations sit on top of these and have to come off first (newest first).
+        $bankMigration = require database_path('migrations/2026_11_09_400000_create_bank_tables.php');
         $accountingMigration = require database_path('migrations/2026_11_09_110000_create_accounting_core_tables.php');
         $phase0Migration = require database_path('migrations/2026_11_09_100000_r44_phase0_integrity_fixes.php');
 
         // Roll the schema back to the pre-ledger shape (newest migration first), then write rows exactly as the old code did.
+        $bankMigration->down();
         $accountingMigration->down();
         $phase0Migration->down();
         $companyMigration->down();
