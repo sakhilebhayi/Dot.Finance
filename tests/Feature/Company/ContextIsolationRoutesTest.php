@@ -152,6 +152,11 @@ class ContextIsolationRoutesTest extends TestCase
             if (! str_starts_with($route->getActionName(), 'App\\Http\\Controllers\\')) {
                 continue;
             }
+            // R-44 Controls routes ({member}, {policy}, {approval}, {limit}) bind their own models and are smuggled across
+            // ledgers, with the database compared before and after, by tests/Feature/Controls/ControlsRoutesTest.php.
+            if (str_starts_with($route->getActionName(), 'App\\Http\\Controllers\\Controls\\')) {
+                continue;
+            }
             foreach ($route->parameterNames() as $name) {
                 if (! array_key_exists($name, self::BINDINGS)) {
                     $unknown[] = $route->methods()[0].' '.$route->uri().' {'.$name.'}';

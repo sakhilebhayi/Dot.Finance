@@ -9,8 +9,10 @@ use App\Models\User;
 use App\Observers\FinanceAuditObserver;
 use App\Services\Controls\LedgerRoles;
 use App\Support\Ledger\LedgerAccess;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Jetstream\Events\TeamMemberRemoved;
 
@@ -34,6 +36,9 @@ class ControlsServiceProvider extends ServiceProvider
         foreach ([ApprovalPolicy::class, SpendLimit::class] as $model) {
             $model::observe(FinanceAuditObserver::class);
         }
+
+        // The Controls pages word themselves by ledger, like the audit page does.
+        View::composer('controls.*', fn ($view) => $view->with('activeLedger', LedgerContext::current()));
 
         // Jetstream fires this when a member is removed or leaves. (The InfoDot sync calls the same
         // service directly when it detaches someone, because it does not go through that action.)

@@ -95,6 +95,10 @@ Route::middleware([
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 });
 
+// --- controls ---
+require __DIR__.'/controls.php';
+// --- end controls ---
+
 // Public sign-up is closed (accounts are created by InfoDot at first sign-in). Keep the named route so any link or
 // invitation email that points at it lands on the login page instead of failing.
 if (! Features::enabled(Features::registration())) {

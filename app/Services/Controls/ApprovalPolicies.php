@@ -93,9 +93,13 @@ final class ApprovalPolicies
                 'is_active' => true,
             ];
 
-            return $existing !== null
-                ? tap($existing)->fill($this->attributes($data))->save()
-                : ApprovalPolicy::create($context->ownerAttributes() + $this->attributes($data) + ['preset_key' => $key, 'created_by' => $actor->id]);
+            if ($existing !== null) {
+                $existing->fill($this->attributes($data))->save();
+
+                return $existing;
+            }
+
+            return ApprovalPolicy::create($context->ownerAttributes() + $this->attributes($data) + ['preset_key' => $key, 'created_by' => $actor->id]);
         });
     }
 

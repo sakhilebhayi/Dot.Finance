@@ -273,7 +273,7 @@ final class ApprovalService
 
         return ApprovalRequest::query()->forContext($context)->where('status', ApprovalRequest::PENDING)->with('requester:id,name')->oldest('id')->get()
             ->filter(fn (ApprovalRequest $r) => $this->eligibility($user, $r, $access) === null
-                && ($this->mayApproveOwn($r, $context) || ! $r->decisions()->where('decided_by', $user->id)->exists()))
+                && ($this->mayApproveOwn($r, $context) || ! $this->hasDecided($r, $context, $user)))
             ->map(fn (ApprovalRequest $r) => [
                 'request' => $r,
                 'blocked' => $this->limits->violation($context, $user, $access->financeRole(), $r->amount_cents, $r->currency),
@@ -310,7 +310,7 @@ final class ApprovalService
 
             $sole = $this->mayApproveOwn($locked, $context);
 
-            if ($decision === 'approved' && ! $sole && $locked->decisions()->where('decided_by', $approver->id)->where('decision', 'approved')->exists()) {
+            if ($decision === 'approved' && ! $sole && $this->hasDecided($locked, $context, $approver, 'approved')) {
                 $final = $locked; // you already approved a step of this: asking again changes nothing
 
                 return;
@@ -411,6 +411,13 @@ final class ApprovalService
             $into->setRawAttributes($from->getAttributes(), true);
             $into->unsetRelation('decisions');
         }
+    }
+
+    /** Has $user already taken a step on this request (optionally with this decision)? Read inside the request's own ledger. */
+    private function hasDecided(ApprovalRequest $request, LedgerContext $context, User $user, ?string $decision = null): bool
+    {
+        return ApprovalDecision::query()->forContext($context)->where('approval_request_id', $request->getKey())
+            ->where('decided_by', $user->id)->when($decision, fn ($q) => $q->where('decision', $decision))->exists();
     }
 
     /** One person may approve their own request only when they are the ledger's only member and the policy allows it. */
