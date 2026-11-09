@@ -11,9 +11,10 @@ Skills: this was a security sweep, not UI work. The only view/CSS edits are a bu
 | Real defects found and fixed, each with a regression test | 17 (section 2) |
 | Observations left as they are, with the reason | 9 (section 3) |
 | New test files | 15 under `tests/Feature/Security` (+ 2 helper traits) |
-| SQLite full suite (clean env) | **2,035 tests, 2,022 passed, 13 skipped, 0 failed** in the last full run; the 3 mail tests were added after it and pass alone |
-| PostgreSQL full suite (throwaway DB, clean env) | see section 7 |
-| Baseline before this work | 1,915 tests, 1,902 passed, 13 skipped |
+| SQLite full suite (clean env) | **2,035 tests, 2,022 passed, 13 skipped, 0 failed** in the last full run; the 3 mail tests were added after it and pass alone (the Security folder alone: 146 tests, 1,434 assertions, all pass) |
+| PostgreSQL full suite (throwaway DB, clean env) | **2,035 tests, 0 failed, 10 skipped** (section 7) |
+| Baseline before this work | the first full run (SQLite) reported 1,915 tests, 1,902 passed, 13 skipped, 0 failed; the trunk lists 1,892 tests today (I did not reconcile the difference of 23; no trunk test was edited or removed) |
+| Tests added | **146** in `tests/Feature/Security` (all pass on SQLite and PostgreSQL); the suite now lists 2,038 |
 | `composer audit` | no advisories |
 | `npm audit` | 9 advisories before (2 critical, 4 high, 3 moderate), all dev/build tools; 2 moderate left after `npm audit fix` (section 3) |
 | `route:cache && route:clear` | runs; `view:cache` compiles |
@@ -448,12 +449,12 @@ Reading the table: letters are O owner, M finance manager, A accountant, B bookk
 | `MassAssignmentSweepTest` | 2 | every write route with `user_id`, `team_id`, `id`, `status`, `number`, `posted_at`, `voided_at`, `gl_entry_id`, `created_by`, `path`, `disk`, `paid_cents`, `total_cents`, `books_closed_through`... added; afterwards no row anywhere changed owner, every created row is the caller's company's, no other company changed; plus no controller hands `$request->all()` to a model |
 | `XssAndCsvSweepTest` | 4 | a company whose free-text fields (account, category, party, memo, reference, preset, scenario, plan, tax correspondence, assistant question, bank narrative, upload file name, company name, person name) hold live markup; the owner opens every GET page; CSV/OFX/QIF statements with hostile narratives; every CSV download |
 | `MailTemplatesTest` | 3 | invoice, reminder and notification e-mails with markup and `javascript:` links |
-| `UploadsSecurityTest` | 22 | 13 hostile files posing as pdf/png/docx/xlsx, server-made storage names for 5 hostile file names, the 15 MB limit, logo type from the bytes, signed / expiring / tampered / cross-ledger attachment streaming, PDF bomb, stream flood, 18 + 180 malformed PDFs, garbage OFX/QIF/CSV |
+| `UploadsSecurityTest` | 23 | 13 hostile files posing as pdf/png/docx/xlsx, server-made storage names for 5 hostile file names, the 15 MB limit, logo type from the bytes, signed / expiring / tampered / cross-ledger attachment streaming, PDF bomb, stream flood, 18 + 180 malformed PDFs, garbage OFX/QIF/CSV |
 | `InboundEndpointsSecurityTest` | 11 | membership, Emall, Dot.HR payroll: forged / stale / future / zero / garbage signatures all the same 401, empty-secret signatures, replay, oversize, "who exists" answers, throttles, tenant mapping |
 | `AuthAndSessionSecurityTest` | 11 | bearer tokens against the web app, cookie flags over HTTPS, a new session id at sign-in, one-use handoff, 14 hostile redirect targets, hostile origins, login throttle and enumeration, reset enumeration, reset-token single use, no secrets in logs |
 | `ShareLinkAndEnumerationTest` | 5 | public links: unknown / malformed / expired / revoked look identical, no cookie, token never stored, per-address wall, a link shows only its document |
-| `MoneyIntegrityAttackTest` | 34 | 21 hostile amounts, leading zeros, the largest amount, overflow, browser-sent totals ignored, key reuse (payment, refund), double void, double reversal, a closed period through 4 forms |
-| `MoneyIntegrityPurchasesTest` | 4 | hostile bill quantities and prices, key reuse (supplier payment, payment run), void twice, pay a voided bill |
+| `MoneyIntegrityAttackTest` | 29 | 21 hostile amounts, leading zeros, the largest amount, overflow, browser-sent totals ignored, key reuse (payment, refund), double void, double reversal, a closed period through 4 forms |
+| `MoneyIntegrityPurchasesTest` | 5 | hostile bill quantities and prices, key reuse (supplier payment, payment run), void twice, pay a voided bill |
 | `ApprovalAttackTest` | 5 | approve your own request, approve without the capability, decide twice, post around the gate, edit after approval |
 | `ExportAndDataControlsTest` | 5 | who may export 7 CSVs, an audit row for each, payroll detail only with `view-payroll-detail` (page and accountant pack), a bank account number never in audit rows, notifications, insights, logs or the pages of readers |
 | `PublicSurfaceTest` | 14 | CSP sink junk, the framework file route and Livewire upload without a signature, a member removed mid-session, headers on error pages, no stack trace |
@@ -477,7 +478,7 @@ Helpers: `tests/Concerns/RunsRouteProbes.php` (routes, savepoints, table hashes,
 
 SQLite (`DB_CONNECTION=sqlite DB_DATABASE=:memory:`): full suite, 2,035 tests, 2,022 passed, 13 skipped, 0 failed, 286,037 assertions (the run after the last code change; `MailTemplatesTest`, 3 tests, was added after it and passes alone).
 
-PG_RESULT_PLACEHOLDER
+PostgreSQL (throwaway database `qa_sec_r44`, clean `env -i` shell, `phpunit.pgsql.xml`, dropped afterwards): full suite, **2,035 tests, 286,078 assertions, 0 failures, 10 skipped** (51 minutes on a busy machine); `MailTemplatesTest` (3 tests) added after that run and passes alone on PostgreSQL. The skip counts differ (13 on SQLite, 10 on PostgreSQL) because some tests are engine-specific; I did not list them.
 
 ## 8. Not tested, and owner steps
 
