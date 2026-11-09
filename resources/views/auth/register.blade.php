@@ -1,64 +1,34 @@
-<x-guest-layout>
+<x-guest-layout title="Create an account">
     <x-authentication-card>
         <x-slot name="logo">
             <x-authentication-card-logo />
         </x-slot>
 
-        <div class="mb-6">
-            <p class="font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--ember)] mb-2">Create account</p>
-            <h1 class="font-display font-semibold text-2xl text-[var(--ink)]">Start your ledger</h1>
-        </div>
+        <h1>Create an account</h1>
+        <p class="fx-auth__intro">Start a ledger of your own.</p>
 
         <x-validation-errors class="mb-4" />
 
-        <form method="POST" action="{{ route('register') }}">
+        <form method="POST" action="{{ route('register') }}" class="fx-form">
             @csrf
 
-            <div>
-                <x-label for="name" value="{{ __('Name') }}" />
-                <x-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
-            </div>
-
-            <div class="mt-4">
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
-            </div>
-
-            <div class="mt-4">
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            </div>
-
-            <div class="mt-4">
-                <x-label for="password_confirmation" value="{{ __('Confirm Password') }}" />
-                <x-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-            </div>
+            <x-fx.input name="name" id="name" label="Name" required autofocus autocomplete="name" />
+            <x-fx.input name="email" id="email" type="email" label="Email" required autocomplete="username" />
+            <x-fx.input name="password" id="password" type="password" label="Password" required autocomplete="new-password" />
+            <x-fx.input name="password_confirmation" id="password_confirmation" type="password" label="Confirm password" required autocomplete="new-password" />
 
             @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
-                <div class="mt-4">
-                    <x-label for="terms">
-                        <div class="flex items-center">
-                            <x-checkbox name="terms" id="terms" required />
-
-                            <div class="ms-2 text-[var(--ink-soft)]">
-                                {!! __('I agree to the :terms_of_service and :privacy_policy', [
-                                        'terms_of_service' => '<a target="_blank" href="'.route('terms.show').'" class="underline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e8af39]">'.__('Terms of Service').'</a>',
-                                        'privacy_policy' => '<a target="_blank" href="'.route('policy.show').'" class="underline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e8af39]">'.__('Privacy Policy').'</a>',
-                                ]) !!}
-                            </div>
-                        </div>
-                    </x-label>
-                </div>
+                <x-fx.check name="terms" id="terms" required>
+                    {!! __('I agree to the :terms_of_service and :privacy_policy', [
+                        'terms_of_service' => '<a target="_blank" rel="noopener" href="'.route('terms.show').'" class="fx-link">'.__('Terms of Service').'</a>',
+                        'privacy_policy' => '<a target="_blank" rel="noopener" href="'.route('policy.show').'" class="fx-link">'.__('Privacy Policy').'</a>',
+                    ]) !!}
+                </x-fx.check>
             @endif
 
-            <div class="flex items-center justify-end mt-4">
-                <a class="underline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e8af39]" href="{{ route('login') }}">
-                    {{ __('Already registered?') }}
-                </a>
-
-                <x-button class="ms-4">
-                    {{ __('Register') }}
-                </x-button>
+            <div class="fx-auth__links">
+                <a class="fx-link" href="{{ route('login') }}">Already registered?</a>
+                <x-button>Register</x-button>
             </div>
         </form>
     </x-authentication-card>

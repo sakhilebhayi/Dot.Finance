@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ResolveLedgerContext;
+use App\Http\Middleware\SecurityHeaders;
 use App\Support\Ledger\LedgerContextViolation;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // The active ledger must be settled before route-model binding looks any id up.
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolveLedgerContext::class);
+
+        // Enforced nonce Content-Security-Policy plus the baseline browser headers, on every response (error pages
+        // included). Registered here and not in a route file because production runs route:cache.
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // A write that would cross ledgers is a bug in the caller, never something to show a person:

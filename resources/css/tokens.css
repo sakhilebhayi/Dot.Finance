@@ -1,0 +1,136 @@
+/*
+ * Dot.Finance design tokens: "The Tie-Out".
+ * Colours are stored as space-separated RGB channels (--x-rgb) so the same token serves plain CSS
+ * (var(--x)) and Tailwind utilities with an alpha channel. Two signal colours only:
+ *   ledger green (--tick)   : reconciled, ticked, verified. Nothing else is ever green.
+ *   pencil red   (--pencil) : a variance, an overdue item, an error. Nothing else is ever red.
+ * Everything else is graphite on cool paper. Night is a first-class theme: it follows the system until
+ * the person chooses, and the choice is kept in data-theme on <html>.
+ */
+:root {
+    color-scheme: light;
+
+    /* Surfaces */
+    --paper-rgb: 246 247 249;      /* the page */
+    --sheet-rgb: 255 255 255;      /* a ruled sheet laid on the page */
+    --sunk-rgb: 237 239 243;       /* a pressed or selected step */
+    /* Ink */
+    --ink-rgb: 20 24 31;           /* graphite */
+    --ink-2-rgb: 58 66 78;         /* secondary text */
+    --ink-3-rgb: 90 99 113;        /* tertiary text, still AA on paper and sheet */
+    /* Lines */
+    --rule-rgb: 214 218 225;       /* hairline between rows */
+    --rule-strong-rgb: 170 177 189;
+    --edge-rgb: 120 129 143;       /* control borders (3:1 against the sheet) */
+    /* Signals */
+    --tick-rgb: 21 96 61;          /* ledger green */
+    --tick-bg-rgb: 224 241 231;
+    --tick-line-rgb: 128 186 152;
+    --pencil-rgb: 176 36 28;       /* pencil red */
+    --pencil-bg-rgb: 251 232 229;
+    --pencil-line-rgb: 223 144 136;
+
+    --shadow-float: 0 12px 32px -8px rgb(20 24 31 / 0.22), 0 2px 6px rgb(20 24 31 / 0.08);
+    --scrim: rgb(14 17 22 / 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        color-scheme: dark;
+        --paper-rgb: 14 17 22;
+        --sheet-rgb: 21 26 33;
+        --sunk-rgb: 31 38 48;
+        --ink-rgb: 232 235 240;
+        --ink-2-rgb: 178 186 198;
+        --ink-3-rgb: 144 153 168;
+        --rule-rgb: 40 47 58;
+        --rule-strong-rgb: 62 71 85;
+        --edge-rgb: 112 122 138;
+        --tick-rgb: 116 210 160;
+        --tick-bg-rgb: 19 49 33;
+        --tick-line-rgb: 52 112 80;
+        --pencil-rgb: 255 142 131;
+        --pencil-bg-rgb: 62 27 25;
+        --pencil-line-rgb: 128 62 57;
+        --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+        --scrim: rgb(0 0 0 / 0.62);
+    }
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --paper-rgb: 14 17 22;
+    --sheet-rgb: 21 26 33;
+    --sunk-rgb: 31 38 48;
+    --ink-rgb: 232 235 240;
+    --ink-2-rgb: 178 186 198;
+    --ink-3-rgb: 144 153 168;
+    --rule-rgb: 40 47 58;
+    --rule-strong-rgb: 62 71 85;
+    --edge-rgb: 112 122 138;
+    --tick-rgb: 116 210 160;
+    --tick-bg-rgb: 19 49 33;
+    --tick-line-rgb: 52 112 80;
+    --pencil-rgb: 255 142 131;
+    --pencil-bg-rgb: 62 27 25;
+    --pencil-line-rgb: 128 62 57;
+    --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+    --scrim: rgb(0 0 0 / 0.62);
+}
+
+:root {
+    --paper: rgb(var(--paper-rgb));
+    --sheet: rgb(var(--sheet-rgb));
+    --sunk: rgb(var(--sunk-rgb));
+    --ink: rgb(var(--ink-rgb));
+    --ink-2: rgb(var(--ink-2-rgb));
+    --ink-3: rgb(var(--ink-3-rgb));
+    --rule: rgb(var(--rule-rgb));
+    --rule-strong: rgb(var(--rule-strong-rgb));
+    --edge: rgb(var(--edge-rgb));
+    --tick: rgb(var(--tick-rgb));
+    --tick-bg: rgb(var(--tick-bg-rgb));
+    --tick-line: rgb(var(--tick-line-rgb));
+    --pencil: rgb(var(--pencil-rgb));
+    --pencil-bg: rgb(var(--pencil-bg-rgb));
+    --pencil-line: rgb(var(--pencil-line-rgb));
+
+    /* Type. Display is Archivo at 112% width; text is Public Sans; figures are Chivo Mono. */
+    --font-display: 'Archivo Variable', 'Archivo', 'Arial Nova', 'Helvetica Neue', Arial, sans-serif;
+    --font-text: 'Public Sans Variable', 'Public Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-figure: 'Chivo Mono Variable', 'Chivo Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    --fs-meta: 0.75rem;        /* 12 */
+    --fs-small: 0.8125rem;     /* 13 */
+    --fs-cell: 0.875rem;       /* 14 */
+    --fs-body: 0.9375rem;      /* 15 */
+    --fs-section: 1.0625rem;   /* 17 */
+    --fs-title: 1.5rem;        /* 24 */
+    --fs-answer: 2rem;         /* 32: the one lead figure on a screen */
+
+    /* Space: 4px base. One gap, used both ways. */
+    --s-1: 0.25rem;
+    --s-2: 0.5rem;
+    --s-3: 0.75rem;
+    --s-4: 1rem;
+    --s-5: 1.5rem;
+    --s-6: 2rem;
+    --s-7: 3rem;
+    --gap: 1rem;
+
+    /* Shape: tight, ledger-like. */
+    --r-chip: 3px;
+    --r-control: 5px;
+    --r-panel: 6px;
+    --r-float: 10px;
+
+    --control-h: 2.375rem;     /* 38 */
+    --control-h-sm: 1.875rem;  /* 30 */
+    --touch: 2.75rem;          /* 44 */
+    --side-w: 15.5rem;         /* 248 */
+    --top-h: 3.5rem;           /* 56 */
+    --bar-h: 3.5rem;           /* mobile bottom bar */
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-tick: 180ms;
+}

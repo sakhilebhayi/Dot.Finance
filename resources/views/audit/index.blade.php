@@ -1,6 +1,5 @@
-<x-app-layout>
+<x-app-layout title="Audit log">
 @php
-    $th = 'padding:0.75rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);';
     $fieldLabels = [
         'amount_cents' => 'Amount', 'opening_balance_cents' => 'Opening balance', 'opening_balance_date' => 'Opening date',
         'account_id' => 'Account', 'category_id' => 'Category', 'recurring_rule_id' => 'Recurring rule',
@@ -10,67 +9,59 @@
     ];
 @endphp
 
-<div class="page-pad" style="padding:2rem 2.5rem 3rem;">
-
-    <div style="margin-bottom:1.5rem;">
-        <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text-primary);margin:0 0 0.2rem;">
-            Audit log
-        </h1>
-        <p style="font-size:0.8rem;color:var(--text-muted);margin:0;max-width:60rem;">
-            @if($activeLedger?->isCompany())
-            Everyone in {{ $activeLedger->label() }}: every change anyone made to the company's accounts, transactions, categories, budgets and recurring items, with who made it, newest first. Only an owner or admin can read this. Entries can be read here but never edited or removed.
-            @else
-            Every change to your accounts, transactions, categories, budgets and recurring items, newest first. Entries can be read here but never edited or removed.
-            @endif
-            Amounts, dates and categories show before and after; free text such as descriptions and notes is recorded as "changed" without the words.
-        </p>
-    </div>
-
-    <form method="GET" action="{{ route('audit.index') }}" class="dot-card" style="padding:0.9rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:0.75rem;align-items:end;flex-wrap:wrap;">
-        <div>
-            <label for="audit-index-subject" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Show</label>
-            <select id="audit-index-subject" name="subject" class="dot-input" style="min-width:12rem;">
-                <option value="">Everything</option>
-                @foreach($subjects as $s)
-                <option value="{{ $s }}" @selected($subject === $s)>{{ ucfirst(str_replace('_', ' ', $s)) }}s</option>
-                @endforeach
-            </select>
-        </div>
-        @if($actors->isNotEmpty() || $actor)
-        <div>
-            <label for="audit-index-actor" style="display:block;font-size:0.68rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem;">Who</label>
-            <select id="audit-index-actor" name="actor" class="dot-input" style="min-width:12rem;">
-                <option value="">Everyone</option>
-                @foreach($actors as $person)
-                <option value="{{ $person->id }}" @selected($actor === $person->id)>{{ $person->name }}</option>
-                @endforeach
-                <option value="system" @selected($actor === 'system')>Automatic (scheduled)</option>
-            </select>
-        </div>
+<x-fx.page-head title="Audit log">
+    <x-slot name="sub">
+        @if($activeLedger?->isCompany())
+        Everyone in {{ $activeLedger->label() }}: every change anyone made to the company's accounts, transactions, categories, budgets and recurring items, with who made it, newest first. Only an owner or admin can read this. Entries can be read here but never edited or removed.
+        @else
+        Every change to your accounts, transactions, categories, budgets and recurring items, newest first. Entries can be read here but never edited or removed.
         @endif
-        <button type="submit" class="dot-btn dot-btn-primary">Filter</button>
-        @if($subject || $actor)<a href="{{ route('audit.index') }}" class="dot-btn dot-btn-ghost">Clear</a>@endif
-    </form>
+        Amounts, dates and categories show before and after; free text such as descriptions and notes is recorded as "changed" without the words.
+    </x-slot>
+</x-fx.page-head>
 
-    <div class="dot-card" style="overflow:hidden;">
-        @if($entries->count() > 0)
-        <div class="table-scroll" style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="border-bottom:1px solid var(--divider);">
-                        <th style="{{ $th }}">When</th>
-                        <th style="{{ $th }}">Action</th>
-                        <th style="{{ $th }}">Record</th>
-                        <th style="{{ $th }}">What changed</th>
-                    </tr>
-                </thead>
-                <tbody>
+<form method="GET" action="{{ route('audit.index') }}" class="fx-panel fx-panel__body fx-form r-stack" role="search" aria-label="Filter the audit log">
+    <div class="fx-row fx-row--3">
+        <x-fx.select name="subject" id="audit-index-subject" label="Show">
+            <option value="">Everything</option>
+            @foreach($subjects as $s)
+            <option value="{{ $s }}" @selected($subject === $s)>{{ ucfirst(str_replace('_', ' ', $s)) }}s</option>
+            @endforeach
+        </x-fx.select>
+        @if($actors->isNotEmpty() || $actor)
+        <x-fx.select name="actor" id="audit-index-actor" label="Who">
+            <option value="">Everyone</option>
+            @foreach($actors as $person)
+            <option value="{{ $person->id }}" @selected($actor === $person->id)>{{ $person->name }}</option>
+            @endforeach
+            <option value="system" @selected($actor === 'system')>Automatic (scheduled)</option>
+        </x-fx.select>
+        @endif
+    </div>
+    <div class="fx-formactions">
+        <x-fx.button variant="primary">Filter</x-fx.button>
+        @if($subject || $actor)<x-fx.button :href="route('audit.index')">Clear</x-fx.button>@endif
+    </div>
+</form>
+
+<x-fx.panel flush>
+    @if($entries->count() > 0)
+    <x-fx.table caption="Every recorded change, newest first">
+        <thead>
+            <tr>
+                <th scope="col">When</th>
+                <th scope="col">Action</th>
+                <th scope="col">Record</th>
+                <th scope="col">What changed</th>
+            </tr>
+        </thead>
+        <tbody>
                     @foreach($entries as $entry)
                     @php $changes = $entry->changes ?? []; $isImport = $entry->subject_type === 'import'; @endphp
-                    <tr style="border-bottom:1px solid var(--divider);vertical-align:top;">
-                        <td style="padding:0.8rem 1rem;font-size:0.76rem;color:var(--text-muted);white-space:nowrap;" class="metric-val">
+                    <tr>
+                        <td data-label="When" class="fx-fig">
                             {{ $entry->created_at->format('Y-m-d H:i') }}
-                            <div style="font-family:inherit;font-size:0.65rem;">@if($entry->actor === 'system')
+                            <div class="fx-cell-sub">@if($entry->actor === 'system')
                                 automatic
                             @elseif($activeLedger?->isCompany())
                                 {{ $entry->actorUser?->name ?? 'a former member' }}
@@ -78,28 +69,28 @@
                                 you
                             @endif</div>
                         </td>
-                        <td style="padding:0.8rem 1rem;font-size:0.76rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:{{ in_array($entry->action, ['deleted', 'purged']) ? '#f87171' : ($entry->action === 'created' || $entry->action === 'imported' ? '#34d399' : 'var(--text-secondary)') }};white-space:nowrap;">
+                        <td data-label="Action">
                             {{ str_replace('_', ' ', $entry->action) }}
                         </td>
-                        <td style="padding:0.8rem 1rem;font-size:0.8rem;color:var(--text-primary);">
-                            <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);display:block;">{{ str_replace('_', ' ', $entry->subject_type) }}</span>
+                        <td data-label="Record">
+                            <x-fx.pill>{{ str_replace('_', ' ', $entry->subject_type) }}</x-fx.pill>
                             {{ $entry->subject_label }}
-                            @if($entry->context)<div style="font-size:0.66rem;color:var(--text-muted);">{{ $entry->context }}</div>@endif
+                            @if($entry->context)<div class="fx-cell-sub">{{ $entry->context }}</div>@endif
                         </td>
-                        <td style="padding:0.8rem 1rem;font-size:0.76rem;color:var(--text-secondary);">
+                        <td data-label="What changed">
                             @if($isImport)
-                                <span class="metric-val">{{ $changes['imported'] ?? 0 }}</span> imported,
-                                <span class="metric-val">{{ $changes['skipped_duplicates'] ?? 0 }}</span> already imported,
-                                <span class="metric-val">{{ $changes['skipped_invalid'] ?? 0 }}</span> unreadable,
-                                <span class="metric-val">{{ $changes['skipped_by_user'] ?? 0 }}</span> skipped by you
-                                of <span class="metric-val">{{ $changes['rows_total'] ?? 0 }}</span> rows.
+                                <span class="fx-fig">{{ $changes['imported'] ?? 0 }}</span> imported,
+                                <span class="fx-fig">{{ $changes['skipped_duplicates'] ?? 0 }}</span> already imported,
+                                <span class="fx-fig">{{ $changes['skipped_invalid'] ?? 0 }}</span> unreadable,
+                                <span class="fx-fig">{{ $changes['skipped_by_user'] ?? 0 }}</span> skipped by you
+                                of <span class="fx-fig">{{ $changes['rows_total'] ?? 0 }}</span> rows.
                                 Income <x-money :cents="$changes['income_cents'] ?? 0" :currency="$changes['currency'] ?? null" />,
                                 spending <x-money :cents="$changes['expense_cents'] ?? 0" :currency="$changes['currency'] ?? null" />.
-                                <div style="font-size:0.66rem;color:var(--text-muted);">dates read as {{ $changes['date_format'] ?? '?' }}, amounts as {{ $changes['amount_locale'] ?? '?' }}</div>
+                                <div class="fx-cell-sub">dates read as {{ $changes['date_format'] ?? '?' }}, amounts as {{ $changes['amount_locale'] ?? '?' }}</div>
                             @else
                                 @forelse($changes as $field => $change)
                                 <div>
-                                    <span style="color:var(--text-muted);">{{ $fieldLabels[$field] ?? ucfirst(str_replace('_', ' ', $field)) }}</span>
+                                    <span class="fx-cell-main">{{ $fieldLabels[$field] ?? ucfirst(str_replace('_', ' ', $field)) }}</span>
                                     @if(isset($change['changed']))
                                         changed
                                     @else
@@ -112,32 +103,27 @@
                                             };
                                         @endphp
                                         @if(array_key_exists('before', $change) && array_key_exists('after', $change))
-                                            <span class="metric-val">{{ $fmt($change['before']) }}</span> &rarr; <span class="metric-val">{{ $fmt($change['after']) }}</span>
+                                            <span class="fx-fig">{{ $fmt($change['before']) }}</span> &rarr; <span class="fx-fig">{{ $fmt($change['after']) }}</span>
                                         @elseif(array_key_exists('after', $change))
-                                            <span class="metric-val">{{ $fmt($change['after']) }}</span>
+                                            <span class="fx-fig">{{ $fmt($change['after']) }}</span>
                                         @else
-                                            was <span class="metric-val">{{ $fmt($change['before'] ?? null) }}</span>
+                                            was <span class="fx-fig">{{ $fmt($change['before'] ?? null) }}</span>
                                         @endif
                                     @endif
                                 </div>
                                 @empty
-                                    <span style="color:var(--text-muted);">&mdash;</span>
+                                    <span class="fx-hint">&mdash;</span>
                                 @endforelse
                             @endif
                         </td>
                     </tr>
                     @endforeach
                 </tbody>
-            </table>
-        </div>
-        <div style="padding:1rem 1.5rem;border-top:1px solid var(--divider);">
-            {{ $entries->links() }}
-        </div>
-        @else
-        <div style="padding:3rem 1.5rem;text-align:center;font-size:0.82rem;color:var(--text-muted);">Nothing recorded yet.</div>
-        @endif
-    </div>
-
-</div>
+    </x-fx.table>
+    <x-slot name="foot">{{ $entries->links() }}</x-slot>
+    @else
+    <x-fx.empty title="Nothing recorded yet.">Nothing recorded yet. Changes to accounts, transactions, categories, budgets and recurring items appear here as they happen.</x-fx.empty>
+    @endif
+</x-fx.panel>
 
 </x-app-layout>

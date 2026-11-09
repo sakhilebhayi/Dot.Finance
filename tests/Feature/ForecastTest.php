@@ -204,7 +204,15 @@ class ForecastTest extends TestCase
         $account = Account::factory()->for($user)->opening(250_000, null)->create();
         $this->rule($user, $account, ['amount_cents' => 77_777_77]);
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertDontSee('77,777.77');
+        // R-44 (deliberate change, D-401): the command centre has a "Coming up" panel that lists the repeating items due in the next
+        // 14 days with their own amounts, labelled as scheduled entries. What must never happen is a projected BALANCE reaching the
+        // actual position, so the guard is now: the position is the actual ledger balance, and no projected balance or low point is drawn.
+        $response = $this->actingAs($user)->get(route('dashboard'))->assertOk();
+
+        $response->assertSee('ZAR 2,500.00')
+            ->assertDontSee('Projected balance')
+            ->assertDontSee('Projected low point')
+            ->assertDontSee('ZAR 75,277.77');
     }
 
     public function test_the_page_has_an_empty_state_when_nothing_repeats(): void

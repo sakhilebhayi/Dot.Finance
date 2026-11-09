@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\Insight;
+use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Services\BudgetSpendCalculator;
 use App\Services\LedgerSummary;
 use App\Services\ReserveRunwayCalculator;
 use App\Services\SpendingTrendCalculator;
+use App\Support\Ui\DashboardPanels;
+use App\Support\Ui\StateLine;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -49,9 +52,23 @@ class DashboardController extends Controller
         }
         $spendingTrend = $trendCurrency ? (new SpendingTrendCalculator)->calculate($context, $trendCurrency) : null;
 
+        // Money coming in and going out: only what the ledger already knows to be coming, i.e. active recurring items whose next
+        // date is inside the next 14 days (or already past and not generated yet). Nothing is estimated.
+        $upcoming = RecurringRule::query()
+            ->with(['account', 'category'])
+            ->whereNull('paused_at')->whereNull('ended_at')
+            ->whereNotNull('next_occurrence_date')
+            ->whereDate('next_occurrence_date', '<=', now()->addDays(14)->toDateString())
+            ->orderBy('next_occurrence_date')
+            ->limit(8)
+            ->get();
+
+        $needs = StateLine::for($context);
+        $extraPanels = DashboardPanels::views();
+
         return view('dashboard', compact(
             'position', 'accounts', 'recentTransactions', 'budgets', 'summaryCount',
-            'cushions', 'spendingTrend', 'currencies', 'trendCurrency'
+            'cushions', 'spendingTrend', 'currencies', 'trendCurrency', 'upcoming', 'needs', 'extraPanels'
         ));
     }
 }

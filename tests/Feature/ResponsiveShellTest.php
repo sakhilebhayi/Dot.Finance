@@ -16,9 +16,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * Guards the markup hooks of the responsive app shell (off-canvas drawer, overflow wrappers,
- * stacking helpers). These assert structure, not pixels: the drawer behaviour itself is plain
- * CSS plus a small inline script, so what can regress silently is a hook being renamed or removed.
+ * Guards the markup hooks of the responsive app shell (R-44 design system): the sidebar that becomes a bottom sheet
+ * below 1024px, the bottom bar, the table wrapper and the form hooks. These assert structure, not pixels. The shell's
+ * CSS and script are built files now (resources/css, resources/js/fx), so the guards on their behaviour read those
+ * sources; the page itself must carry no inline style and no script without the per-request nonce (see
+ * SecurityHeadersTest for the headers).
  */
 class ResponsiveShellTest extends TestCase
 {
@@ -28,6 +30,7 @@ class ResponsiveShellTest extends TestCase
     {
         $user = User::factory()->withPersonalTeam()->create();
         $account = Account::factory()->for($user)->create(['name' => 'Shell Test Cheque']);
+        Account::factory()->for($user)->create(['name' => 'Shell Test Savings']);
         Transaction::factory()->create(['account_id' => $account->id, 'user_id' => $user->id, 'description' => 'Shell test purchase']);
 
         $response = $this->actingAs($user)->get(route($routeName));
@@ -50,33 +53,56 @@ class ResponsiveShellTest extends TestCase
     }
 
     #[DataProvider('shellPages')]
-    public function test_every_app_page_carries_the_drawer_shell(string $routeName): void
+    public function test_every_app_page_carries_the_sheet_shell(string $routeName): void
     {
         $html = $this->signedInPage($routeName);
 
         $this->assertStringContainsString('<meta name="viewport" content="width=device-width, initial-scale=1"', $html);
 
-        // Visible, labelled menu button wired to the drawer.
-        $this->assertMatchesRegularExpression('/<button[^>]*class="shell-menu"[^>]*data-shell-menu[^>]*aria-controls="app-sidebar"[^>]*aria-expanded="false"/', $html);
-        $this->assertMatchesRegularExpression('/<button[^>]*data-shell-menu[^>]*>.*?<span>Menu<\/span>/s', $html);
+        // Visible, labelled "More" button wired to the sheet, in the bottom bar.
+        $this->assertMatchesRegularExpression('/<button[^>]*class="[^"]*\bshell-menu\b[^"]*"[^>]*data-shell-menu[^>]*aria-controls="app-sidebar"[^>]*aria-expanded="false"/', $html);
+        $this->assertMatchesRegularExpression('/<button[^>]*data-shell-menu[^>]*>.*?<span>More<\/span>/s', $html);
+        $this->assertMatchesRegularExpression('/<nav class="fx-bar" aria-label="Quick navigation">/', $html);
 
-        // The drawer is the existing sidebar, addressable by the id the button controls.
-        $this->assertMatchesRegularExpression('/<aside id="app-sidebar" class="sidebar"[^>]*data-shell-drawer/', $html);
+        // The sheet is the sidebar, addressable by the id the button controls.
+        $this->assertMatchesRegularExpression('/<aside id="app-sidebar" class="[^"]*\bfx-side\b[^"]*"[^>]*data-shell-drawer/', $html);
         $this->assertStringContainsString('data-shell-backdrop', $html);
         $this->assertMatchesRegularExpression('/<button[^>]*data-shell-close[^>]*aria-label="Close menu"/', $html);
 
-        // Behaviour hooks: scroll lock class, Escape handling and reduced-motion respect.
-        $this->assertStringContainsString('shell-locked', $html);
-        $this->assertStringContainsString("e.key === 'Escape'", $html);
-        $this->assertStringContainsString('@media (prefers-reduced-motion: reduce)', $html);
-        $this->assertStringContainsString('@media (max-width: 859.98px)', $html);
+        // Landmarks and the skip link.
+        $this->assertStringContainsString('<a href="#main" class="fx-skip">', $html);
+        $this->assertStringContainsString('<main id="main"', $html);
+        $this->assertStringContainsString('<nav class="fx-nav" aria-label="Main">', $html);
     }
 
-    public function test_the_menu_button_comes_first_in_the_top_bar(): void
+    public function test_the_sheet_behaviour_is_in_the_built_script_and_respects_reduced_motion(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/fx/shell.js');
+        $css = file_get_contents(dirname(__DIR__, 2).'/resources/css/base.css').file_get_contents(dirname(__DIR__, 2).'/resources/css/shell.css');
+
+        $this->assertStringContainsString("event.key === 'Escape'", $script);
+        $this->assertStringContainsString('is-locked', $script);
+        $this->assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
+        $this->assertStringContainsString('@media (max-width: 1023.98px)', $css);
+    }
+
+    public function test_the_state_line_leads_the_top_bar(): void
     {
         $html = $this->signedInPage('dashboard');
 
-        $this->assertMatchesRegularExpression('/<header class="topbar">\s*<button[^>]*data-shell-menu/', $html);
+        $this->assertMatchesRegularExpression('/<header class="fx-top topbar">.*?<section class="fx-state" aria-label="What needs you">/s', $html);
+    }
+
+    public function test_no_authenticated_page_carries_inline_style_or_an_unnonced_script(): void
+    {
+        foreach (['dashboard', 'transactions.index', 'accounts.index', 'budgets.index', 'transfers.create'] as $routeName) {
+            $html = $this->signedInPage($routeName);
+
+            $this->assertDoesNotMatchRegularExpression('/\sstyle="/i', $html, "[$routeName] has an inline style attribute");
+            $this->assertDoesNotMatchRegularExpression('/<style(?![^>]*\bnonce=)/i', $html, "[$routeName] has a <style> without a nonce");
+            $this->assertDoesNotMatchRegularExpression('/<script(?![^>]*\b(?:nonce|src)=)/i', $html, "[$routeName] has an inline <script> without a nonce");
+            $this->assertDoesNotMatchRegularExpression('#https?://(?:cdn\.tailwindcss\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)#', $html, "[$routeName] loads a third-party asset");
+        }
     }
 
     public function test_data_tables_sit_inside_a_horizontal_scroll_wrapper(): void
@@ -102,7 +128,7 @@ class ResponsiveShellTest extends TestCase
     public function test_page_wrappers_use_the_responsive_padding_hook(): void
     {
         foreach (['dashboard', 'transactions.index', 'transactions.create'] as $routeName) {
-            $this->assertStringContainsString('class="page-pad"', $this->signedInPage($routeName));
+            $this->assertMatchesRegularExpression('/class="fx-page page-pad"/', $this->signedInPage($routeName));
         }
     }
 
@@ -180,7 +206,7 @@ class ResponsiveShellTest extends TestCase
         $this->assertSame(0, $xpath->query(self::ACCOUNT_SECTION.'//*[normalize-space()="Switch teams"]')->length);
     }
 
-    public function test_the_legacy_jetstream_bar_is_not_rendered_and_content_starts_under_the_fixed_top_bar(): void
+    public function test_the_legacy_jetstream_bar_is_not_rendered(): void
     {
         $user = User::factory()->withPersonalTeam()->create();
 
@@ -188,10 +214,6 @@ class ResponsiveShellTest extends TestCase
 
         $this->assertDoesNotMatchRegularExpression('/<nav\b[^>]*\bwire:id=/', $html, 'The stock Jetstream bar (a Livewire nav) must not render at any width');
         $this->assertStringNotContainsString('Manage Account', $html, 'Text only the legacy bar rendered');
-        // Its 64px of flow height is gone: the content wrapper begins at the top bar height token.
-        $this->assertMatchesRegularExpression('/--topbar-h:\s*54px/', $html);
-        $this->assertMatchesRegularExpression('/\.topbar\s*\{[^}]*\bheight:\s*var\(--topbar-h\)/', $html);
-        $this->assertMatchesRegularExpression('/\.content-wrap\s*\{[^}]*\bpadding-top:\s*var\(--topbar-h\)/', $html);
     }
 
     public function test_no_css_rule_hides_the_account_section_at_any_width(): void
@@ -201,15 +223,14 @@ class ResponsiveShellTest extends TestCase
 
         $this->assertSame(1, $this->accountXpath($html)->query(self::ACCOUNT_SECTION)->length);
 
-        preg_match_all('/<style\b[^>]*>(.*?)<\/style>/s', $html, $blocks);
-        $css = implode("\n", $blocks[1]);
+        $css = file_get_contents(dirname(__DIR__, 2).'/resources/css/shell.css');
         $this->assertNotSame('', $css);
 
         preg_match_all('/([^{}]+)\{([^{}]*)\}/', $css, $rules, PREG_SET_ORDER);
         $checked = 0;
         foreach ($rules as [, $selector, $declarations]) {
             // The disclosure triangle of <details> is the one thing in there that is meant to be hidden.
-            if (preg_match('/shell-account|team-switch|logout-btn|team-row/', $selector) !== 1 || str_contains($selector, 'details-marker')) {
+            if (preg_match('/fx-account|shell-account|team-switch|logout-btn|team-row/', $selector) !== 1 || str_contains($selector, 'details-marker')) {
                 continue;
             }
             $checked++;
@@ -218,12 +239,12 @@ class ResponsiveShellTest extends TestCase
         $this->assertGreaterThan(0, $checked, 'The account section is styled by rules this guard can see');
     }
 
-    public function test_the_drawer_focus_trap_skips_the_collapsed_team_list(): void
+    public function test_the_sheet_focus_trap_skips_the_collapsed_team_list(): void
     {
-        $user = User::factory()->withPersonalTeam()->create();
 
-        $this->assertStringContainsString('a[href], button:not([disabled]), summary', $this->dashboardHtmlFor($user));
-        $this->assertStringContainsString('offsetParent !== null', $this->dashboardHtmlFor($user));
+        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/fx/shell.js');
+        $this->assertStringContainsString('a[href], button:not([disabled]), summary', $script);
+        $this->assertStringContainsString('offsetParent !== null', $script);
     }
 
     public function test_the_ledger_switcher_and_the_team_account_section_sit_side_by_side_without_duplicating_each_other(): void
