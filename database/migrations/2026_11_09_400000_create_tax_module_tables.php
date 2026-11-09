@@ -257,7 +257,8 @@ return new class extends Migration
         Schema::create('tax_review_resolutions', function (Blueprint $table) {
             $table->id();
             $this->owner($table);
-            $table->foreignId('journal_line_id')->constrained('journal_lines')->restrictOnDelete();
+            // no foreign key: the accounting migration must stay removable on its own (IntegerMoneyTest rolls it back), and journal rows are append-only so they are never deleted
+            $table->unsignedBigInteger('journal_line_id')->index();
             $table->string('issue_code', 40);
             // accepted (looked at, left as booked) | corrected (fixed in the books) | ignored
             $table->string('resolution', 10);
@@ -282,7 +283,7 @@ return new class extends Migration
             $table->string('label', 160);
             $table->unsignedBigInteger('amount_cents')->default(0);
             $table->string('reason', 500);
-            $table->foreignId('gl_account_id')->nullable()->constrained('gl_accounts')->restrictOnDelete();
+            $table->unsignedBigInteger('gl_account_id')->nullable()->index();
             $table->unsignedBigInteger('attachment_id')->nullable();
             $table->unsignedBigInteger('created_by_user_id')->nullable();
             $table->timestamp('voided_at')->nullable();
