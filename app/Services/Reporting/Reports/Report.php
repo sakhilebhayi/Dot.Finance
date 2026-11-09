@@ -6,6 +6,7 @@ use App\Enums\ReportBasis;
 use App\Models\Accounting\GlAccount;
 use App\Services\Reporting\Books;
 use App\Services\Reporting\Reconciliations;
+use App\Services\Reporting\ReportPeriod;
 use App\Services\Reporting\ReportRequest;
 use App\Services\Reporting\ReportResult;
 use App\Support\Money;
@@ -68,7 +69,7 @@ abstract class Report
         return [
             'ledger' => $r->context->label(),
             'period' => $period ?? $r->period->describe(),
-            'comparison' => $r->comparison?->describe(),
+            'comparison' => $r->comparison === null ? null : ($this->isPointInTime() ? 'As at '.ReportPeriod::date($r->comparison->to) : $r->comparison->describe()),
             'currency' => $r->currency(),
             'basis' => $this->supportsBasis() ? $r->basis->label() : 'Accrual',
             'generated_at' => $r->generatedAt->toIso8601String(),

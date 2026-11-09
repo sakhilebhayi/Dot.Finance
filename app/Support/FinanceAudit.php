@@ -11,7 +11,11 @@ use App\Models\Controls\ApprovalRequest;
 use App\Models\Controls\LedgerMemberRole;
 use App\Models\Controls\SpendLimit;
 use App\Models\FinanceAuditLog;
+use App\Models\Planning\Dimension;
+use App\Models\Planning\PlanBudget;
+use App\Models\Planning\Scenario;
 use App\Models\RecurringRule;
+use App\Models\Reporting\ReportPreset;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Shared\PaymentAllocation;
@@ -102,22 +106,22 @@ class FinanceAudit
             'text' => ['release_reason'],
         ],
         // ----- R-44 Reporting and Planning -----
-        \App\Models\Planning\PlanBudget::class => [
+        PlanBudget::class => [
             'type' => 'plan_budget',
             'values' => ['kind', 'fiscal_year', 'starts_on', 'ends_on', 'currency', 'status', 'based_on_id', 'method', 'version'],
             'text' => ['name'],
         ],
-        \App\Models\Planning\Scenario::class => [
+        Scenario::class => [
             'type' => 'scenario',
             'values' => ['horizon'],
             'text' => ['name', 'assumptions'],
         ],
-        \App\Models\Planning\Dimension::class => [
+        Dimension::class => [
             'type' => 'dimension',
             'values' => ['ref', 'kind', 'is_active'],
             'text' => ['name'],
         ],
-        \App\Models\Reporting\ReportPreset::class => [
+        ReportPreset::class => [
             'type' => 'report_preset',
             'values' => ['report_key'],
             'text' => ['name', 'params'],

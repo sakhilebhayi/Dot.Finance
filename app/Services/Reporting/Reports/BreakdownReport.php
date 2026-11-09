@@ -9,6 +9,7 @@ use App\Services\Reporting\Books;
 use App\Services\Reporting\Reconciliations;
 use App\Services\Reporting\ReportRequest;
 use App\Services\Reporting\ReportResult;
+use Carbon\CarbonImmutable;
 
 /**
  * Revenue or expense analysed by account, category, customer or supplier, month, or department/project, plus the
@@ -210,7 +211,7 @@ class BreakdownReport extends Report
             'month' => null,
         };
         if ($field === 'month') {
-            $month = \Carbon\CarbonImmutable::parse($key.'-01');
+            $month = CarbonImmutable::parse($key.'-01');
 
             return $this->drill(max($from, $month->toDateString()), min($to, $month->endOfMonth()->toDateString()), $extra, $r->basis);
         }
@@ -249,7 +250,7 @@ class BreakdownReport extends Report
                 break;
             default:
                 foreach ($keys as $k) {
-                    $names[$k] = $k === '' ? 'No date' : \Carbon\CarbonImmutable::parse($k.'-01')->format('M Y');
+                    $names[$k] = $k === '' ? 'No date' : CarbonImmutable::parse($k.'-01')->format('M Y');
                 }
         }
 

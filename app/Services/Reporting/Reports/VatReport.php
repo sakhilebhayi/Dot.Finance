@@ -107,7 +107,7 @@ class VatReport extends Report
         $plIds = $accounts->filter(fn ($a) => in_array($a->class, ['income', 'expense'], true))->keys()->all();
 
         $q = $this->query->ownedLines($r->context)->whereNotNull('l.tax_code_id')->whereBetween('l.entry_date', [$from, $to]);
-        $this->books->withoutClosing($q);
+        $this->books->withoutClosing($q, $r->context);
         $rows = $q->groupBy('l.tax_code_id', 'l.gl_account_id')
             ->selectRaw('l.tax_code_id, l.gl_account_id, COALESCE(SUM(l.debit_cents), 0) AS d, COALESCE(SUM(l.credit_cents), 0) AS c')->get();
 

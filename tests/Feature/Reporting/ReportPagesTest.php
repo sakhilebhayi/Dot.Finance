@@ -158,4 +158,39 @@ class ReportPagesTest extends TestCase
         $this->assertMatchesRegularExpression('/<option value="previous"\s+selected/', $html);
         $this->assertSame(CarbonImmutable::today()->subMonthNoOverflow()->startOfMonth()->toDateString(), CarbonImmutable::parse(app(ReportRunner::class)->request($this->ctx, 'profit-loss', ['preset' => 'last_month'])->period->from)->toDateString());
     }
+
+    public function test_the_general_ledger_page_is_capped_but_the_report_and_export_are_not(): void
+    {
+        $this->buildCompanyBooks();
+        // 1,001 entries, one line each on the bank account in one month.
+        foreach (range(1, 1001) as $i) {
+            $this->journal('2026-07-15', 'Bulk '.$i, [
+                new PostingLine('bank', debitCents: 100), new PostingLine('sales', creditCents: 100),
+            ]);
+        }
+        $bank = $this->glCode('1010');
+        $input = ['from' => '2026-07-01', 'to' => '2026-07-31', 'account' => (string) $bank->id];
+
+        $page = $this->as_()->get(route('reports.general-ledger', $input));
+        $page->assertOk()->assertSee('Showing the first 1,000 lines');
+        $this->assertSame(1000, substr_count($page->getContent(), 'Bulk '));
+
+        $full = app(ReportRunner::class)->run($this->ctx, 'general-ledger', $input);
+        $this->assertSame(1001, collect($full->rows)->filter(fn ($r) => isset($r['cells']['ref']))->count(), 'without the cap every line is there');
+        $this->assertSame(100_100, $full->cell('Closing balance', 'balance'));
+    }
+
+    public function test_the_pages_are_csp_clean(): void
+    {
+        $this->buildCompanyBooks();
+        foreach (['reports.index', 'reports.profit-loss', 'reports.balance-sheet', 'reports.cash-flow-statement', 'reports.exports.index', 'planning.cash.index', 'planning.forecasts.index', 'planning.scenarios.create', 'planning.budgets.create', 'planning.afford'] as $name) {
+            $html = $this->as_()->get(route($name))->assertOk()->getContent();
+            $this->assertDoesNotMatchRegularExpression('/\sstyle="/', $html, "{$name} has an inline style attribute");
+            $this->assertDoesNotMatchRegularExpression('/\son(click|change|submit|load)="/i', $html, "{$name} has an inline handler");
+            $this->assertStringNotContainsString('resources/css', $html);
+            foreach (['cdn.', 'googleapis', 'unpkg'] as $host) {
+                $this->assertStringNotContainsString($host, $html, "{$name} reaches out to {$host}");
+            }
+        }
+    }
 }

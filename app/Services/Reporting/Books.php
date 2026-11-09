@@ -4,6 +4,7 @@ namespace App\Services\Reporting;
 
 use App\Enums\ReportBasis;
 use App\Models\Accounting\GlAccount;
+use App\Models\Accounting\JournalEntry;
 use App\Services\Accounting\GlQuery;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Database\Query\Builder;
@@ -101,13 +102,40 @@ class Books
     public function movement(ReportRequest $r, ?string $from, string $to): array
     {
         return $this->cache->remember($r, 'movement', ['from' => $from, 'to' => $to], function () use ($r, $from, $to) {
+            $q = $this->query->ownedLines($r->context)->where('l.entry_date', '<=', $to)->groupBy('l.gl_account_id')
+                ->selectRaw('l.gl_account_id, COALESCE(SUM(l.debit_cents), 0) AS d, COALESCE(SUM(l.credit_cents), 0) AS c');
+            if ($from !== null) {
+                $q->where('l.entry_date', '>=', $from);
+            }
+            $this->withoutClosing($q, $r->context);
+
             $out = [];
-            foreach ($this->query->totals($r->context, $from, $to, true) as $id => $t) {
-                $out[(int) $id] = ['d' => (int) $t->debits, 'c' => (int) $t->credits];
+            foreach ($q->get() as $row) {
+                $out[(int) $row->gl_account_id] = ['d' => (int) $row->d, 'c' => (int) $row->c];
             }
 
             return $out;
         });
+    }
+
+    /**
+     * Income and expense for a period straight from the journals, grouped by account class (closing entries left out). A second
+     * route to the profit-and-loss figures, used by the reconciliation badges; deliberately not cached.
+     *
+     * @return array{income_cents: int, expense_cents: int, net_cents: int}
+     */
+    public function incomeExpense(LedgerContext $context, string $from, string $to): array
+    {
+        $q = $this->query->ownedLines($context)->join('gl_accounts as g', 'g.id', '=', 'l.gl_account_id')
+            ->whereIn('g.class', ['income', 'expense'])->whereBetween('l.entry_date', [$from, $to])
+            ->groupBy('g.class')->selectRaw('g.class, COALESCE(SUM(l.debit_cents), 0) AS d, COALESCE(SUM(l.credit_cents), 0) AS c');
+        $this->withoutClosing($q, $context);
+        $rows = $q->get()->keyBy('class');
+
+        $income = (int) ($rows['income']->c ?? 0) - (int) ($rows['income']->d ?? 0);
+        $expense = (int) ($rows['expense']->d ?? 0) - (int) ($rows['expense']->c ?? 0);
+
+        return ['income_cents' => $income, 'expense_cents' => $expense, 'net_cents' => $income - $expense];
     }
 
     /**
@@ -121,7 +149,7 @@ class Books
             if ($from !== null) {
                 $q->where('l.entry_date', '>=', $from);
             }
-            $this->onlyClosing($q);
+            $this->onlyClosing($q, $r->context);
 
             return (int) $q->selectRaw('COALESCE(SUM(l.credit_cents), 0) - COALESCE(SUM(l.debit_cents), 0) AS net')->value('net');
         });
@@ -149,7 +177,7 @@ class Books
             $q->where('l.entry_date', '<=', $to);
         }
 
-        $this->withoutClosing($q);
+        $this->withoutClosing($q, $context);
 
         if ($withoutDocuments) {
             $this->withoutDocuments($q);
@@ -193,29 +221,42 @@ class Books
         return implode('|', array_map(fn ($f) => (string) ($row[$f] ?? ''), $groupBy));
     }
 
-    /** Leave out the year-end closing entries and the reversals of them. */
-    public function withoutClosing(Builder $query, ?string $fromDate = null): void
+    /**
+     * Ids of the year-end closing entries and of the entries that reverse them. There is at most a couple per financial
+     * year, so the queries below filter on this short list instead of running a correlated subquery per journal line.
+     *
+     * @return list<int>
+     */
+    public function closingEntryIds(LedgerContext $context, ?string $fromDate = null): array
     {
-        $query->whereNotExists(function ($sub) use ($fromDate) {
-            $sub->selectRaw('1')->from('journal_entries as ce')->whereColumn('ce.id', 'l.journal_entry_id')
-                ->when($fromDate !== null, fn ($w) => $w->where('ce.entry_date', '>=', $fromDate))
-                ->where(function ($q) {
-                    $q->where('ce.source_type', 'period_close')
-                        ->orWhereIn('ce.reverses_entry_id', fn ($s) => $s->select('pc.id')->from('journal_entries as pc')->where('pc.source_type', 'period_close'));
-                });
-        });
+        $closing = JournalEntry::query()->forContext($context)->where('source_type', 'period_close')->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if ($closing === []) {
+            return [];
+        }
+
+        $reversals = JournalEntry::query()->forContext($context)->whereIn('reverses_entry_id', $closing)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $ids = array_merge($closing, $reversals);
+
+        if ($fromDate !== null) {
+            $ids = JournalEntry::query()->forContext($context)->whereIn('id', $ids)->where('entry_date', '>=', $fromDate)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        }
+
+        return $ids;
+    }
+
+    /** Leave out the year-end closing entries and the reversals of them. */
+    public function withoutClosing(Builder $query, LedgerContext $context, ?string $fromDate = null): void
+    {
+        $ids = $this->closingEntryIds($context, $fromDate);
+        if ($ids !== []) {
+            $query->whereNotIn('l.journal_entry_id', $ids);
+        }
     }
 
     /** Keep only the year-end closing entries and their reversals. */
-    private function onlyClosing(Builder $query): void
+    private function onlyClosing(Builder $query, LedgerContext $context): void
     {
-        $query->whereExists(function ($sub) {
-            $sub->selectRaw('1')->from('journal_entries as ce')->whereColumn('ce.id', 'l.journal_entry_id')
-                ->where(function ($q) {
-                    $q->where('ce.source_type', 'period_close')
-                        ->orWhereIn('ce.reverses_entry_id', fn ($s) => $s->select('pc.id')->from('journal_entries as pc')->where('pc.source_type', 'period_close'));
-                });
-        });
+        $query->whereIn('l.journal_entry_id', $this->closingEntryIds($context) ?: [0]);
     }
 
     /** Leave out the document entries the cash basis recognises on payment, and the reversals of them. */

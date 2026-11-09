@@ -18,6 +18,9 @@ class GeneralLedgerReport extends Report
 {
     public const PAGE_ACCOUNT_LIMIT = 400;
 
+    /** The page shows at most this many lines (a year of one busy account can be tens of thousands); an export has no cap. */
+    public const PAGE_LINE_LIMIT = 1000;
+
     public function __construct(Books $books, Reconciliations $recon, private readonly GlQuery $query)
     {
         parent::__construct($books, $recon);
@@ -40,7 +43,7 @@ class GeneralLedgerReport extends Report
 
     public function optionKeys(): array
     {
-        return ['account'];
+        return ['account', 'cap'];
     }
 
     public function group(): string
@@ -76,11 +79,15 @@ class GeneralLedgerReport extends Report
         $opening = $this->query->ownedLines($r->context)->where('l.entry_date', '<', $from)->groupBy('l.gl_account_id')
             ->selectRaw('l.gl_account_id, COALESCE(SUM(l.debit_cents), 0) - COALESCE(SUM(l.credit_cents), 0) AS net')->pluck('net', 'gl_account_id');
 
+        $capped = $r->option('cap') === '1';
         $lines = $this->query->ownedLines($r->context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
             ->whereBetween('l.entry_date', [$from, $to])->when($only !== null, fn ($q) => $q->where('l.gl_account_id', $only))
             ->orderBy('l.gl_account_id')->orderBy('l.entry_date')->orderBy('e.entry_number')->orderBy('l.line_no')
-            ->get(['l.id', 'l.gl_account_id', 'l.entry_date', 'l.debit_cents', 'l.credit_cents', 'l.description', 'e.id as entry_id', 'e.entry_number', 'e.memo'])
-            ->groupBy('gl_account_id');
+            ->when($capped, fn ($q) => $q->limit(self::PAGE_LINE_LIMIT + 1))
+            ->get(['l.id', 'l.gl_account_id', 'l.entry_date', 'l.debit_cents', 'l.credit_cents', 'l.description', 'e.id as entry_id', 'e.entry_number', 'e.memo']);
+
+        $truncated = $capped && $lines->count() > self::PAGE_LINE_LIMIT;
+        $lines = ($truncated ? $lines->take(self::PAGE_LINE_LIMIT) : $lines)->groupBy('gl_account_id');
 
         $shown = 0;
         foreach ($selected as $a) {
@@ -116,7 +123,10 @@ class GeneralLedgerReport extends Report
 
         return new ReportResult($this->key(), $this->title(), $this->header($r, ['Balances are debit positive. Opening balance is everything posted before the start date.']),
             [$this->col('label', 'Description', 'text'), $this->col('date', 'Date', 'date'), $this->col('ref', 'Entry', 'text'), $this->col('debit', 'Debit'), $this->col('credit', 'Credit'), $this->col('balance', 'Balance')],
-            $rows, [], $shown > self::PAGE_ACCOUNT_LIMIT ? ['Only the first '.self::PAGE_ACCOUNT_LIMIT.' accounts are shown. Choose an account, or export.'] : [],
+            $rows, [], array_values(array_filter([
+                $shown > self::PAGE_ACCOUNT_LIMIT ? 'Only the first '.self::PAGE_ACCOUNT_LIMIT.' accounts are shown. Choose an account, or export.' : null,
+                $truncated ? 'Showing the first '.number_format(self::PAGE_LINE_LIMIT).' lines. The balances after the last line shown are not the closing balance. Narrow the dates or choose an account, or export the whole ledger.' : null,
+            ])),
             $rows === [] ? 'No lines in this period.' : null);
     }
 

@@ -6,7 +6,7 @@
 @endphp
 <form method="GET" action="{{ route($routeName) }}" class="rp-toolbar" aria-label="Report settings">
     @unless ($point)
-    <x-fx.select name="preset" label="Period" hint="Dates below apply when Custom dates is chosen.">
+    <x-fx.select name="preset" label="Period" hint="Dates apply for Custom dates.">
         @foreach ($periodPresets as $value => $label)
         <option value="{{ $value }}" @selected($selectedPreset === $value)>{{ $label }}</option>
         @endforeach
@@ -26,7 +26,7 @@
     @endif
 
     @if ($definition->supportsBasis())
-    <x-fx.select name="basis" label="Basis" hint="Accrual counts invoices when issued; cash when paid.">
+    <x-fx.select name="basis" label="Basis" hint="Accrual: when issued. Cash: when paid.">
         <option value="accrual" @selected(($in['basis'] ?? 'accrual') === 'accrual')>Accrual</option>
         <option value="cash" @selected(($in['basis'] ?? '') === 'cash')>Cash</option>
     </x-fx.select>
@@ -90,7 +90,9 @@
     @endif
 </div>
 
-<div class="fx-cluster rp-noprint">
+<details class="rp-more rp-noprint">
+<summary>Save this view or export</summary>
+<div class="fx-cluster rp-more__body">
     <form method="POST" action="{{ route('reports.presets.store') }}" class="fx-cluster" aria-label="Save this view">
         @csrf
         <input type="hidden" name="report" value="{{ $key }}">
@@ -111,3 +113,4 @@
     </form>
     @endif
 </div>
+</details>

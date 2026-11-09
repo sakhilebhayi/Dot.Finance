@@ -8,6 +8,7 @@ use App\Services\Reporting\Reconciliations;
 use App\Services\Reporting\ReportRequest;
 use App\Services\Reporting\ReportResult;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 
 /** The trial balance as at the period's end date, in the common report shape (so it exports and drills like the rest). */
 class TrialBalanceReport extends Report
@@ -58,7 +59,7 @@ class TrialBalanceReport extends Report
             $this->recon->bank($r, $asAt),
         ];
 
-        return new ReportResult($this->key(), $this->title(), $this->header($r, ['Balances are as at the end date, from every posted journal line including year-end closing entries.'], 'As at '.\Carbon\CarbonImmutable::parse($asAt)->format('j M Y')),
+        return new ReportResult($this->key(), $this->title(), $this->header($r, ['Balances are as at the end date, from every posted journal line including year-end closing entries.'], 'As at '.CarbonImmutable::parse($asAt)->format('j M Y')),
             [$this->col('label', 'Account', 'text'), $this->col('class', 'Class', 'text'), $this->col('debit', 'Debit'), $this->col('credit', 'Credit')], $rows, $checks, [],
             $tb['rows'] === [] ? 'No entries yet. Record a transaction or post a journal and it appears here.' : null);
     }

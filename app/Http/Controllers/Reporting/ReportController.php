@@ -51,6 +51,10 @@ class ReportController extends ReportingController
 
         $input = $this->reportInput($request);
         $definition = $registry->get($report);
+        // The page caps the general ledger; exports and saved views never carry the cap.
+        if ($report === 'general-ledger' && ! $request->boolean('print')) {
+            $input['cap'] = '1';
+        }
 
         try {
             $built = $runner->request($context, $report, $input);
@@ -64,7 +68,7 @@ class ReportController extends ReportingController
             'definition' => $definition,
             'request' => $built,
             'routeName' => 'reports.'.$report,
-            'input' => $built->params(),
+            'input' => array_diff_key($built->params(), ['cap' => 1]),
             'presets' => ReportPreset::query()->where('report_key', $report)->orderBy('name')->get(),
             'plans' => $report === 'budget-vs-actual' ? PlanBudget::query()->orderByDesc('id')->get() : collect(),
             'accounts' => $report === 'general-ledger' ? GlAccount::query()->orderBy('code')->get() : collect(),

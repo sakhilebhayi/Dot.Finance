@@ -7,8 +7,8 @@
 .rp-toolbar {
     display: grid;
     gap: var(--s-3) var(--s-4);
-    align-items: end;
-    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    align-items: start;
     padding: var(--s-4);
     border: 1px solid var(--rule);
     border-radius: var(--r-panel);
@@ -17,6 +17,7 @@
 }
 
 .rp-toolbar__actions {
+    align-self: end;
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-2);
@@ -64,7 +65,7 @@
 }
 
 .rp-assumptions {
-    margin: var(--s-5) 0 0;
+    margin: var(--s-2) 0 0;
     padding: 0 0 0 var(--s-5);
     font-size: var(--fs-small);
     color: var(--ink-2);
@@ -221,11 +222,44 @@
 
 .rp-chart__actual { fill: none; stroke: var(--ink); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .rp-chart__projected { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
-.rp-chart__scenario { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.rp-chart__scenario { fill: none; stroke: var(--ink-2); stroke-width: 3; stroke-dasharray: 1 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .rp-chart__buffer { stroke: var(--pencil); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
 .rp-chart__band { fill: rgb(var(--ink-rgb) / 0.06); }
 
 @media print {
     .rp-toolbar, .rp-noprint, .fx-side, .fx-top, .fx-bar { display: none !important; }
     .rp-table { font-size: 11px; }
+}
+
+.rp-more {
+    margin: 0 0 var(--s-4);
+    font-size: var(--fs-small);
+}
+
+.rp-more > summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    padding: var(--s-1) 0;
+    width: fit-content;
+}
+
+.rp-more__body {
+    align-items: end;
+    gap: var(--s-4);
+    padding: var(--s-3) 0;
+}
+
+.rp-saved {
+    margin: 0 0 var(--s-3);
+}
+
+@media (max-width: 40rem) {
+    .rp-toolbar {
+        gap: var(--s-2) var(--s-3);
+        padding: var(--s-3);
+    }
+
+    .rp-toolbar .fx-hint {
+        display: none;
+    }
 }

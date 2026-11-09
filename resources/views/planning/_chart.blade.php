@@ -4,7 +4,7 @@
     $b = isset($alt) && $alt ? $alt['series'] : null;
     $all = array_merge(array_column($a, 'balance_cents'), $b ? array_column($b, 'balance_cents') : [], [$buffer ?? 0]);
     $min = min($all); $max = max($all); $span = max(1, $max - $min);
-    $w = 720; $h = 170; $padL = 8; $padR = 8; $padT = 8; $padB = 24;
+    $w = 720; $h = 190; $padL = 8; $padR = 8; $padT = 18; $padB = 24;
     $start = \Carbon\CarbonImmutable::parse($base['today']);
     $days = max(1, $start->diffInDays(\Carbon\CarbonImmutable::parse($base['end'])));
     $x = fn ($d) => $padL + ($start->diffInDays(\Carbon\CarbonImmutable::parse($d)) / $days) * ($w - $padL - $padR);
@@ -24,6 +24,10 @@
     <svg class="rp-chart fx-chart" viewBox="0 0 {{ $w }} {{ $h }}" role="img" aria-label="Projected cash balance from {{ $start->format('j M Y') }} to {{ \Carbon\CarbonImmutable::parse($base['end'])->format('j M Y') }}. Starts at the actual balance of {{ \App\Support\Money::format($base['opening_cents'], $currency) }}; the lowest projected balance is {{ \App\Support\Money::format($base['lowest']['balance_cents'], $currency) }}.">
         @if ($zero !== null)<line class="fx-chart__zero" x1="{{ $padL }}" y1="{{ $zero }}" x2="{{ $w - $padR }}" y2="{{ $zero }}" />@endif
         @if (($buffer ?? 0) > 0)<line class="rp-chart__buffer" x1="{{ $padL }}" y1="{{ $y($buffer) }}" x2="{{ $w - $padR }}" y2="{{ $y($buffer) }}" />@endif
+        <line class="fx-chart__grid" x1="{{ $padL }}" y1="{{ $y($max) }}" x2="{{ $w - $padR }}" y2="{{ $y($max) }}" />
+        <line class="fx-chart__grid" x1="{{ $padL }}" y1="{{ $y($min) }}" x2="{{ $w - $padR }}" y2="{{ $y($min) }}" />
+        <text x="{{ $w - $padR }}" y="{{ $y($max) - 4 }}" text-anchor="end">{{ \App\Support\Money::format($max) }}</text>
+        <text x="{{ $w - $padR }}" y="{{ $y($min) - 4 }}" text-anchor="end">{{ \App\Support\Money::format($min) }}</text>
         <polyline class="rp-chart__projected" points="{{ $path($a) }}" />
         @if ($b)<polyline class="rp-chart__scenario" points="{{ $path($b) }}" />@endif
         <circle cx="{{ $x($base['today']) }}" cy="{{ $y($base['opening_cents']) }}" r="4" fill="currentColor" />

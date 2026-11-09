@@ -25,7 +25,9 @@
             </th>
             @else
             <td data-label="{{ $c['label'] }}" @class(['is-num' => in_array($c['type'], ['money', 'pct', 'count']), 'rp-projected' => $c['projected'] ?? false])>
-                @if ($v === null || $v === '')
+                @if (empty($row['cells']))
+                    {{-- a group heading inside a statement carries no figure --}}
+                @elseif ($v === null || $v === '')
                     <span class="rp-quiet" aria-label="no figure">&ndash;</span>
                 @elseif ($c['type'] === 'money')
                     @php $d = $row['drill'][$c['key']] ?? null; @endphp

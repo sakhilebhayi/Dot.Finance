@@ -172,9 +172,9 @@ class DrillDown
 
         $profitAndLoss = $this->isProfitAndLoss($f, $account) && ! empty($f['basis']);
         if (! empty($f['noclose']) || $profitAndLoss) {
-            $this->books->withoutClosing($q);
+            $this->books->withoutClosing($q, $context);
         } elseif (! empty($f['noclose_from'])) {
-            $this->books->withoutClosing($q, (string) $f['noclose_from']);
+            $this->books->withoutClosing($q, $context, (string) $f['noclose_from']);
         }
 
         if ($cashBasis) {

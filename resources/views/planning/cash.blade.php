@@ -24,7 +24,7 @@
 
 <section class="rp-answer" aria-labelledby="cash-low">
     <h2 class="fx-section-title" id="cash-low">Lowest point ahead <x-fx.pill>projected, not guaranteed</x-fx.pill></h2>
-    <p class="rp-lead rp-projected"><x-fx.money :cents="$lowest['balance_cents']" :currency="$cur" :lead="true" :variance="$lowest['balance_cents'] < $buffer || $lowest['balance_cents'] < 0" /></p>
+    <p class="rp-lead"><x-fx.money :cents="$lowest['balance_cents']" :currency="$cur" :lead="true" :variance="$lowest['balance_cents'] < $buffer || $lowest['balance_cents'] < 0" /></p>
     <p>
         @if ($lowest['date'] === $base['today'] && $base['shortage'] === null) The balance is not projected to go lower than it is today.
         @else Projected for {{ \Carbon\CarbonImmutable::parse($lowest['date'])->format('l j M Y') }}.@endif
@@ -41,34 +41,34 @@
     <x-fx.table caption="Base projection against the scenario">
         <thead><tr><th scope="col">Measure</th><th scope="col" class="is-num">Base</th><th scope="col" class="is-num">Scenario</th><th scope="col" class="is-num">Difference</th></tr></thead>
         <tbody>
-        <tr><th scope="row" data-label="" class="is-lead">Lowest balance</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['lowest']['balance_cents']" :currency="$cur" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['lowest']['balance_cents']" :currency="$cur" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['lowest_diff_cents']" :currency="$cur" :signed="true" /></td></tr>
-        <tr><th scope="row" data-label="" class="is-lead">Balance at the end</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['closing_cents']" :currency="$cur" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['closing_cents']" :currency="$cur" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['closing_diff_cents']" :currency="$cur" :signed="true" /></td></tr>
-        <tr><th scope="row" data-label="" class="is-lead">Money in</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['inflow_cents']" :currency="$cur" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['inflow_cents']" :currency="$cur" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['inflow_diff_cents']" :currency="$cur" :signed="true" /></td></tr>
-        <tr><th scope="row" data-label="" class="is-lead">Money out</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['outflow_cents']" :currency="$cur" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['outflow_cents']" :currency="$cur" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['outflow_diff_cents']" :currency="$cur" :signed="true" /></td></tr>
+        <tr><th scope="row" data-label="" class="is-lead">Lowest balance</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['lowest']['balance_cents']" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['lowest']['balance_cents']" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['lowest_diff_cents']" :signed="true" /></td></tr>
+        <tr><th scope="row" data-label="" class="is-lead">Balance at the end</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['closing_cents']" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['closing_cents']" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['closing_diff_cents']" :signed="true" /></td></tr>
+        <tr><th scope="row" data-label="" class="is-lead">Money in</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['inflow_cents']" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['inflow_cents']" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['inflow_diff_cents']" :signed="true" /></td></tr>
+        <tr><th scope="row" data-label="" class="is-lead">Money out</th><td data-label="Base" class="is-num"><x-fx.money :cents="$base['outflow_cents']" /></td><td data-label="Scenario" class="is-num rp-projected"><x-fx.money :cents="$alt['outflow_cents']" /></td><td data-label="Difference" class="is-num"><x-fx.money :cents="$compare['outflow_diff_cents']" :signed="true" /></td></tr>
         </tbody>
     </x-fx.table>
     <x-slot name="foot"><ul class="rp-notes">@foreach ($alt['assumptions'] as $a)<li>{{ $a }}</li>@endforeach</ul></x-slot>
 </x-fx.panel>
 @endif
 
-<x-fx.panel :title="$horizon === 'months_12' ? 'Month by month (projected)' : 'Week by week (projected)'" flush class="rp-projected-panel">
+<x-fx.panel :title="$horizon === 'months_12' ? 'Month by month (projected)' : 'Week by week (projected)'" :meta="'Amounts in '.$cur.'. Hatched cells are projected.'" flush>
     <x-fx.table caption="Projected cash by period">
         <thead><tr><th scope="col">Period</th><th scope="col" class="is-num">Money in</th><th scope="col" class="is-num">Money out</th><th scope="col" class="is-num">Projected balance at the end</th></tr></thead>
         <tbody>
-        <tr><th scope="row" data-label="" class="is-lead">Today <x-fx.pill kind="ticked" icon="check">actual</x-fx.pill></th><td data-label="Money in" class="is-num">&ndash;</td><td data-label="Money out" class="is-num">&ndash;</td><td data-label="Balance" class="is-num"><x-fx.money :cents="$base['opening_cents']" :currency="$cur" /></td></tr>
+        <tr><th scope="row" data-label="" class="is-lead">Today <x-fx.pill kind="ticked" icon="check">actual</x-fx.pill></th><td data-label="Money in" class="is-num">&ndash;</td><td data-label="Money out" class="is-num">&ndash;</td><td data-label="Balance" class="is-num"><x-fx.money :cents="$base['opening_cents']" /></td></tr>
         @foreach ($base['buckets'] as $bk)
         <tr>
             <th scope="row" data-label="" class="is-lead">{{ $bk['label'] }}</th>
-            <td data-label="Money in" class="is-num rp-projected"><x-fx.money :cents="$bk['inflow_cents']" :currency="$cur" /></td>
-            <td data-label="Money out" class="is-num rp-projected"><x-fx.money :cents="$bk['outflow_cents']" :currency="$cur" /></td>
-            <td data-label="Balance" class="is-num rp-projected"><x-fx.money :cents="$bk['closing_cents']" :currency="$cur" :variance="$bk['closing_cents'] < max(0, $buffer)" /></td>
+            <td data-label="Money in" class="is-num rp-projected"><x-fx.money :cents="$bk['inflow_cents']" /></td>
+            <td data-label="Money out" class="is-num rp-projected"><x-fx.money :cents="$bk['outflow_cents']" /></td>
+            <td data-label="Balance" class="is-num rp-projected"><x-fx.money :cents="$bk['closing_cents']" :variance="$bk['closing_cents'] < max(0, $buffer)" /></td>
         </tr>
         @endforeach
         </tbody>
     </x-fx.table>
 </x-fx.panel>
 
-<x-fx.panel title="What the projection is made of" :meta="count($base['events']).' items'" flush>
+<x-fx.panel title="What the projection is made of" :meta="count($base['events']).' items, amounts in '.$cur" flush>
     @if ($base['events'] === [])
     <x-fx.empty title="Nothing is due in this window.">There are no open invoices or bills and no recurring items falling in these dates, so the projected balance stays flat.</x-fx.empty>
     @else
@@ -80,8 +80,8 @@
             <th scope="row" data-label="Date" class="is-lead">{{ \App\Services\Reporting\ReportFormat::date($e['date']) }}</th>
             <td data-label="Item">@if ($e['href'])<a href="{{ $e['href'] }}">{{ $e['label'] }}</a>@else{{ $e['label'] }}@endif @if ($e['estimate'])<x-fx.pill>estimate</x-fx.pill>@endif @if ($e['overdue'])<x-fx.pill kind="variance">late</x-fx.pill>@endif</td>
             <td data-label="Source">{{ ucfirst($e['source']) }}: {{ $e['method'] }}</td>
-            <td data-label="Amount" class="is-num rp-projected"><x-fx.money :cents="$e['cents']" :currency="$cur" :signed="true" /></td>
-            <td data-label="Balance after" class="is-num rp-projected"><x-fx.money :cents="$e['balance_cents']" :currency="$cur" /></td>
+            <td data-label="Amount" class="is-num rp-projected"><x-fx.money :cents="$e['cents']" :signed="true" /></td>
+            <td data-label="Balance after" class="is-num rp-projected"><x-fx.money :cents="$e['balance_cents']" /></td>
         </tr>
         @endforeach
         </tbody>

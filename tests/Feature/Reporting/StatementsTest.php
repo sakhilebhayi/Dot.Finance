@@ -3,6 +3,8 @@
 namespace Tests\Feature\Reporting;
 
 use App\Models\Accounting\AccountingPeriod;
+use App\Models\Category;
+use App\Services\Accounting\GlSync;
 use App\Services\Accounting\Periods;
 use App\Services\Accounting\TrialBalance;
 use App\Services\Reporting\ReportResult;
@@ -122,8 +124,8 @@ class StatementsTest extends TestCase
     {
         $this->buildCompanyBooks();
         // A transaction in the following year while 2026 was never closed.
-        $this->tx($this->bank, \App\Models\Category::query()->forContext($this->ctx)->where('name', 'Consulting')->first(), 'income', 2_000_000, '2027-02-10');
-        app(\App\Services\Accounting\GlSync::class)->flush();
+        $this->tx($this->bank, Category::query()->forContext($this->ctx)->where('name', 'Consulting')->first(), 'income', 2_000_000, '2027-02-10');
+        app(GlSync::class)->flush();
         $this->artisan('finance:gl:post-pending');
 
         $r = $this->run_('balance-sheet', ['to' => '2027-03-31']);
@@ -194,7 +196,7 @@ class StatementsTest extends TestCase
     public function test_a_posting_the_cash_ledger_has_but_the_journals_lack_turns_the_bank_badge_red_with_the_amount(): void
     {
         $this->buildCompanyBooks();
-        $this->tx($this->bank, \App\Models\Category::query()->forContext($this->ctx)->where('name', 'Rent')->first(), 'expense', 123_400, '2026-06-20');
+        $this->tx($this->bank, Category::query()->forContext($this->ctx)->where('name', 'Rent')->first(), 'expense', 123_400, '2026-06-20');
 
         $r = $this->run_('trial-balance', ['to' => '2026-06-30']);
         $bank = collect($r->checks)->firstWhere('key', 'ties_to_bank_balances');

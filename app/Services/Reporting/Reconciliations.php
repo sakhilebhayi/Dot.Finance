@@ -17,19 +17,19 @@ use App\Support\Money;
  */
 class Reconciliations
 {
-    public function __construct(private readonly GlQuery $query, private readonly TrialBalance $trialBalance) {}
+    public function __construct(private readonly GlQuery $query, private readonly TrialBalance $trialBalance, private readonly Books $books) {}
 
     /** The statement's net result for the period agrees with income minus expense taken straight from the journals. */
     public function profitAndLoss(ReportRequest $r, int $incomeCents, int $expenseCents, string $from, string $to): array
     {
         if ($r->basis === ReportBasis::Cash) {
-            $accrual = $this->query->incomeExpense($r->context, $from, $to);
+            $accrual = $this->books->incomeExpense($r->context, $from, $to);
             $gap = ($accrual['income_cents'] - $accrual['expense_cents']) - ($incomeCents - $expenseCents);
 
             return $this->check('ties_to_trial_balance', 'Ties to the trial balance', true, 0, 'Cash basis is not comparable to the trial balance line by line. Accrual net profit for the same period is '.Money::format($accrual['net_cents'], $r->currency()).'; the cash-basis figure is lower or higher by '.Money::format(abs($gap), $r->currency()).' (invoices and bills not yet paid, or paid from earlier periods).');
         }
 
-        $journal = $this->query->incomeExpense($r->context, $from, $to);
+        $journal = $this->books->incomeExpense($r->context, $from, $to);
         $diff = ($incomeCents - $expenseCents) - $journal['net_cents'];
 
         return $this->check('ties_to_trial_balance', 'Ties to the trial balance', $diff === 0, $diff, $diff === 0

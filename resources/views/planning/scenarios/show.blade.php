@@ -18,7 +18,8 @@
 
 <section class="rp-answer" aria-labelledby="sc-answer">
     <h2 class="fx-section-title" id="sc-answer">Effect on cash <x-fx.pill>projected, not guaranteed</x-fx.pill></h2>
-    <p>Lowest projected balance goes from <x-fx.money :cents="$base['lowest']['balance_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['lowest']['balance_cents']" :currency="$cur" /> (<x-fx.money :cents="$compare['lowest_diff_cents']" :currency="$cur" :signed="true" />). The balance at the end of the window goes from <x-fx.money :cents="$base['closing_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['closing_cents']" :currency="$cur" />.</p>
+    <p>The lowest projected balance goes from <x-fx.money :cents="$base['lowest']['balance_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['lowest']['balance_cents']" :currency="$cur" />, {{ $compare['lowest_diff_cents'] < 0 ? 'lower' : 'higher' }} by <x-fx.money :cents="abs($compare['lowest_diff_cents'])" :currency="$cur" />.
+        The balance at the end of the window goes from <x-fx.money :cents="$base['closing_cents']" :currency="$cur" /> to <x-fx.money :cents="$alt['closing_cents']" :currency="$cur" />.</p>
     <p>@if ($alt['shortage']) Under this scenario cash is projected to fall below zero on {{ \Carbon\CarbonImmutable::parse($alt['shortage']['date'])->format('j M Y') }}. @else Under this scenario no shortage is projected. @endif
        @if ($base['shortage'] && ! $alt['shortage']) The base projection does show one on {{ \Carbon\CarbonImmutable::parse($base['shortage']['date'])->format('j M Y') }}. @endif</p>
 </section>

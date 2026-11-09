@@ -2,6 +2,7 @@
 
 namespace App\Services\Reporting\Reports;
 
+use App\Enums\ReportBasis;
 use App\Models\Accounting\GlAccount;
 use App\Services\Reporting\ReportPeriod;
 use App\Services\Reporting\ReportRequest;
@@ -61,7 +62,7 @@ class BalanceSheet extends Report
         }
 
         $rows = [];
-        $emit = function (string $type, string $label, int $now, ?int $then, array $drillNow, int $depth = 1) use (&$rows, $cmpAt, $asAt) {
+        $emit = function (string $type, string $label, int $now, ?int $then, array $drillNow, int $depth = 1) use (&$rows, $cmpAt) {
             $cells = ['total' => $now];
             $drill = ['total' => $drillNow];
             if ($then !== null) {
@@ -213,7 +214,7 @@ class BalanceSheet extends Report
             }
         }
 
-        $year = $this->books->totals($r, $fyStart, $asAt, null, \App\Enums\ReportBasis::Accrual);
+        $year = $this->books->totals($r, $fyStart, $asAt, null, ReportBasis::Accrual);
         $current = 0;
         foreach ($accounts as $a) {
             if (isset($year[$a->id])) {

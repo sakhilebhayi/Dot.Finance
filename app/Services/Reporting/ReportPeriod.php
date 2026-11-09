@@ -159,6 +159,11 @@ final class ReportPeriod
         return ['from' => $this->from, 'to' => $this->to];
     }
 
+    public static function date(string $date): string
+    {
+        return self::parse($date)->format('j M Y');
+    }
+
     public static function range(string $from, string $to): string
     {
         $a = self::parse($from);
