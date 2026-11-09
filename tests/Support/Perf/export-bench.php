@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Reporting\ExportService;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Queue;
 
 require __DIR__.'/../../../vendor/autoload.php';
 $app = require __DIR__.'/../../../bootstrap/app.php';
@@ -26,7 +27,7 @@ if ($key === 'general-ledger') {
 $service = app(ExportService::class);
 $t = microtime(true);
 $export = LedgerContext::run($ctx, function () use ($service, $ctx, $user, $key, $format, $input) {
-    \Illuminate\Support\Facades\Queue::fake();
+    Queue::fake();
     $export = $service->request($ctx, $user, $key, $format, $input);
 
     return $service->generate($export);

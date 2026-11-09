@@ -22,7 +22,9 @@ $team = Team::query()->where('name', 'Karoo Roasters (Pty) Ltd')->firstOrFail();
 $user = User::query()->findOrFail($team->user_id);
 $ctx = LedgerContext::company($team);
 $q = 0;
-DB::listen(function () use (&$q) { $q++; });
+DB::listen(function () use (&$q) {
+    $q++;
+});
 $step = function (string $label, callable $fn) use (&$q) {
     $q = 0;
     $t = microtime(true);
@@ -32,7 +34,7 @@ $step = function (string $label, callable $fn) use (&$q) {
     return $r;
 };
 
-LedgerContext::run($ctx, function () use ($user, $ctx, $argv, $step) {
+LedgerContext::run($ctx, function () use ($user, $argv, $step) {
     $statement = BankStatement::query()->findOrFail((int) ($argv[1] ?? 1));
     $account = Account::query()->findOrFail($statement->account_id);
     printf("statement #%d: %d lines, account %s, %s to %s\n", $statement->id, $statement->line_count, $account->name, $statement->date_from->toDateString(), $statement->date_to->toDateString());

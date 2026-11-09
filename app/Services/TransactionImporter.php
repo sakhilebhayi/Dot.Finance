@@ -17,6 +17,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /**
@@ -325,6 +326,16 @@ class TransactionImporter
         $staged = $this->load($user, $context, $token) ?? throw new InvalidArgumentException('Unknown import.');
         $account = Account::query()->forContext($context)->findOrFail($staged['account_id']);
         $defaultCategory = $defaultCategoryId ? Category::query()->forContext($context)->find($defaultCategoryId) : null;
+        // The page refuses a file over the row limit, but the form can be posted without the page: the limit is enforced here too.
+        if (! $this->unlimited) {
+            $limit = (int) config('ops.import_max_rows', 5000);
+            $n = 0;
+            foreach ($this->parser->stream($staged['path'])['rows'] as $ignored) {
+                if (++$n > $limit) {
+                    throw ValidationException::withMessages(['token' => 'This file has more than '.number_format($limit).' rows, which is the most one import through the page may hold. Split it, or ask whoever runs the server to import it from the command line.']);
+                }
+            }
+        }
         $rows = $this->parser->stream($staged['path'])['rows'];
 
         $batch = (string) Str::uuid();

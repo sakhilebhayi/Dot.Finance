@@ -3,7 +3,14 @@
 namespace Tests\Support\Perf;
 
 use App\Models\Accounting\LedgerSetting;
+use App\Models\Tax\TaxPayrollRun;
+use App\Models\Team;
+use App\Models\User;
 use App\Services\Accounting\Periods;
+use App\Services\Tax\DeadlineGenerator;
+use App\Services\Tax\PayrollJournal;
+use App\Services\Tax\PayrollRuns;
+use App\Services\Tax\TaxProfiles;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -547,20 +554,20 @@ final class PerfSeeder
     /** A VAT profile for the busy company, twelve payroll months captured through the real service (eleven posted), and the tax calendar. */
     public function tax(): array
     {
-        $team = \App\Models\Team::query()->where('name', $this->company)->firstOrFail();
-        $user = \App\Models\User::query()->findOrFail($team->user_id);
+        $team = Team::query()->where('name', $this->company)->firstOrFail();
+        $user = User::query()->findOrFail($team->user_id);
         $ctx = LedgerContext::company($team);
         $today = CarbonImmutable::parse(self::END);
 
         return LedgerContext::run($ctx, function () use ($ctx, $user, $today) {
-            $profile = app(\App\Services\Tax\TaxProfiles::class)->save($ctx, [
+            $profile = app(TaxProfiles::class)->save($ctx, [
                 'jurisdiction' => 'ZA', 'legal_entity' => 'company', 'tax_regime' => 'standard', 'vat_registered' => true, 'vat_number' => '4410298763',
                 'vat_category' => 'B', 'vat_basis' => 'invoice', 'vat_registered_on' => '2025-11-01', 'vat_filing_channel' => 'efiling',
                 'income_tax_ref' => '9000000001', 'paye_ref' => '7000000001', 'sdl_ref' => 'L7000000001', 'uif_ref' => 'U7000000001',
                 'financial_year_end_month' => 2, 'provisional_taxpayer' => true, 'accounting_basis' => 'accrual', 'employs_staff' => true,
             ], $user);
-            $runs = app(\App\Services\Tax\PayrollRuns::class);
-            $journal = app(\App\Services\Tax\PayrollJournal::class);
+            $runs = app(PayrollRuns::class);
+            $journal = app(PayrollJournal::class);
             $posted = 0;
             for ($m = 11; $m >= 0; $m--) {
                 $month = $today->startOfMonth()->subMonths($m);
@@ -571,11 +578,11 @@ final class PerfSeeder
                     'sdl_cents' => intdiv($gross, 100), 'eti_claimed_cents' => 0, 'employee_count' => 25, 'notes' => 'Perf fixture.',
                 ], $user);
                 if ($m >= 1) {
-                    $journal->post($ctx, \App\Models\Tax\TaxPayrollRun::query()->forContext($ctx)->find($run->id), $user);
+                    $journal->post($ctx, TaxPayrollRun::query()->forContext($ctx)->find($run->id), $user);
                     $posted++;
                 }
             }
-            $r = app(\App\Services\Tax\DeadlineGenerator::class)->generate($ctx, $profile, $today);
+            $r = app(DeadlineGenerator::class)->generate($ctx, $profile, $today);
 
             return ['payroll_runs' => 12, 'posted' => $posted, 'deadlines' => $r['created']];
         });

@@ -6,6 +6,9 @@
 
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Accounting\ChartTemplates;
+use App\Services\Accounting\GlBackfill;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -41,6 +44,6 @@ if ($rows) {
     DB::table('transactions')->insert($rows);
 }
 // the accounting set-up wizard's first step: settings and the chart (the history is posted by finance:gl:backfill)
-$ctx = App\Support\Ledger\LedgerContext::company($team);
-App\Support\Ledger\LedgerContext::run($ctx, fn () => app(App\Services\Accounting\GlBackfill::class)->prepare($ctx, 'ZAR', 1, App\Services\Accounting\ChartTemplates::COMPANY));
+$ctx = LedgerContext::company($team);
+LedgerContext::run($ctx, fn () => app(GlBackfill::class)->prepare($ctx, 'ZAR', 1, ChartTemplates::COMPANY));
 echo $team->id."\n";

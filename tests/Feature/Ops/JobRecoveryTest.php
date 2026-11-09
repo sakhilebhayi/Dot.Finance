@@ -6,6 +6,7 @@ use App\Exceptions\ImportInterrupted;
 use App\Jobs\Reporting\GenerateReportExport;
 use App\Models\Account;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Intelligence\FinanceInsight;
 use App\Models\Reporting\ReportExport;
 use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesRecurringTemplate;
@@ -18,7 +19,11 @@ use App\Services\Accounting\GlVerifier;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
 use App\Services\Accounting\PostingRequest;
+use App\Services\Intelligence\Detectors\Detector;
+use App\Services\Intelligence\Detectors\Finding;
+use App\Services\Intelligence\InsightEngine;
 use App\Services\Reporting\ExportService;
+use App\Services\Sales\DocumentIssuer;
 use App\Services\Sales\RecurringInvoices;
 use App\Services\Sales\Reminders;
 use App\Services\Tax\PayrollImport;
@@ -235,7 +240,7 @@ class JobRecoveryTest extends TestCase
         Mail::fake();
         $today = CarbonImmutable::today();
         $draft = $this->draft([$this->line('Work', '1', 100_000)], ['issue_date' => $today->subDays(30)->toDateString(), 'due_date' => $today->toDateString()]);
-        $document = LedgerContext::run($this->ledger, fn () => app(\App\Services\Sales\DocumentIssuer::class)->issue($draft, $this->owner)['document']);
+        $document = LedgerContext::run($this->ledger, fn () => app(DocumentIssuer::class)->issue($draft, $this->owner)['document']);
 
         // a worker wrote the log row ("pending") and died before it handed the message over
         SalesReminder::query()->create($this->ledger->ownerAttributes() + [
@@ -258,7 +263,7 @@ class JobRecoveryTest extends TestCase
         $user = $this->user();
         $ctx = $this->personalContext($user);
         $this->enableAccounting($ctx);
-        $broken = new class implements \App\Services\Intelligence\Detectors\Detector
+        $broken = new class implements Detector
         {
             public function kind(): string
             {
@@ -275,7 +280,7 @@ class JobRecoveryTest extends TestCase
                 throw new RuntimeException('the detector died');
             }
         };
-        $one = new class implements \App\Services\Intelligence\Detectors\Detector
+        $one = new class implements Detector
         {
             public function kind(): string
             {
@@ -289,17 +294,17 @@ class JobRecoveryTest extends TestCase
 
             public function detect(LedgerContext $context, CarbonImmutable $asOf): array
             {
-                return [new \App\Services\Intelligence\Detectors\Finding('recovery_one', 'subject-1', $asOf->format('Y-m'), 'notice', 'Something to look at', 'Body.', [], null)];
+                return [new Finding('recovery_one', 'subject-1', $asOf->format('Y-m'), 'notice', 'Something to look at', 'Body.', [], null)];
             }
         };
         $asOf = CarbonImmutable::parse('2026-06-15');
 
-        $first = (new \App\Services\Intelligence\InsightEngine([$broken, $one]))->scan($ctx, $asOf);
-        $second = (new \App\Services\Intelligence\InsightEngine([$one, $broken]))->scan($ctx, $asOf);
+        $first = (new InsightEngine([$broken, $one]))->scan($ctx, $asOf);
+        $second = (new InsightEngine([$one, $broken]))->scan($ctx, $asOf);
 
         $this->assertCount(1, $first['created'], 'the working detector still ran');
         $this->assertCount(0, $second['created']);
-        $this->assertSame(1, \App\Models\Intelligence\FinanceInsight::query()->forContext($ctx)->count());
+        $this->assertSame(1, FinanceInsight::query()->forContext($ctx)->count());
     }
 
     // ---- payroll import --------------------------------------------------------------------------------------------

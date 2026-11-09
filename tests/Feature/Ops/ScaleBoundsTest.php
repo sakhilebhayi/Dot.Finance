@@ -3,6 +3,7 @@
 namespace Tests\Feature\Ops;
 
 use App\Models\Account;
+use App\Models\Transaction;
 use App\Services\CsvTransactionParser;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\MissingDocuments;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Tests\Concerns\BuildsAccounting;
 use Tests\Concerns\BuildsPurchases;
 use Tests\TestCase;
@@ -86,6 +88,15 @@ class ScaleBoundsTest extends TestCase
         $this->assertTrue($page['too_large']);
         $this->assertFalse($page['ready']);
         $this->assertSame(7, $page['counts']['total'], 'the whole file is still counted');
+
+        // posting the form without the page does not get round the limit
+        try {
+            LedgerContext::run($ctx, fn () => $importer->commit($user, $ctx, $token, 'ymd', 'en', null, []));
+            $this->fail('the commit should have been refused');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('token', $e->errors());
+        }
+        $this->assertSame(0, Transaction::query()->forContext($ctx)->count());
 
         $cli = app(TransactionImporter::class)->withoutRowLimit()->analyse($user, $ctx, $token);
         $this->assertFalse($cli['too_large']);

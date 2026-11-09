@@ -151,7 +151,7 @@ trusting the schedule.
 ## 7. What was demonstrated
 
 On a throwaway PostgreSQL 16 database holding the generated 200,000-row company ledger (`docs/R44_QA_perf.md` section 5): backup in
-5 s (45 MB set), restore into `restore_drill_<ts>` in 13 s, all 99 table counts equal, both ledger heads and their hashes equal,
+5 s (45 MB set), restore into `restore_drill_<ts>` in 14 s plus 3 s of `ANALYZE`, all 99 table counts equal, both ledger heads and their hashes equal,
 the four journal triggers present and refusing an `UPDATE` and a `DELETE`, `finance:gl:verify` (hash chain included),
 `finance:check-balances` and `sales:check-receivables` passing against the restored database, and the key from the set decrypting an
 encrypted column. All throwaway databases were dropped afterwards.

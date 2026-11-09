@@ -76,6 +76,7 @@ class LedgerScopeGuardTest extends TestCase
             'Services/LegacyMoneyBackfill.php' => 'one-off legacy conversion run by a migration',
             'Services/Controls/AccessReport.php' => 'reads the live sessions table for "last seen" (no model exists for it, and it holds no ledger rows)',
             'Models/Builders/AppendOnlyBuilder.php' => 'a comment about why raw access cannot be guarded',
+            'Console/Commands/Ops/RestoreCheck.php' => 'restore drill: proves the application key decrypts one stored value of each encrypted column, across ledgers on purpose (a restored database is checked whole); reads only, returns no row to a caller',
             'Console/Commands/EnsureRecurringIndex.php' => 'one-off schema repair: looks for duplicate recurring rows across all ledgers',
             'Services/Accounting/GlBackfill.php' => 'counts the journal rows of the one ledger it was handed, with an explicit owner condition',
             'Services/Accounting/GlQuery.php' => 'set-based reporting over journal lines; every query carries an explicit owner condition (JournalIsolationTest proves it)',

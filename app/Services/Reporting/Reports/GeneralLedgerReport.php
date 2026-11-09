@@ -9,6 +9,7 @@ use App\Services\Reporting\Reconciliations;
 use App\Services\Reporting\ReportRequest;
 use App\Services\Reporting\ReportResult;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 /**
  * The general ledger: each account's lines in date order with a running balance (debit positive), from an opening
@@ -139,8 +140,8 @@ class GeneralLedgerReport extends Report
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, GlAccount>  $selected
-     * @param  \Illuminate\Support\Collection<int|string, mixed>  $opening
+     * @param  Collection<int, GlAccount>  $selected
+     * @param  Collection<int|string, mixed>  $opening
      */
     private function streamed(ReportRequest $r, $selected, ?int $only, $opening, string $from, string $to): ReportResult
     {
@@ -157,7 +158,7 @@ class GeneralLedgerReport extends Report
                 $debits = 0;
                 $credits = 0;
                 $started = false;
-                $begin = function () use ($a, $open, $from) {
+                $begin = function () use ($a, $open) {
                     return [$this->section($this->accountLabel($a)), $this->row('line', 'Opening balance', ['balance' => $open], [], 1)];
                 };
 
