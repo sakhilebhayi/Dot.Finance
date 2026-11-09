@@ -32,13 +32,25 @@ Branch `feat/r44-integ`, decisions D-1200..D-1219 in `R44_DECISIONS.md`. Cut fro
 6. `TaxObligationsForPlanning` passed the wrong date class to the VAT builder (caught by its first test).
 7. `StateLine` providers stacked on every boot in the test process (no key) and had no priority (D-1208).
 8. Three schedule collisions (D-1209).
-9. The bank-detail change detector could never fire (D-1219 area; reads Purchases' `supplier_bank` audit rows now).
+9. The bank-detail change detector could never fire (it read `party` audit rows; Purchases audits `supplier_bank`): it now reads both.
 10. A flaky `AttachmentsTest` (random bytes sometimes sniffed as text) now uses fixed bytes.
 11. Two existing tests encoded "no module bound" (`AssistantDraftsTest` reminder, `NotifyClientAndPayrollTest` sink): they now bind the null implementation explicitly, so the case they test is still tested. `LedgerScopeGuardTest`'s raw-table allow-list gained the seed command and the person-deletion check in `Team`. Nothing was deleted or weakened.
 
 ## 4. Test counts and checks
 
-RESULTS_PLACEHOLDER
+| Run | Result |
+|---|---|
+| Trunk before this branch, SQLite | 1,915 tests, 0 failures, 13 skipped (12 min) |
+| Final, SQLite in memory, whole suite | **1,966 tests, 285,575 assertions, 0 failures, 13 skipped** (3 are PostgreSQL-only concurrency tests, 10 pre-existing) |
+| Final, PostgreSQL 16 (throwaway database, clean environment, `phpunit.pgsql.xml`), whole suite | **1,966 tests, 285,616 assertions, 0 failures, 10 skipped** (all pre-existing); database dropped afterwards |
+| New tests (`tests/Feature/Integration`, 12 files) | 51 tests: Wiring 3, Schedule 4, SeedReferenceCommand 4, LedgerTables 6, MonthInTheLife 6, VatReturnIntegration 4, CashBasisWiring 3, AssistantWiring 5, ReportingPlanningWiring 6, BankDocumentSources 4, IsolationAndDashboard 4, FindingsWiring 1, CssSource 1 |
+| `route:cache` then `route:clear`, `view:cache` | cache and clear cleanly |
+| Signed-in smoke job (ci.yml steps run locally: route:cache, then `--filter SignedInSmokeTest`) | 2 tests, 452 assertions, pass |
+| `vendor/bin/pint` | passes (also tidied style in three files other modules left) |
+| `npm run build` | passes after fixing an unclosed block in `pages.css` (a merge dropped one `}`; `CssSourceTest` now guards it) |
+| `composer audit --locked` | no advisories |
+
+Flaky tests: `AttachmentsTest` (random bytes) fixed. I looked for tests that assert a Faker-generated name through `assertSee`; none exists in the tree (the one with a person's name, `ControlsRoutesTest`, escapes the needle as the page does), and neither full run (two SQLite, one PostgreSQL) showed a name failure. I did not run the suite many times to hunt for a rarer one.
 
 ## 5. Not done / partial / not verified
 
@@ -46,7 +58,7 @@ RESULTS_PLACEHOLDER
 - Cash basis still foreign-currency naive (payment allocations in document currency against a base gross); credit notes settle through the application date only.
 - Sales invoices have no per-document "missing evidence" in the VAT review (output side needs none).
 - Salaries are not projected (no recorded future pay run) and the payroll journal posts only the tax portion (Tax D-8xx), so the balance sheet carries no net-pay liability: unchanged.
-- Dashboard panels were verified by rendered markup in tests and not in a browser pane in this run (see section 4 for what was run).
+- Dashboard panels and the two new views were verified by rendered markup in tests only; I did not look at them in a browser (no screenshots, no 375/768 check, light theme untested).
 - Laravel Boost was not used.
 
 ## 6. Owner steps
