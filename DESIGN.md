@@ -298,6 +298,11 @@ All in `resources/views/components/fx`, used as `<x-fx.name>`.
 - **gloss**: a plain-language tooltip for a term. It reads the `glossary` slot, or `App\Support\Glossary` when that exists; with neither the term is shown plainly.
 - **state-line / state-item**: the sentence at the top of every page. Modules add items with `StateLine::extend()`.
 - **page-head, panel, swatch, avatar, icon, mark.**
+- **steps**: a real ordered list for a guided flow (the four steps of switching accounting on); a step is ticked green when done, ink when current, outlined when still to come. Only used where order carries meaning.
+- **Statement tables** (`fx-table--statement`, `--stack`, `--tree`): group heads in the display face, a single rule under a subtotal, a double rule under a total, the provenance tick beside every drill-down figure. Below 540px a row becomes a two-column line (name left, figure right) with the unused side of a debit and credit pair dropped; nothing is removed.
+- **Voucher** (`fx-voucher`): a journal entry set as a ledger voucher, the reference as the one lead figure, a rule under the head, ruled lines and a double-ruled total.
+- **Lock state** (`fx-lock`): the closed-through banner on the periods page; locked is a tone step (sunk) with a lock icon, never a colour.
+- **Lines** (`fx-lines`, `fx-line`): ruled rows of a thing and its action (policies, files, people), and the role picker (`fx-roles`) used by the team pages.
 
 ## Do's and Don'ts
 
