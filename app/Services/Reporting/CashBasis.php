@@ -5,9 +5,12 @@ namespace App\Services\Reporting;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
+use App\Models\Purchases\Bill;
+use App\Models\Sales\SalesApplication;
 use App\Models\Shared\PaymentAllocation;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -70,6 +73,13 @@ class CashBasis
             $paid[$docType][$key][$date] = ($paid[$docType][$key][$date] ?? 0) + (int) $a->amount_cents;
         }
 
+        // A credit note applied to an invoice (Sales) or linked to a bill (Purchases) settles that document as surely as money does: it is
+        // the document's own credit, recognised on the day it was applied, and the credit note's own lines (taken as posted, on its date)
+        // then net the two off. Without it a credited, paid invoice would be counted short by the credit (R-44 integration, D-1207).
+        foreach ($this->creditSettlements($context, $to) as [$docType, $key, $date, $amount]) {
+            $paid[$docType][$key][$date] = ($paid[$docType][$key][$date] ?? 0) + $amount;
+        }
+
         foreach ($this->documentTypes() as $type) {
             $entries = JournalEntry::query()->forContext($context)->where('source_type', $type)->where('status', 'posted')->where('entry_date', '<=', $to)->get(['id', 'source_id', 'entry_date']);
             if ($entries->isEmpty()) {
@@ -127,6 +137,30 @@ class CashBasis
         usort($events, fn ($a, $b) => [$a['date'], $a['line_id'], $a['net']] <=> [$b['date'], $b['line_id'], $b['net']]);
 
         return $events;
+    }
+
+    /**
+     * Credits that settle documents: [document type, journal source id, date, amount in base currency].
+     *
+     * @return list<array{0: string, 1: string, 2: string, 3: int}>
+     */
+    private function creditSettlements(LedgerContext $context, string $to): array
+    {
+        $out = [];
+
+        if (class_exists(SalesApplication::class) && Schema::hasTable('sales_applications')) {
+            foreach (SalesApplication::query()->forContext($context)->where('kind', 'credit')->whereNull('released_at')->where('applied_on', '<=', $to)->get(['target_document_id', 'target_base_cents', 'applied_on']) as $a) {
+                $out[] = ['invoice', (string) $a->target_document_id, $a->applied_on->toDateString(), (int) $a->target_base_cents];
+            }
+        }
+
+        if (class_exists(Bill::class) && Schema::hasTable('bills')) {
+            foreach (Bill::query()->forContext($context)->where('kind', 'credit_note')->whereNotNull('credit_for_bill_id')->whereIn('status', Bill::POSTED)->where('bill_date', '<=', $to)->get(['credit_for_bill_id', 'total_cents', 'base_total_cents', 'bill_date']) as $c) {
+                $out[] = ['bill', (string) $c->credit_for_bill_id, $c->bill_date->toDateString(), (int) ($c->base_total_cents ?? $c->total_cents)];
+            }
+        }
+
+        return $out;
     }
 
     /**
