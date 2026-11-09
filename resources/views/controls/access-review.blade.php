@@ -1,20 +1,26 @@
-<x-app-layout>
-<div class="page-pad controls-page">
-    <h1>Access review</h1>
-    <p>Who has access to {{ $activeLedger?->label() }}, with what role, and when they were last active. Review it, then confirm below so there is a dated record that someone looked.</p>
-    @include('controls._nav')
+<x-app-layout title="Access review">
+<x-fx.page-head title="Access review">
+    <x-slot name="sub">Who has access to {{ $activeLedger?->label() }}, with what role, and when they were last active. Review it, then confirm below so there is a dated record that someone looked.</x-slot>
+    <x-slot name="actions">@if ($canExport)<x-fx.button :href="route('controls.access-review.export')" icon="download">Download as CSV</x-fx.button>@endif</x-slot>
+</x-fx.page-head>
 
-    <p>
+@include('controls._nav')
+
+<div @class(['fx-verdict', 'fx-verdict--bad' => ! $latest])>
+    <x-fx.icon :name="$latest ? 'circle-check' : 'circle-alert'" :class="$latest ? 'fx-tick-draw' : ''" />
+    <div>
         @if ($latest)
-            Last confirmed on {{ $latest->reviewed_at->toDateString() }} by {{ $latest->reviewer?->name ?? 'a former member' }} ({{ $latest->member_count }} {{ Str::plural('person', $latest->member_count) }}).
+        <strong>Last confirmed on {{ $latest->reviewed_at->toDateString() }}</strong>
+        by {{ $latest->reviewer?->name ?? 'a former member' }} ({{ $latest->member_count }} {{ Str::plural('person', $latest->member_count) }}).
         @else
-            Never confirmed.
+        <strong>Never confirmed</strong>
+        Nobody has signed off on this list yet. Read it below, then confirm.
         @endif
-        @if ($canExport) <a href="{{ route('controls.access-review.export') }}">Download as CSV</a> @endif
-    </p>
+    </div>
+</div>
 
-    <table class="controls-table">
-        <caption>Everyone with access</caption>
+<x-fx.panel flush title="Everyone with access" :meta="count($rows).' '.Str::plural('person', count($rows))">
+    <x-fx.table caption="Everyone with access">
         <thead>
             <tr>
                 <th scope="col">Person</th>
@@ -30,18 +36,20 @@
         <tbody>
         @foreach ($rows as $row)
             <tr>
-                <th scope="row">{{ $row['name'] }}<br><small>{{ $row['email'] }}</small></th>
-                <td>{{ ucfirst($row['infodot_role']) }}</td>
-                <td>{{ $row['local_role']?->label() ?? 'None' }}@if ($row['granted_by']) <small>set by {{ $row['granted_by'] }} on {{ $row['granted_at']?->toDateString() }}</small> @endif</td>
-                <td>{{ $row['role']->label() }}</td>
-                <td>{{ $row['capability_count'] }} of {{ count(\App\Enums\Capability::cases()) }} capabilities</td>
-                <td>{{ $row['last_session_activity']?->toDateTimeString() ?? 'No live session' }}</td>
-                <td>{{ $row['last_action_here']?->toDateTimeString() ?? 'Nothing recorded' }}</td>
-                <td>
+                <th scope="row" data-label="Person" class="is-lead">
+                    <span class="fx-person"><x-fx.avatar :name="$row['name']" /><span><span class="fx-cell-main">{{ $row['name'] }}</span><span class="fx-cell-sub">{{ $row['email'] }}</span></span></span>
+                </th>
+                <td data-label="From InfoDot">{{ ucfirst($row['infodot_role']) }}</td>
+                <td data-label="Local role">{{ $row['local_role']?->label() ?? 'None' }}@if ($row['granted_by']) <span class="fx-cell-sub">set by {{ $row['granted_by'] }} on {{ $row['granted_at']?->toDateString() }}</span> @endif</td>
+                <td data-label="Role in force"><x-fx.pill kind="plain">{{ $row['role']->label() }}</x-fx.pill></td>
+                <td data-label="Can do">{{ $row['capability_count'] }} of {{ count(\App\Enums\Capability::cases()) }} capabilities</td>
+                <td data-label="Last session activity">{{ $row['last_session_activity']?->toDateTimeString() ?? 'No live session' }}</td>
+                <td data-label="Last action here">{{ $row['last_action_here']?->toDateTimeString() ?? 'Nothing recorded' }}</td>
+                <td data-label="Role history">
                     @if ($row['history']->isEmpty())
                         No changes
                     @else
-                        <details>
+                        <details class="fx-disclose">
                             <summary>{{ $row['history']->count() }} {{ Str::plural('change', $row['history']->count()) }}</summary>
                             <ul>
                                 @foreach ($row['history'] as $entry)
@@ -54,26 +62,31 @@
             </tr>
         @endforeach
         </tbody>
-    </table>
-    <p><small>The app does not record sign-ins. "Last session activity" is the latest activity of a session that is still stored (sessions expire, so it is a lower bound). "Last action here" comes from this ledger's audit log.</small></p>
+    </x-fx.table>
+    <x-slot name="foot">The app does not record sign-ins. "Last session activity" is the latest activity of a session that is still stored (sessions expire, so it is a lower bound). "Last action here" comes from this ledger's audit log.</x-slot>
+</x-fx.panel>
 
+<div class="fx-grid fx-grid--even r-stack">
     @if ($canConfirm)
-        <h2>Confirm this review</h2>
-        <form method="POST" action="{{ route('controls.access-review.store') }}">
+    <x-fx.panel title="Confirm this review" meta="Adds a dated record that you looked.">
+        <form method="POST" action="{{ route('controls.access-review.store') }}" class="fx-form">
             @csrf
-            <label for="review-notes">Notes (optional)</label>
-            <textarea id="review-notes" name="notes" rows="3" maxlength="2000" class="dot-input"></textarea>
-            <button type="submit" class="dot-btn dot-btn-primary">I have reviewed this list</button>
+            <x-fx.textarea name="notes" id="review-notes" label="Notes" optional rows="3" maxlength="2000" />
+            <div class="fx-formactions"><x-fx.button variant="primary" icon="user-round-check">I have reviewed this list</x-fx.button></div>
         </form>
+    </x-fx.panel>
     @endif
 
-    <h2>Earlier reviews</h2>
-    <ul>
-        @forelse ($past as $review)
-            <li>{{ $review->reviewed_at->toDateString() }} by {{ $review->reviewer?->name ?? 'a former member' }}, {{ $review->member_count }} {{ Str::plural('person', $review->member_count) }}@if ($review->notes): {{ $review->notes }}@endif</li>
-        @empty
-            <li>None yet.</li>
-        @endforelse
-    </ul>
+    <x-fx.panel title="Earlier reviews">
+        @if ($past->isEmpty())
+        <x-fx.empty>None yet.</x-fx.empty>
+        @else
+        <ul class="fx-list">
+            @foreach ($past as $review)
+            <li><span class="fx-cell-main"><span class="fx-figure">{{ $review->reviewed_at->toDateString() }}</span> by {{ $review->reviewer?->name ?? 'a former member' }}</span>, {{ $review->member_count }} {{ Str::plural('person', $review->member_count) }}@if ($review->notes)<div class="fx-cell-sub">{{ $review->notes }}</div>@endif</li>
+            @endforeach
+        </ul>
+        @endif
+    </x-fx.panel>
 </div>
 </x-app-layout>

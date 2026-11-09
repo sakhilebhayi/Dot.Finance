@@ -1,55 +1,101 @@
-<x-app-layout>
-<div class="page-pad">
-    <h1>Journal entry {{ $entry->reference() }}</h1>
-    @include('accounting._nav')
-    @include('accounting._messages')
+<x-app-layout title="Journal entry {{ $entry->reference() }}">
+@php
+    $hasForeign = $entry->lines->contains(fn ($l) => $l->txn_currency);
+    $sourceLinked = $source['route'] && ($source['parameter'] !== null || $source['route'] === 'transactions.index' || $source['route'] === 'accounting.periods.index');
+@endphp
 
-    <dl>
-        <dt>Date</dt><dd>{{ $entry->entry_date->toDateString() }} (period {{ $entry->period?->label() }})</dd>
-        <dt>Memo</dt><dd>{{ $entry->memo }}</dd>
-        <dt>Source</dt>
-        <dd>
-            @if ($source['route'] && ($source['parameter'] !== null || $source['route'] === 'transactions.index' || $source['route'] === 'accounting.periods.index'))
-                <a href="{{ route($source['route'], $source['parameter'] !== null ? [$source['parameter']] : []) }}">{{ $source['label'] }}</a>
-            @else
+<x-fx.page-head title="Journal entry {{ $entry->reference() }}">
+    <x-slot name="sub">A posted entry is never changed. If it is wrong, a reversal mirrors it and both stay in the books.</x-slot>
+    <x-slot name="actions"><x-fx.button :href="route('accounting.journals.index')" icon="arrow-left-right">All journals</x-fx.button></x-slot>
+</x-fx.page-head>
+
+@include('accounting._nav')
+@include('accounting._messages')
+
+<article class="fx-voucher" aria-labelledby="voucher-title">
+    <header class="fx-voucher__head">
+        <div>
+            <p class="fx-voucher__kind" id="voucher-title">Journal voucher</p>
+            <p class="fx-voucher__ref"><span class="fx-figure">{{ $entry->reference() }}</span></p>
+        </div>
+        <div class="fx-voucher__state">
+            @if ($entry->isReversed())<x-fx.pill icon="history">Reversed</x-fx.pill>
+            @elseif ($entry->isReversal())<x-fx.pill icon="history">Reversal</x-fx.pill>
+            @else<x-fx.pill kind="ticked">Posted</x-fx.pill>@endif
+        </div>
+    </header>
+
+    <dl class="fx-kv fx-voucher__meta">
+        <div><dt>Date</dt><dd><span class="fx-figure">{{ $entry->entry_date->toDateString() }}</span> <span class="fx-sub">(<x-fx.gloss term="accounting_period">period</x-fx.gloss> {{ $entry->period?->label() }})</span></dd></div>
+        <div><dt>Memo</dt><dd>{{ $entry->memo }}</dd></div>
+        <div>
+            <dt>Source</dt>
+            <dd>
+                @if ($sourceLinked)
+                <a href="{{ route($source['route'], $source['parameter'] !== null ? [$source['parameter']] : []) }}" class="fx-link">{{ $source['label'] }}</a>
+                @else
                 {{ $source['label'] }}
-            @endif
-            , version {{ $entry->source_version }}
-        </dd>
-        <dt>Posted</dt><dd>{{ $entry->posted_at->toDayDateTimeString() }}</dd>
-        @if ($entry->reverses)<dt>Reverses</dt><dd><a href="{{ route('accounting.journals.show', $entry->reverses) }}">{{ $entry->reverses->reference() }}</a></dd>@endif
-        @if ($entry->reversedBy)<dt>Reversed by</dt><dd><a href="{{ route('accounting.journals.show', $entry->reversedBy) }}">{{ $entry->reversedBy->reference() }}</a></dd>@endif
+                @endif
+                , version {{ $entry->source_version }}
+            </dd>
+        </div>
+        <div><dt>Posted</dt><dd>{{ $entry->posted_at->toDayDateTimeString() }}</dd></div>
+        @if ($entry->reverses)<div><dt>Reverses</dt><dd><a href="{{ route('accounting.journals.show', $entry->reverses) }}" class="fx-link"><span class="fx-figure">{{ $entry->reverses->reference() }}</span></a></dd></div>@endif
+        @if ($entry->reversedBy)<div><dt>Reversed by</dt><dd><a href="{{ route('accounting.journals.show', $entry->reversedBy) }}" class="fx-link"><span class="fx-figure">{{ $entry->reversedBy->reference() }}</span></a></dd></div>@endif
     </dl>
 
-    <div class="table-scroll">
-        <table>
-            <caption class="sr-only">Lines of {{ $entry->reference() }}</caption>
-            <thead><tr><th scope="col">Account</th><th scope="col">Description</th><th scope="col">Debit</th><th scope="col">Credit</th><th scope="col">Original amount</th></tr></thead>
-            <tbody>
+    <x-fx.table caption="Lines of {{ $entry->reference() }}" keep class="fx-table--statement fx-table--voucher">
+        <thead>
+            <tr>
+                <th scope="col">Account</th>
+                <th scope="col" class="fx-col-desc">Description</th>
+                <th scope="col" class="is-num"><x-fx.gloss term="debit">Debit</x-fx.gloss></th>
+                <th scope="col" class="is-num"><x-fx.gloss term="credit">Credit</x-fx.gloss></th>
+                @if ($hasForeign)<th scope="col" class="is-num fx-col-desc">Original amount</th>@endif
+            </tr>
+        </thead>
+        <tbody>
             @foreach ($entry->lines as $line)
-                <tr>
-                    <th scope="row"><a href="{{ route('accounting.general-ledger', ['account' => $line->gl_account_id]) }}">{{ $line->glAccount->label() }}</a></th>
-                    <td>{{ $line->description }}@if($line->cashAccount) <span class="acct-hint">cash account {{ $line->cashAccount->name }}</span>@endif @if($line->category) <span class="acct-hint">category {{ $line->category->name }}</span>@endif</td>
-                    <td>{{ $line->debit_cents ? \App\Support\Money::format($line->debit_cents) : '' }}</td>
-                    <td>{{ $line->credit_cents ? \App\Support\Money::format($line->credit_cents) : '' }}</td>
-                    <td>@if($line->txn_currency){{ \App\Support\Money::format($line->txn_amount_cents, $line->txn_currency) }} at {{ number_format($line->fx_rate_e8 / 100000000, 8) }} (rate implied or supplied, see the source)@endif</td>
-                </tr>
+            <tr>
+                <th scope="row" class="fx-acct">
+                    <a href="{{ route('accounting.general-ledger', ['account' => $line->gl_account_id]) }}">{{ $line->glAccount->label() }}</a>
+                    @if ($line->description)<span class="fx-acct__code fx-acct__code--text">{{ $line->description }}</span>@endif
+                </th>
+                <td class="fx-col-desc">
+                    {{ $line->description }}@if($line->cashAccount) <span class="fx-cell-sub">cash account {{ $line->cashAccount->name }}</span>@endif @if($line->category) <span class="fx-cell-sub">category {{ $line->category->name }}</span>@endif
+                </td>
+                <td class="is-num">@if ($line->debit_cents)<x-fx.money :cents="$line->debit_cents" />@endif</td>
+                <td class="is-num">@if ($line->credit_cents)<x-fx.money :cents="$line->credit_cents" />@endif</td>
+                @if ($hasForeign)
+                <td class="is-num fx-col-desc">@if($line->txn_currency)<x-fx.money :cents="$line->txn_amount_cents" :currency="$line->txn_currency" /><div class="fx-cell-sub">at {{ number_format($line->fx_rate_e8 / 100000000, 8) }} (rate implied or supplied, see the source)</div>@endif</td>
+                @endif
+            </tr>
             @endforeach
-            </tbody>
-            <tfoot><tr><th scope="row" colspan="2">Total ({{ $entry->currency }})</th><td>{{ \App\Support\Money::format($entry->total_cents) }}</td><td>{{ \App\Support\Money::format($entry->total_cents) }}</td><td></td></tr></tfoot>
-        </table>
-    </div>
+        </tbody>
+        <tfoot>
+            <tr>
+                <th scope="row" colspan="{{ 2 }}">Total ({{ $entry->currency }})</th>
+                <td class="is-num"><x-fx.money :cents="$entry->total_cents" ticked /></td>
+                <td class="is-num"><x-fx.money :cents="$entry->total_cents" ticked /></td>
+                @if ($hasForeign)<td class="fx-col-desc"></td>@endif
+            </tr>
+        </tfoot>
+    </x-fx.table>
+    <p class="fx-voucher__note"><x-fx.icon name="check" /> Debits equal credits. The entry cannot be saved any other way.</p>
+</article>
 
-    @if ($canPost && $reversible)
-        <form method="POST" action="{{ route('accounting.journals.reverse', $entry) }}" class="dot-card acct-form">
-            @csrf
-            <label for="reason">Reason for reversing</label>
-            <input id="reason" name="reason" class="dot-input" required maxlength="300">
-            <button type="submit" class="dot-btn">Reverse this entry</button>
-            <span class="acct-hint">A posted entry is never changed. A reversal is a new entry that mirrors it; both stay in the books.</span>
-        </form>
-    @elseif ($entry->source_type !== 'manual')
-        <p class="acct-hint">This entry follows its source. To correct it, change or delete the {{ str_replace('_', ' ', $entry->source_type) }} and the journal posts the correction for you.</p>
-    @endif
+@if ($canPost && $reversible)
+<x-fx.panel title="Reverse this entry" meta="Creates a new entry that mirrors this one. Both stay in the books.">
+    <form method="POST" action="{{ route('accounting.journals.reverse', $entry) }}" class="fx-form" data-fx-confirm="This posts a new entry that mirrors {{ $entry->reference() }}. Both stay in the books and neither can be deleted." data-fx-confirm-label="Reverse the entry">
+        @csrf
+        <x-fx.input name="reason" id="reason" label="Reason for reversing" required maxlength="300" hint="A posted entry is never changed. A reversal is a new entry that mirrors it; both stay in the books." />
+        <div class="fx-formactions"><x-fx.button variant="danger" icon="history">Reverse this entry</x-fx.button></div>
+    </form>
+</x-fx.panel>
+@elseif ($entry->source_type !== 'manual')
+<div class="fx-notice" role="note">
+    <x-fx.icon name="info" />
+    <p>This entry follows its source. To correct it, change or delete the {{ str_replace('_', ' ', $entry->source_type) }} and the journal posts the correction for you.</p>
 </div>
+@endif
 </x-app-layout>

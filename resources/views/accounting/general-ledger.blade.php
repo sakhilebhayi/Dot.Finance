@@ -1,54 +1,69 @@
-<x-app-layout>
-<div class="page-pad">
-    <h1>General ledger</h1>
-    @include('accounting._nav')
-    @include('accounting._messages')
+<x-app-layout title="General ledger">
+@php $hasRange = ($filters['from'] ?? null) || ($filters['to'] ?? null); @endphp
 
-    <form method="GET" action="{{ route('accounting.general-ledger') }}" class="acct-filter">
-        <label for="account">Account</label>
-        <select id="account" name="account" class="dot-input">
+<x-fx.page-head title="General ledger" sub="Every line posted to one account, with a running balance. Each line opens its journal entry, and from there the transaction it came from." />
+
+@include('accounting._nav')
+@include('accounting._messages')
+
+<details class="fx-panel fx-collapse" open data-fx-collapse-mobile data-active="{{ $account ? '1' : '0' }}">
+    <summary><span>Choose an account</span><x-fx.icon name="chevron-down" /></summary>
+    <form method="GET" action="{{ route('accounting.general-ledger') }}" class="fx-filters" role="search" aria-label="Choose an account and dates">
+        <x-fx.select name="account" id="account" label="Account" wrap="fx-filters__wide">
             <option value="">Choose an account</option>
             @foreach ($accounts as $a)
-                <option value="{{ $a->id }}" @selected($account && $account->id === $a->id)>{{ $a->label() }}</option>
+            <option value="{{ $a->id }}" @selected($account && $account->id === $a->id)>{{ $a->label() }}</option>
             @endforeach
-        </select>
-        <label for="from">From</label>
-        <input id="from" type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="dot-input">
-        <label for="to">To</label>
-        <input id="to" type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="dot-input">
-        <button type="submit" class="dot-btn">Show</button>
+        </x-fx.select>
+        <x-fx.input name="from" id="from" type="date" label="From" :value="$filters['from'] ?? ''" :bind="false" />
+        <x-fx.input name="to" id="to" type="date" label="To" :value="$filters['to'] ?? ''" :bind="false" />
+        <div class="fx-filters__actions"><x-fx.button variant="primary">Show</x-fx.button></div>
     </form>
+</details>
 
-    @if (! $account)
-        <p>Pick an account to see every line posted to it, with a running balance. Each line opens its journal entry, and from there the transaction it came from.</p>
+@if (! $account)
+<x-fx.empty title="Pick an account to see its lines.">
+    Pick an account to see every line posted to it, with a running balance. Each line opens its journal entry, and from there the transaction it came from.
+</x-fx.empty>
+@else
+<x-fx.panel flush :title="$account->label()" :meta="$hasRange ? 'Filtered by date. The balance starts from what was brought forward.' : 'From the first posting to today. Debits add to the balance, credits take away.'">
+    @if ($ledger['lines']->total() === 0)
+    <x-fx.empty>Nothing has been posted to this account{{ $hasRange ? ' in this range' : ' yet' }}.</x-fx.empty>
     @else
-        <h2>{{ $account->label() }}</h2>
-        @if ($ledger['lines']->total() === 0)
-            <p>Nothing has been posted to this account{{ ($filters['from'] ?? null) || ($filters['to'] ?? null) ? ' in this range' : ' yet' }}.</p>
-        @else
-        <div class="table-scroll">
-            <table>
-                <caption class="sr-only">Lines posted to {{ $account->label() }}</caption>
-                <thead><tr><th scope="col">Date</th><th scope="col">Entry</th><th scope="col">Description</th><th scope="col">Debit</th><th scope="col">Credit</th><th scope="col">Balance</th></tr></thead>
-                <tbody>
-                @if ($ledger['opening_cents'] !== 0 && $ledger['lines']->currentPage() === 1)
-                    <tr><td colspan="5">Balance brought forward</td><td>{{ \App\Support\Money::format($ledger['opening_cents']) }}</td></tr>
-                @endif
-                @foreach ($ledger['lines'] as $line)
-                    <tr>
-                        <td>{{ substr((string) $line->entry_date, 0, 10) }}</td>
-                        <td><a href="{{ route('accounting.journals.show', $line->entry_id) }}">JE-{{ str_pad((string) $line->entry_number, 6, '0', STR_PAD_LEFT) }}</a>@if($line->status === 'reversed') (reversed)@endif</td>
-                        <td>{{ $line->description ?: $line->memo }}</td>
-                        <td>{{ $line->debit_cents ? \App\Support\Money::format($line->debit_cents) : '' }}</td>
-                        <td>{{ $line->credit_cents ? \App\Support\Money::format($line->credit_cents) : '' }}</td>
-                        <td>{{ \App\Support\Money::format($line->running_cents) }}</td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        </div>
-        {{ $ledger['lines']->links() }}
-        @endif
+    <x-fx.table caption="Lines posted to {{ $account->label() }}" class="fx-table--statement">
+        <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Entry</th>
+                <th scope="col">Description</th>
+                <th scope="col" class="is-num"><x-fx.gloss term="debit">Debit</x-fx.gloss></th>
+                <th scope="col" class="is-num"><x-fx.gloss term="credit">Credit</x-fx.gloss></th>
+                <th scope="col" class="is-num">Balance</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if ($ledger['opening_cents'] !== 0 && $ledger['lines']->currentPage() === 1)
+            <tr class="is-subtotal">
+                <td data-label="Date"></td>
+                <th scope="row" colspan="4" data-label="Line" class="is-lead">Balance brought forward</th>
+                <td data-label="Balance" class="is-num"><x-fx.money :cents="$ledger['opening_cents']" /></td>
+            </tr>
+            @endif
+            @foreach ($ledger['lines'] as $line)
+            @php $journal = route('accounting.journals.show', $line->entry_id); @endphp
+            <tr>
+                <td data-label="Date"><span class="fx-figure">{{ substr((string) $line->entry_date, 0, 10) }}</span></td>
+                <td data-label="Entry"><a href="{{ $journal }}" class="fx-link"><span class="fx-figure">JE-{{ str_pad((string) $line->entry_number, 6, '0', STR_PAD_LEFT) }}</span></a>@if($line->status === 'reversed') <x-fx.pill>reversed</x-fx.pill>@endif</td>
+                <td data-label="Description" class="is-lead">{{ $line->description ?: $line->memo }}</td>
+                <td data-label="Debit" class="is-num">@if ($line->debit_cents)<x-fx.money :cents="$line->debit_cents" />@endif</td>
+                <td data-label="Credit" class="is-num">@if ($line->credit_cents)<x-fx.money :cents="$line->credit_cents" />@endif</td>
+                <td data-label="Balance" class="is-num"><x-fx.money :cents="$line->running_cents" :trace="$journal" trace-label="Open journal entry JE-{{ str_pad((string) $line->entry_number, 6, '0', STR_PAD_LEFT) }}" /></td>
+            </tr>
+            @endforeach
+        </tbody>
+    </x-fx.table>
     @endif
-</div>
+</x-fx.panel>
+@if ($ledger['lines']->hasPages()){{ $ledger['lines']->links() }}@endif
+@endif
 </x-app-layout>

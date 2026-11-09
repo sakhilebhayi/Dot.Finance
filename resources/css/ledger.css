@@ -1,0 +1,859 @@
+/* ===================================================================================================
+   Ledger screens (R-44 restyle): accounting statements, the setup steps, the voucher, controls and parties.
+   Everything here is built from the tokens in tokens.css; colour keeps its two meanings (green = ticked, red = variance).
+   =================================================================================================== */
+
+/* ---- Small text helpers ------------------------------------------------------------------------------------- */
+.fx-figure {
+    font-family: var(--font-figure);
+    font-size: 0.93em;
+    font-variant-numeric: tabular-nums slashed-zero;
+    letter-spacing: -0.01em;
+}
+
+.fx-sub,
+.fx-quiet {
+    color: var(--ink-3);
+}
+
+.fx-sub {
+    font-size: var(--fs-small);
+}
+
+.fx-subhead {
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-size: var(--fs-body);
+    font-weight: 650;
+    color: var(--ink);
+}
+
+.fx-hint--wide {
+    max-width: none;
+}
+
+/* A form laid out on one line: fields keep their labels above, the button sits on the baseline of the inputs. */
+.fx-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--s-2) var(--s-3);
+}
+
+.fx-inline > .fx-field {
+    flex: 1 1 9rem;
+}
+
+.fx-inline--grow > .fx-field {
+    flex: 0 1 18rem;
+}
+
+.fx-inline > .fx-input,
+.fx-inline > .fx-select {
+    flex: 1 1 10rem;
+    min-width: 0;
+}
+
+.fx-form--ruled {
+    margin-top: var(--s-4);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+}
+
+.fx-filters__check {
+    align-self: flex-end;
+    flex: 0 0 auto;
+    min-height: var(--control-h);
+    justify-content: center;
+}
+
+/* ---- Definition lists: key and value pairs, and plain-language explanations --------------------------------- */
+.fx-kv {
+    display: grid;
+    margin: 0;
+}
+
+.fx-kv > div {
+    display: grid;
+    gap: var(--s-1) var(--s-4);
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+}
+
+.fx-kv > div:last-child {
+    border-bottom: 0;
+}
+
+.fx-kv dt {
+    color: var(--ink-3);
+}
+
+.fx-kv dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+    .fx-kv > div {
+        grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr);
+    }
+}
+
+.fx-explain {
+    display: grid;
+    margin: 0;
+}
+
+.fx-explain > div {
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-explain > div:first-child {
+    padding-top: 0;
+}
+
+.fx-explain > div:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.fx-explain dt {
+    font-size: var(--fs-cell);
+    font-weight: 650;
+    color: var(--ink);
+}
+
+.fx-explain dd {
+    margin: var(--s-1) 0 0;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+@media (min-width: 720px) {
+    .fx-explain--wide {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: var(--s-6);
+    }
+
+    .fx-explain--wide > div:nth-last-child(2):nth-child(odd) {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+}
+
+.fx-address {
+    font-style: normal;
+    font-size: var(--fs-cell);
+    line-height: 1.55;
+    color: var(--ink-2);
+}
+
+.fx-person {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-3);
+    min-width: 0;
+}
+
+.fx-person > span:last-child {
+    display: grid;
+    min-width: 0;
+}
+
+.fx-disclose > summary {
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--ink-3);
+    text-underline-offset: 0.2em;
+}
+
+.fx-disclose ul {
+    margin-top: var(--s-2);
+    display: grid;
+    gap: var(--s-1);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+    text-align: left;
+}
+
+/* ---- Ruled lists of things with an action (policies, files, where things stand) ------------------------------ */
+.fx-lines {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fx-line {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-3) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-line:first-child {
+    padding-top: 0;
+}
+
+.fx-line:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.fx-line__icon {
+    margin-top: 0.2rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--ink-2);
+}
+
+.fx-line__icon.is-variance {
+    color: var(--pencil);
+}
+
+.fx-line__main {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.fx-line__title {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+}
+
+.fx-line__sub {
+    margin-top: 2px;
+    max-width: 62ch;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-line--split {
+    flex-wrap: wrap;
+}
+
+.fx-line__side {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.fx-line--form {
+    display: block;
+}
+
+/* An approval preset: the words on the left, its amount and the switch on the right. */
+.fx-preset {
+    display: grid;
+    gap: var(--s-3);
+}
+
+.fx-preset__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--s-3);
+}
+
+.fx-preset__controls .fx-field:nth-of-type(1) {
+    flex: 0 1 11rem;
+}
+
+.fx-preset__controls .fx-field:nth-of-type(2) {
+    flex: 0 1 6rem;
+}
+
+@media (min-width: 900px) {
+    .fx-preset {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: var(--s-5);
+    }
+}
+
+/* A disclosure panel (custom policy). */
+.fx-more__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    min-height: var(--touch);
+    padding: var(--s-3) var(--s-5);
+    cursor: pointer;
+    list-style: none;
+}
+
+.fx-more__summary::-webkit-details-marker {
+    display: none;
+}
+
+.fx-more__summary > span {
+    display: grid;
+}
+
+.fx-more__title {
+    font-size: var(--fs-section);
+    font-weight: 650;
+}
+
+.fx-more__sub {
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.fx-more[open] > .fx-more__summary {
+    border-bottom: 1px solid var(--rule);
+}
+
+.fx-more[open] > .fx-more__summary .fx-icon {
+    transform: rotate(180deg);
+}
+
+.fx-more__body {
+    padding: var(--s-5);
+}
+
+/* ---- Steps (switching accounting on) ------------------------------------------------------------------------- */
+.fx-steps {
+    display: grid;
+    gap: var(--s-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fx-steps__item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    min-width: 0;
+}
+
+.fx-steps__mark {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    background: var(--sheet);
+    font-family: var(--font-figure);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+.fx-steps__mark .fx-icon {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2.2;
+}
+
+.fx-steps__item.is-current .fx-steps__mark {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.fx-steps__item.is-done .fx-steps__mark {
+    border-color: var(--tick-line);
+    background: var(--tick-bg);
+    color: var(--tick);
+}
+
+.fx-steps__text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.fx-steps__title {
+    font-size: var(--fs-cell);
+    font-weight: 650;
+    color: var(--ink);
+}
+
+.fx-steps__item.is-todo .fx-steps__title {
+    color: var(--ink-2);
+}
+
+.fx-steps__desc {
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+@media (min-width: 900px) {
+    .fx-steps {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--s-5);
+        padding: var(--s-4) var(--s-5);
+        border: 1px solid var(--rule);
+        border-radius: var(--r-panel);
+        background: var(--sheet);
+    }
+}
+
+/* The outcome of a dry run or an apply. */
+.fx-resultbox {
+    padding: var(--s-4);
+    border-radius: var(--r-control);
+    background: var(--paper);
+}
+
+.fx-run {
+    display: grid;
+    gap: var(--s-3);
+    margin-top: var(--s-3);
+}
+
+.fx-run__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2) var(--s-3);
+    font-size: var(--fs-cell);
+}
+
+.fx-checks {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fx-checks__item {
+    display: flex;
+    gap: var(--s-3);
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+}
+
+.fx-checks__item:last-child {
+    border-bottom: 0;
+}
+
+.fx-checks__item .fx-icon {
+    margin-top: 0.2rem;
+}
+
+.fx-checks__item.is-ok .fx-icon {
+    color: var(--tick);
+}
+
+.fx-checks__item.is-bad .fx-icon,
+.fx-checks__item.is-bad strong {
+    color: var(--pencil);
+}
+
+.fx-checks__details {
+    margin-top: var(--s-1);
+    padding-left: 1rem;
+    list-style: disc;
+    color: var(--ink-2);
+}
+
+.fx-run__exceptions {
+    display: grid;
+    gap: var(--s-2);
+}
+
+.fx-mapgroup {
+    display: grid;
+    gap: var(--s-2);
+}
+
+.fx-mapgroup .fx-select {
+    min-width: 0;
+}
+
+/* ---- Statement-style tables (trial balance, general ledger, chart, voucher) ---------------------------------- */
+.fx-table--statement .fx-figure {
+    font-size: 0.9em;
+}
+
+.fx-table--statement tbody th[scope='row'],
+.fx-table--statement tbody td {
+    border-bottom-color: var(--rule);
+}
+
+.fx-table--statement tr.is-group th {
+    padding: var(--s-5) var(--s-3) var(--s-2);
+    border-bottom: 0;
+    font-family: var(--font-display);
+    font-stretch: 108%;
+    font-size: var(--fs-body);
+    font-weight: 650;
+    color: var(--ink);
+}
+
+.fx-table--statement tbody:first-of-type tr.is-group th {
+    padding-top: var(--s-3);
+}
+
+.fx-table--statement tr.is-subtotal th,
+.fx-table--statement tr.is-subtotal td {
+    background: transparent;
+}
+
+.fx-table--statement tbody tr.is-group:hover {
+    background: transparent;
+}
+
+.fx-table--statement .fx-acct a {
+    color: var(--ink);
+    font-weight: 500;
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.2em;
+}
+
+.fx-table--statement .fx-acct a:hover {
+    text-decoration-color: currentColor;
+}
+
+.fx-acct__code {
+    display: none;
+    margin-top: 1px;
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--ink-3);
+}
+
+.fx-table--statement td.fx-col-code {
+    width: 1%;
+    white-space: nowrap;
+    color: var(--ink-3);
+}
+
+.fx-table--statement th.fx-col-code {
+    width: 1%;
+}
+
+/* Narrow containers: the code moves under the name and the description column folds away, so two figure columns fit. */
+@container fxt (max-width: 539.98px) {
+    .fx-table--statement .fx-col-code,
+    .fx-table--statement .fx-col-desc {
+        display: none;
+    }
+
+    .fx-table--statement .fx-acct__code {
+        display: block;
+    }
+
+    .fx-table--statement .fx-acct__code--text {
+        display: block;
+    }
+
+    .fx-table--statement th:first-child,
+    .fx-table--statement td:first-child {
+        padding-left: var(--s-3);
+    }
+
+    .fx-table--statement th:last-child,
+    .fx-table--statement td:last-child {
+        padding-right: var(--s-3);
+    }
+
+    .fx-table--statement .fx-money {
+        font-size: 0.8125rem;
+    }
+}
+
+@container fxt (min-width: 540px) {
+    .fx-acct__code--text {
+        display: none;
+    }
+}
+
+/* The chart of accounts as a tree: children sit under their parent, indented. */
+.fx-table--tree .fx-acct__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--s-1) var(--s-3);
+}
+
+.fx-table--tree .fx-acct__num {
+    min-width: 3.5rem;
+    color: var(--ink-3);
+}
+
+.fx-table--tree .fx-acct__code {
+    display: block;
+    margin-left: 4.25rem;
+}
+
+.fx-table--tree th.fx-depth-1:first-child {
+    padding-left: calc(var(--s-5) + 1.25rem);
+}
+
+.fx-table--tree th.fx-depth-2:first-child {
+    padding-left: calc(var(--s-5) + 2.5rem);
+}
+
+.fx-table--tree th.fx-depth-3:first-child {
+    padding-left: calc(var(--s-5) + 3.75rem);
+}
+
+.fx-table--tree tr.is-header th .fx-acct__name {
+    font-weight: 650;
+}
+
+.fx-table--tree tr.is-inactive th,
+.fx-table--tree tr.is-inactive td {
+    color: var(--ink-3);
+}
+
+@container fxt (max-width: 539.98px) {
+    .fx-table--tree th.fx-depth-1:first-child {
+        padding-left: calc(var(--s-3) + 0.75rem);
+    }
+
+    .fx-table--tree th.fx-depth-2:first-child {
+        padding-left: calc(var(--s-3) + 1.5rem);
+    }
+
+    .fx-table--tree th.fx-depth-3:first-child {
+        padding-left: calc(var(--s-3) + 2.25rem);
+    }
+
+    .fx-table--tree .fx-acct__code {
+        margin-left: 0;
+    }
+
+    .fx-table--tree thead th:nth-child(2),
+    .fx-table--tree tbody td:nth-child(2) {
+        display: none;
+    }
+}
+
+/* Entering a journal: inputs fill their cells. */
+.fx-table--entry tbody td {
+    padding: var(--s-2) var(--s-3);
+    vertical-align: middle;
+}
+
+.fx-table--entry td.is-num .fx-input {
+    min-width: 7.5rem;
+}
+
+.fx-table--entry tfoot th,
+.fx-table--entry tfoot td {
+    vertical-align: middle;
+}
+
+.fx-table--entry tfoot .fx-money {
+    font-weight: 600;
+}
+
+/* The permission matrix. */
+.fx-table--matrix {
+    min-width: 42rem;
+}
+
+.fx-table--matrix tbody th {
+    max-width: 22rem;
+    font-weight: 400;
+    color: var(--ink);
+}
+
+.fx-table--matrix th:first-child,
+.fx-table--matrix td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--sheet);
+}
+
+.fx-table--matrix thead th:first-child {
+    z-index: 3;
+}
+
+.fx-table--matrix .fx-yes {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--ink);
+    stroke-width: 2.2;
+}
+
+.fx-table--matrix .fx-no {
+    color: var(--ink-3);
+}
+
+/* ---- The journal voucher ------------------------------------------------------------------------------------- */
+.fx-voucher {
+    min-width: 0;
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+    overflow: hidden;
+}
+
+.fx-voucher__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    border-bottom: 1px solid var(--ink);
+}
+
+.fx-voucher__kind {
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--ink-3);
+}
+
+.fx-voucher__ref {
+    margin-top: 2px;
+    font-family: var(--font-figure);
+    font-size: var(--fs-answer);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.fx-voucher__ref .fx-figure {
+    font-size: 1em;
+    letter-spacing: inherit;
+}
+
+.fx-voucher__meta {
+    padding: var(--s-3) var(--s-5);
+}
+
+.fx-voucher .fx-tablewrap {
+    border-top: 1px solid var(--rule);
+}
+
+.fx-voucher .fx-table caption {
+    display: none;
+}
+
+.fx-voucher__note {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-5);
+    border-top: 1px solid var(--rule);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-voucher__note .fx-icon {
+    color: var(--tick);
+    stroke-width: 2.2;
+}
+
+@media (min-width: 900px) {
+    .fx-voucher__meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: var(--s-6);
+    }
+
+    .fx-voucher__meta > div:nth-last-child(2):nth-child(odd) {
+        border-bottom: 0;
+    }
+}
+
+/* ---- Periods: the locked or open state --------------------------------------------------------------------- */
+.fx-lock {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-4);
+    padding: var(--s-5);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel);
+    background: var(--sheet);
+}
+
+.fx-lock.is-locked {
+    border-color: var(--rule-strong);
+    background: var(--sunk);
+}
+
+.fx-lock__icon {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-top: 0.1rem;
+    color: var(--ink);
+}
+
+.fx-lock__title {
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    font-size: var(--fs-section);
+    font-weight: 650;
+}
+
+.fx-lock p {
+    margin-top: var(--s-1);
+    max-width: 62ch;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-table tr.is-locked th,
+.fx-table tr.is-locked td {
+    background: rgb(var(--sunk-rgb) / 0.5);
+}
+
+/* ---- Approvals inbox ---------------------------------------------------------------------------------------- */
+.fx-request {
+    display: grid;
+    gap: var(--s-4);
+}
+
+.fx-request__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-5);
+}
+
+.fx-request__title {
+    font-size: var(--fs-section);
+    font-weight: 650;
+}
+
+.fx-request__sub {
+    margin-top: 2px;
+    font-size: var(--fs-cell);
+    color: var(--ink-2);
+}
+
+.fx-request__decide {
+    display: grid;
+    gap: var(--s-4);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+}
+
+.fx-decide {
+    display: grid;
+    gap: var(--s-3);
+    align-content: start;
+}
+
+.fx-decide .fx-btn {
+    justify-self: start;
+}
+
+@media (min-width: 900px) {
+    .fx-request__decide {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--s-6);
+    }
+}
