@@ -36,11 +36,11 @@ class TransactionPolicy
     public function update(User $user, Transaction $transaction): bool
     {
         // R-44: the cash row of a supplier payment (or a customer receipt) is changed by reversing the payment, never by editing it.
-        return (LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false) && ! SettlementTransactions::is($transaction);
+        return (LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false) && $transaction->settlement_ref === null && ! SettlementTransactions::is($transaction);
     }
 
     public function delete(User $user, Transaction $transaction): bool
     {
-        return (LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false) && ! SettlementTransactions::is($transaction);
+        return (LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false) && $transaction->settlement_ref === null && ! SettlementTransactions::is($transaction);
     }
 }

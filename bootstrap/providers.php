@@ -9,6 +9,7 @@ use App\Providers\IntelligenceServiceProvider;
 use App\Providers\JetstreamServiceProvider;
 use App\Providers\PurchasesServiceProvider;
 use App\Providers\ReportingServiceProvider;
+use App\Providers\SalesServiceProvider;
 use App\Providers\SharedDataServiceProvider;
 
 return [
@@ -22,4 +23,5 @@ return [
     BankServiceProvider::class,
     PurchasesServiceProvider::class,
     ReportingServiceProvider::class,
+    SalesServiceProvider::class,
 ];

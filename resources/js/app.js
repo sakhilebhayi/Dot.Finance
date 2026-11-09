@@ -6,3 +6,4 @@ import './fx/forms';
 import './fx/toasts';
 import './fx/journal';
 import './fx/print';
+import './fx/sales';

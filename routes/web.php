@@ -121,6 +121,10 @@ if (! Features::enabled(Features::registration())) {
 require __DIR__.'/intel.php';
 // --- end intel ---
 
+// --- sales ---
+require __DIR__.'/sales.php';
+// --- end sales ---
+
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---

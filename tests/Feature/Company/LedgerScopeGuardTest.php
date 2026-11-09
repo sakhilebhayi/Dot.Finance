@@ -82,6 +82,7 @@ class LedgerScopeGuardTest extends TestCase
             'Services/Accounting/GlSweeper.php' => 'set-based search for unposted rows in the one ledger it was handed, with an explicit owner condition',
             'Services/Accounting/GlVerifier.php' => 'integrity checks over the one ledger it was handed, with an explicit owner condition',
             'Services/Accounting/JournalPoster.php' => 'bulk insert of journal lines and the single guarded reversal-link update (append-only rows have no model path for either)',
+            'Services/Sales/ShareLinks.php' => 'finds a customer link by the hash of its secret token to learn which ledger it belongs to, before any scoped model can be read (reads owner columns only)',
             'Services/Accounting/Periods.php' => 'year-end aggregate over the one ledger it was handed, with an explicit owner condition',
             // R-44 Bank: every one of these keys its set-based read or write by ids first loaded through a scoped model in the same
             // transaction (the session, the account, the statement, the match), or states the owner condition itself (BankIsolationTest proves it).

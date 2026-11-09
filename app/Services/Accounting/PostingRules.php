@@ -39,6 +39,12 @@ final class PostingRules
     /** Why a cash-ledger row is not posted, or null when it is. */
     public static function skipReason(Transaction $t, ?CarbonImmutable $accountOpeningDate): ?string
     {
+        // R44 SALES: the cash leg of a document settlement (a payment received, a refund paid). The settlement posts its own
+        // entry, with the same cash account on the bank line, so the cash tie-out holds without this row being posted twice.
+        if ($t->settlement_ref !== null) {
+            return 'The cash leg of a document settlement: the settlement posts it, not the cash-ledger rules.';
+        }
+
         if ($t->type === 'transfer' && $t->transfer_group === null) {
             return 'Legacy transfer row with no destination: it has never moved a balance.';
         }

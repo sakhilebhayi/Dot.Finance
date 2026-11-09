@@ -154,6 +154,8 @@ class IntegerMoneyTest extends TestCase
         // Roll the schema back to the pre-ledger shape (newest migration first), then write rows exactly as the old code did.
         $reportIndexes->down();
         $reportingMigration->down();
+        $salesMigration = require database_path('migrations/2026_11_10_100000_create_sales_tables.php');   // R-44 Sales points at gl_accounts and transactions
+        $salesMigration->down();
         $bankMigration->down();
         $accountingMigration->down();
         $phase0Migration->down();

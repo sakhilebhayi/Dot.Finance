@@ -32,13 +32,19 @@ use App\Models\Planning\Scenario;
 use App\Models\RecurringRule;
 use App\Models\Reporting\ReportExport;
 use App\Models\Reporting\ReportPreset;
+use App\Models\Sales\SalesRecurringTemplate;
+use App\Models\Sales\SalesShareLink;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Accounting\Chart;
 use App\Services\Accounting\ChartTemplates;
 use App\Services\Accounting\GlBackfill;
+use App\Services\Sales\DocumentDrafts;
+use App\Services\Sales\DocumentIssuer;
+use App\Services\Sales\ReceiptService;
 use App\Services\TransferService;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,10 +86,13 @@ class ContextIsolationRoutesTest extends TestCase
         'payments', 'payment_allocations', 'purchase_settings', 'supplier_profiles', 'supplier_bank_details', 'bills', 'bill_lines', 'expense_claims', 'expense_claim_lines', 'recurring_bills', 'payment_runs', 'payment_run_items',
         // R-44 reporting and planning
         'report_exports', 'report_presets', 'dimensions', 'plan_budgets', 'plan_budget_lines', 'plan_scenarios',
+        // R-44 Sales
+        'sales_profiles', 'sales_party_prefs', 'sales_documents', 'sales_document_lines', 'sales_applications', 'sales_refunds', 'sales_write_offs',
+        'sales_document_events', 'sales_share_links', 'sales_transaction_links', 'sales_reminders', 'sales_recurring_templates',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'message' => 'message', 'draft' => 'draft', 'insight' => 'insight', 'notification' => 'notification', 'line' => 'line', 'statement' => 'statement', 'reconciliation' => 'reconciliation', 'bankMatch' => 'bankMatch', 'bankRule' => 'bankRule', 'bill' => 'bill', 'claim' => 'claim', 'claimLine' => 'claimLine', 'run' => 'run', 'recurring' => 'recurring', 'detail' => 'detail', 'payment' => 'payment', 'reportExport' => 'reportExport', 'reportPreset' => 'reportPreset', 'planBudget' => 'planBudget', 'dimension' => 'dimension', 'scenario' => 'scenario'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period', 'message' => 'message', 'draft' => 'draft', 'insight' => 'insight', 'notification' => 'notification', 'line' => 'line', 'statement' => 'statement', 'reconciliation' => 'reconciliation', 'bankMatch' => 'bankMatch', 'bankRule' => 'bankRule', 'bill' => 'bill', 'claim' => 'claim', 'claimLine' => 'claimLine', 'run' => 'run', 'recurring' => 'recurring', 'detail' => 'detail', 'payment' => 'payment', 'reportExport' => 'reportExport', 'reportPreset' => 'reportPreset', 'planBudget' => 'planBudget', 'dimension' => 'dimension', 'scenario' => 'scenario', 'document' => 'document', 'application' => 'application', 'template' => 'template', 'link' => 'link', 'shareToken' => 'shareToken'];
 
     private User $me;
 
@@ -185,7 +194,28 @@ class ContextIsolationRoutesTest extends TestCase
         $preset = ReportPreset::create($owner + ['name' => "Sentinel view {$label}", 'report_key' => 'profit-loss', 'params' => ['preset' => 'this_year']]);
         $export = ReportExport::create($owner + ['report_key' => 'profit-loss', 'format' => 'csv', 'params' => ['preset' => 'this_year'], 'params_hash' => hash('sha256', $label), 'idempotency_key' => hash('sha256', 'k'.$label), 'status' => 'queued']);
 
-        return $bank + ['planBudget' => $plan->id, 'dimension' => $dimension->id, 'scenario' => $scenario->id, 'reportPreset' => $preset->id, 'reportExport' => $export->id, 'bill' => $bill->id, 'claim' => $claim->id, 'claimLine' => $claimLine->id, 'run' => $run->id, 'recurring' => $recurring->id, 'detail' => $detail->id, 'payment' => $payment->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id, 'message' => $message->id, 'draft' => $draft->id, 'insight' => $insight2->id, 'notification' => $notification->id, 'line' => $line->id];
+        [$document, $salesPayment, $application, $template, $link] = LedgerContext::run($ledger, function () use ($ledger, $owner, $label, $party, $account, $company) {
+            $user = $company === null ? User::findOrFail($owner['user_id']) : $company->owner;
+            // a personal chart has receivables and output VAT switched off; invoicing needs them on
+            foreach (['ar', 'vat_output', 'sales'] as $key) {
+                $gl = app(Chart::class)->system($key, $ledger);
+                $gl->is_active || app(Chart::class)->activate($gl);
+            }
+            $drafts = app(DocumentDrafts::class);
+            $header = ['kind' => 'tax_invoice', 'party_id' => $party->id, 'currency' => 'ZAR', 'issue_date' => now()->toDateString(), 'reference' => "Sentinel document {$label}"];
+            $draft = $drafts->create($ledger, $user, $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]);
+            $issued = app(DocumentIssuer::class)->issue($drafts->create($ledger, $user, ['reference' => "Sentinel issued {$label}"] + $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]), $user)['document'];
+            $received = app(ReceiptService::class)->receive($ledger, $user, [
+                'party_id' => $party->id, 'cash_account_id' => $account->id, 'amount_cents' => 4_000, 'paid_on' => now()->toDateString(), 'idempotency_key' => 'sentinel-'.$label,
+                'allocations' => [['document_id' => $issued->id, 'amount_cents' => 4_000]],
+            ]);
+            $template = SalesRecurringTemplate::create($ledger->ownerAttributes() + ['party_id' => $party->id, 'name' => "Sentinel template {$label}", 'frequency' => 'monthly', 'every' => 1, 'start_date' => now()->toDateString(), 'next_run_date' => now()->addMonth()->toDateString(), 'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_cents' => 100]], 'created_by' => $user->id]);
+            $link = SalesShareLink::create($ledger->ownerAttributes() + ['kind' => 'document', 'document_id' => $issued->id, 'party_id' => $party->id, 'token_hash' => hash('sha256', 'sentinel-'.$label), 'expires_at' => now()->addDay()]);
+
+            return [$draft->id, $received['payment']->id, $received['applications'][0]->id, $template->id, $link->id];
+        });
+
+        return $bank + ['document' => $document, 'application' => $application, 'template' => $template, 'link' => $link, 'shareToken' => 'notatoken', 'planBudget' => $plan->id, 'dimension' => $dimension->id, 'scenario' => $scenario->id, 'reportPreset' => $preset->id, 'reportExport' => $export->id, 'bill' => $bill->id, 'claim' => $claim->id, 'claimLine' => $claimLine->id, 'run' => $run->id, 'recurring' => $recurring->id, 'detail' => $detail->id, 'payment' => $payment->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id, 'message' => $message->id, 'draft' => $draft->id, 'insight' => $insight2->id, 'notification' => $notification->id, 'line' => $line->id];
     }
 
     /** @return array<string, int> */
@@ -349,7 +379,8 @@ class ContextIsolationRoutesTest extends TestCase
             'intel.assistant.index', 'intel.attention.index', 'intel.notifications.index', 'intel.notifications.preferences', 'intel.integrations.index', 'intel.integrations.emall.index',
             'bank.statements.index', 'bank.reconciliation.index', 'bank.rules.index', 'bank.import.create',
             'purchases.index', 'purchases.bills.index', 'purchases.suppliers.index', 'purchases.claims.index', 'purchases.payments.index', 'purchases.runs.index', 'purchases.ap.index', 'purchases.documents.index', 'purchases.recurring.index', 'purchases.receipts.index',
-            'reports.index', 'reports.profit-loss', 'reports.balance-sheet', 'reports.general-ledger', 'reports.budget-vs-actual', 'reports.exports.index', 'planning.budgets.index', 'planning.scenarios.index', 'planning.dimensions.index', 'planning.cash.index', 'planning.afford'];
+            'reports.index', 'reports.profit-loss', 'reports.balance-sheet', 'reports.general-ledger', 'reports.budget-vs-actual', 'reports.exports.index', 'planning.budgets.index', 'planning.scenarios.index', 'planning.dimensions.index', 'planning.cash.index', 'planning.afford',
+            'sales.invoices.index', 'sales.quotes.index', 'sales.credit-notes.index', 'sales.payments.index', 'sales.customers.index', 'sales.receivables.index', 'sales.recurring.index', 'sales.reminders.index', 'sales.invoices.create'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -364,7 +395,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'question', 'finding', 'notification', 'line', 'draft', 'file', 'supplier', 'claim', 'run', 'schedule', 'plan', 'dimension', 'view'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'question', 'finding', 'notification', 'line', 'draft', 'file', 'supplier', 'claim', 'run', 'schedule', 'plan', 'dimension', 'view', 'document', 'issued', 'template'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }
