@@ -30,7 +30,7 @@ class TaxReturn extends Model
         'payable_cents', 'sars_reference', 'submitted_on', 'submitted_by_user_id', 'prepared_at',
     ];
 
-    /** Added in QA (D-1301): the JSON documents and ids the working paper is printed from, frozen with the rest. */
+    /** Added in QA (D-1308): the JSON documents and ids the working paper is printed from, frozen with the rest. */
     public const FROZEN_DOCUMENTS = ['user_id', 'team_id', 'period_label', 'channel', 'rule_versions', 'figures', 'reconciliation', 'checks', 'prepared_by_user_id', 'supersedes_return_id'];
 
     /** Frozen once a payment is recorded. */

@@ -172,4 +172,20 @@ class QaVat201WorkedExampleTest extends TestCase
         $this->assertSame(3_000, $r->amount('13'));
         $this->assertSame(3_000, $r->amount('20'));
     }
+
+    public function test_diesel_refund_totals_and_field_38(): void
+    {
+        $this->sale('2026-09-10', 100_000);  // output 15,000 -> field 20 = 15,000
+        $r = $this->build([$this->adj('25', 4_000), $this->adj('29', 1_000)]);
+
+        // field 38 = field 20 less the diesel totals (25 + 29 + 33 + 37) = 15,000 - 5,000 = 10,000 ; the payable amount is the after-diesel figure
+        $this->assertSame(15_000, $r->amount('20'));
+        $this->assertSame(4_000, $r->amount('25'));
+        $this->assertSame(1_000, $r->amount('29'));
+        $this->assertSame(10_000, $r->amount('38'));
+        $this->assertSame(10_000, $r->payableCents);
+
+        // no diesel, no field 38
+        $this->assertNull($this->build()->box('38'));
+    }
 }
