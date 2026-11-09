@@ -13,6 +13,7 @@ use App\Services\Sales\Gateways\ManualGateway;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -111,10 +112,11 @@ final class Reminders
 
         $party = $document->party;
         try {
-            $log = SalesReminder::query()->create($context->ownerAttributes() + [
+            // a savepoint, so a lost race (or a repeat run) is a clean refusal even inside someone else's transaction
+            $log = DB::transaction(fn () => SalesReminder::query()->create($context->ownerAttributes() + [
                 'document_id' => $document->id, 'party_id' => $document->party_id, 'stage' => $stage, 'offset_days' => $offset,
                 'scheduled_for' => $today->toDateString(), 'outcome' => 'pending', 'to_address' => $party?->email,
-            ]);
+            ]));
         } catch (UniqueConstraintViolationException) {
             return 'already_logged';
         }

@@ -219,7 +219,7 @@ class IssueTest extends TestCase
             fn () => DB::table('sales_document_lines')->where('id', $line->id)->delete(),
         ] as $i => $attempt) {
             try {
-                $attempt();
+                DB::transaction($attempt);   // a savepoint: on PostgreSQL a refused statement would otherwise end the test's transaction
                 $this->fail("raw change #{$i} to an issued document went through");
             } catch (QueryException $e) {
                 $this->assertStringContainsString('issued sales document', $e->getMessage());

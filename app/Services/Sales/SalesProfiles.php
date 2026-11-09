@@ -58,7 +58,7 @@ final class SalesProfiles
 
             if ($creating) {
                 try {
-                    $profile = SalesProfile::query()->create($context->ownerAttributes() + $data);
+                    $profile = DB::transaction(fn () => SalesProfile::query()->create($context->ownerAttributes() + $data));
                 } catch (UniqueConstraintViolationException) {
                     $profile = SalesProfile::query()->forContext($context)->firstOrFail();
                     $profile->fill($data)->save();
