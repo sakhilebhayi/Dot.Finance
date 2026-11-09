@@ -33,21 +33,21 @@ Route::middleware([
     Route::post('/statements/import', [StatementImportController::class, 'upload'])->name('import.upload')->middleware('throttle:20,1');
     Route::get('/statements/import/{token}', [StatementImportController::class, 'preview'])->where('token', '[0-9a-f-]{36}')->name('import.preview');
     Route::post('/statements/import/{token}', [StatementImportController::class, 'store'])->where('token', '[0-9a-f-]{36}')->name('import.store')->middleware('throttle:20,1');
-    Route::get('/statements/{statement}', [StatementController::class, 'show'])->whereNumber('statement')->name('statements.show');
-    Route::delete('/statements/{statement}', [StatementController::class, 'destroy'])->whereNumber('statement')->name('statements.destroy');
+    Route::get('/statements/{statement}', [StatementController::class, 'show'])->where('statement', '[0-9]{1,18}')->name('statements.show');
+    Route::delete('/statements/{statement}', [StatementController::class, 'destroy'])->where('statement', '[0-9]{1,18}')->name('statements.destroy');
 
     // Reconciliation sessions
     Route::get('/reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
     Route::post('/reconciliation', [ReconciliationController::class, 'start'])->name('reconciliation.start');
-    Route::get('/reconciliation/{reconciliation}', [ReconciliationController::class, 'show'])->whereNumber('reconciliation')->name('reconciliation.show');
-    Route::get('/reconciliation/{reconciliation}/report', [ReconciliationController::class, 'report'])->whereNumber('reconciliation')->name('reconciliation.report');
-    Route::get('/reconciliation/{reconciliation}/report.csv', [ReconciliationController::class, 'csv'])->whereNumber('reconciliation')->name('reconciliation.csv');
+    Route::get('/reconciliation/{reconciliation}', [ReconciliationController::class, 'show'])->where('reconciliation', '[0-9]{1,18}')->name('reconciliation.show');
+    Route::get('/reconciliation/{reconciliation}/report', [ReconciliationController::class, 'report'])->where('reconciliation', '[0-9]{1,18}')->name('reconciliation.report');
+    Route::get('/reconciliation/{reconciliation}/report.csv', [ReconciliationController::class, 'csv'])->where('reconciliation', '[0-9]{1,18}')->name('reconciliation.csv');
 
     // What a person does inside a session (all POST, all re-checked on the server)
     Route::prefix('/reconciliation/{reconciliation}')->where(['reconciliation' => '[0-9]+'])->name('reconciliation.')->group(function () {
         Route::post('/accept', [ReconciliationActionController::class, 'accept'])->name('accept');
         Route::post('/match', [ReconciliationActionController::class, 'match'])->name('match');
-        Route::post('/matches/{bankMatch}/release', [ReconciliationActionController::class, 'unmatch'])->whereNumber('bankMatch')->name('unmatch');
+        Route::post('/matches/{bankMatch}/release', [ReconciliationActionController::class, 'unmatch'])->where('bankMatch', '[0-9]{1,18}')->name('unmatch');
         Route::post('/entries', [ReconciliationActionController::class, 'entries'])->name('entries');
         Route::post('/transfer', [ReconciliationActionController::class, 'transfer'])->name('transfer');
         Route::post('/settle', [ReconciliationActionController::class, 'settle'])->name('settle');
@@ -59,7 +59,7 @@ Route::middleware([
     // Bank rules (suggestions only)
     Route::get('/rules', [RuleController::class, 'index'])->name('rules.index');
     Route::post('/rules', [RuleController::class, 'store'])->name('rules.store');
-    Route::get('/rules/{bankRule}/edit', [RuleController::class, 'edit'])->whereNumber('bankRule')->name('rules.edit');
-    Route::put('/rules/{bankRule}', [RuleController::class, 'update'])->whereNumber('bankRule')->name('rules.update');
-    Route::delete('/rules/{bankRule}', [RuleController::class, 'destroy'])->whereNumber('bankRule')->name('rules.destroy');
+    Route::get('/rules/{bankRule}/edit', [RuleController::class, 'edit'])->where('bankRule', '[0-9]{1,18}')->name('rules.edit');
+    Route::put('/rules/{bankRule}', [RuleController::class, 'update'])->where('bankRule', '[0-9]{1,18}')->name('rules.update');
+    Route::delete('/rules/{bankRule}', [RuleController::class, 'destroy'])->where('bankRule', '[0-9]{1,18}')->name('rules.destroy');
 });

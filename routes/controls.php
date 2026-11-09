@@ -15,7 +15,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         Route::get('/', ControlsIndexController::class)->name('index');
 
         Route::get('/members', [MembersController::class, 'index'])->name('members.index');
-        Route::put('/members/{member}', [MembersController::class, 'update'])->whereNumber('member')->name('members.update');
+        Route::put('/members/{member}', [MembersController::class, 'update'])->where('member', '[0-9]{1,18}')->name('members.update');
 
         Route::get('/policies', [PoliciesController::class, 'index'])->name('policies.index');
         Route::post('/policies', [PoliciesController::class, 'store'])->name('policies.store');

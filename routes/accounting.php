@@ -38,8 +38,8 @@ Route::prefix('accounting')->name('accounting.')->group(function () {
     Route::get('/journals', [JournalController::class, 'index'])->name('journals.index');
     Route::get('/journals/create', [JournalController::class, 'create'])->name('journals.create');
     Route::post('/journals', [JournalController::class, 'store'])->name('journals.store');
-    Route::get('/journals/{entry}', [JournalController::class, 'show'])->whereNumber('entry')->name('journals.show');
-    Route::post('/journals/{entry}/reverse', [JournalController::class, 'reverse'])->whereNumber('entry')->name('journals.reverse');
+    Route::get('/journals/{entry}', [JournalController::class, 'show'])->where('entry', '[0-9]{1,18}')->name('journals.show');
+    Route::post('/journals/{entry}/reverse', [JournalController::class, 'reverse'])->where('entry', '[0-9]{1,18}')->name('journals.reverse');
 
     // Periods
     Route::get('/periods', [PeriodController::class, 'index'])->name('periods.index');

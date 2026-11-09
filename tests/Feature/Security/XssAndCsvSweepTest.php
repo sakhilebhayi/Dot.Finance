@@ -12,6 +12,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Tests\Concerns\BuildsCompanyLedgers;
 use Tests\Concerns\RunsRouteProbes;
 use Tests\Concerns\SeedsSentinelLedgers;
@@ -37,9 +39,10 @@ class XssAndCsvSweepTest extends TestCase
     use SeedsSentinelLedgers;
 
     /** Live markup that must never reach a page: each is what a browser would execute or act on. */
-    private const LIVE = ['<svg/onload=alert(1)>', '<b onfocus=alert(2) x="', '<img src=x onerror=alert(3)>', '</script><script>alert(4)</script>', '<script>alert(5)</script>'];
+    private const LIVE = ['<svg/onload=alert(1)>', '<b onfocus=alert(2)', '<img src=x onerror=alert(3)>', '</script><script>alert(4)</script>', '<script>alert(5)</script>'];
 
-    private const LABEL = 'ZZ<svg/onload=alert(1)>"><b onfocus=alert(2) x="';
+    // short on purpose: the longest column the seeder fills with it is 60 characters wide, after a 16-character prefix
+    private const LABEL = '<svg/onload=alert(1)>"><b onfocus=alert(2)';
 
     private User $me;
 
@@ -131,7 +134,7 @@ class XssAndCsvSweepTest extends TestCase
             }
 
             $type = (string) $response->headers->get('Content-Type');
-            $body = $response instanceof \Illuminate\Testing\TestResponse && method_exists($response->baseResponse, 'streamedContent') && $response->baseResponse instanceof \Symfony\Component\HttpFoundation\StreamedResponse
+            $body = $response instanceof TestResponse && method_exists($response->baseResponse, 'streamedContent') && $response->baseResponse instanceof StreamedResponse
                 ? $response->streamedContent() : (string) $response->getContent();
 
             if (! str_contains($type, 'text/html')) {
@@ -147,8 +150,8 @@ class XssAndCsvSweepTest extends TestCase
                     $problems[] = "{$uri} contains live markup: {$live}";
                 }
             }
-            // An unterminated attribute or a quote break-out would show as the raw quote right after the angle bracket.
-            if (str_contains($body, 'onfocus=alert(2) x="')) {
+            // A quote break-out of an attribute would leave the closing quote raw right before the tag.
+            if (str_contains($body, '"><b onfocus=alert(2)')) {
                 $problems[] = "{$uri} lets the payload break out of an attribute";
             }
             if (str_contains($body, '&lt;svg/onload=alert(1)&gt;') || str_contains($body, '&lt;img src=x onerror=alert(3)&gt;')) {
@@ -239,7 +242,7 @@ class XssAndCsvSweepTest extends TestCase
             if (! str_contains($type, 'csv')) {
                 continue;
             }
-            $body = $response->baseResponse instanceof \Symfony\Component\HttpFoundation\StreamedResponse ? $response->streamedContent() : (string) $response->getContent();
+            $body = $response->baseResponse instanceof StreamedResponse ? $response->streamedContent() : (string) $response->getContent();
             $this->assertFormulaSafe($body, $name);
             $checked[] = $name;
         }

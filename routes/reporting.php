@@ -29,11 +29,11 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
         Route::get('/exports', [ExportController::class, 'index'])->name('exports.index');
         Route::post('/exports', [ExportController::class, 'store'])->name('exports.store');
-        Route::get('/exports/{reportExport}', [ExportController::class, 'show'])->whereNumber('reportExport')->name('exports.show');
+        Route::get('/exports/{reportExport}', [ExportController::class, 'show'])->where('reportExport', '[0-9]{1,18}')->name('exports.show');
         // Opened through a temporary signed link (the status page mints it) AND the person's access. A missing or wrong
         // signature is a 403; another ledger's export is a 404 before that.
-        Route::get('/exports/{reportExport}/download', [ExportController::class, 'download'])->whereNumber('reportExport')->name('exports.download')->middleware('signed');
+        Route::get('/exports/{reportExport}/download', [ExportController::class, 'download'])->where('reportExport', '[0-9]{1,18}')->name('exports.download')->middleware('signed');
 
         Route::post('/presets', [PresetController::class, 'store'])->name('presets.store');
-        Route::delete('/presets/{reportPreset}', [PresetController::class, 'destroy'])->whereNumber('reportPreset')->name('presets.destroy');
+        Route::delete('/presets/{reportPreset}', [PresetController::class, 'destroy'])->where('reportPreset', '[0-9]{1,18}')->name('presets.destroy');
     });
