@@ -156,15 +156,17 @@ class TaxRulesSeederTest extends TestCase
         $this->assertSame('high', $rate->confidence);
     }
 
-    public function test_company_rate_follows_the_year_of_assessment_end_date_and_leaves_the_documented_gap(): void
+    public function test_company_rate_follows_the_year_of_assessment_end_date_and_has_no_gap_at_31_march_2023(): void
     {
         $this->seedZa();
 
         $this->assertSame(2800, $this->rule('cit.rate_bp', '2022-04-01')->basisPoints());
+        $this->assertSame(2800, $this->rule('cit.rate_bp', '2023-03-30')->basisPoints());
+        $this->assertSame(2700, $this->rule('cit.rate_bp', '2023-03-31')->basisPoints(), 'SARS: years ending 31 March 2023 onward are 27 percent (QA D-1300 closed the one-day hole)');
         $this->assertSame(2700, $this->rule('cit.rate_bp', '2023-04-01')->basisPoints());
         $this->assertSame(2700, $this->rule('cit.rate_bp', '2027-03-31')->basisPoints());
         $this->assertNull($this->book()->find('ZA', 'cit.rate_bp', '2027-04-01'), 'not valid past the window the research gives');
-        $this->assertNull($this->book()->find('ZA', 'cit.rate_bp', '2023-03-31'), 'the research ranges leave this one day uncovered; the engine refuses it');
+        $this->assertNull($this->book()->find('ZA', 'cit.rate_bp', '2022-03-31'), 'before the first row the engine refuses');
     }
 
     // ── tables add up ─────────────────────────────────────────────────
