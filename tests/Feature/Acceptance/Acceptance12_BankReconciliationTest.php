@@ -89,7 +89,7 @@ class Acceptance12_BankReconciliationTest extends AcceptanceCase
         $done = $session->fresh();
         $this->assertSame('completed', $done->status);
         $this->assertSame(11_929_000, (int) $done->ledger_cleared_cents, 'the cleared book balance is the statement balance: difference zero');
-        $this->assertSame(0, BankStatementLine::query()->forContext($this->ledger)->whereNull('matched_at')->count() ?: 0);
+        $this->assertSame(0, BankStatementLine::query()->forContext($this->ledger)->whereNull('reconciliation_id')->count(), 'every statement line is part of the completed reconciliation');
         $this->assertBooksVerify();     // includes the cash tie-out of the bank account
 
         // the report proves it, and a reconciled row can no longer be edited

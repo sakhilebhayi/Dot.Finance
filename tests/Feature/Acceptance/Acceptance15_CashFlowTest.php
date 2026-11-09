@@ -36,7 +36,7 @@ class Acceptance15_CashFlowTest extends AcceptanceCase
         $drill = app(DrillDown::class)->lines($this->ledger, ['class' => 'cash', 'from' => '2026-11-01', 'to' => '2026-11-30']);
         $this->assertSame(7, $drill['count'], 'seven movements on the statement, seven cash journal lines');
         $this->assertSame(1_929_000, $drill['total_cents']);
-        $this->assertSame(1_929_000, JournalLine::query()->forContext($this->ledger)->where('cash_account_id', $this->bank->id)->whereBetween('entry_date', ['2026-11-01', '2026-11-30'])
+        $this->assertSame(1_929_000, (int) JournalLine::query()->forContext($this->ledger)->where('cash_account_id', $this->bank->id)->whereBetween('entry_date', ['2026-11-01', '2026-11-30'])
             ->selectRaw('SUM(debit_cents) - SUM(credit_cents) as n')->value('n'));
     }
 

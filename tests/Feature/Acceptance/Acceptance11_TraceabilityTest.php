@@ -55,7 +55,7 @@ class Acceptance11_TraceabilityTest extends AcceptanceCase
         foreach (['opening_balance', 'invoice', 'credit_note', 'bill', 'payment', 'payroll', 'transaction'] as $type) {
             $this->assertArrayHasKey($type, $followed, "{$type} entries were traced");
         }
-        $this->assertContains('Expense claim #1', $followed['bill']);
+        $this->assertContains('Expense claim #'.$this->claim->id, $followed['bill']);
         $this->assertTrue(collect($followed['payment'])->contains(fn ($l) => str_starts_with($l, 'Supplier payment')), 'a supplier payment leads to the supplier payments page');
         $this->assertTrue(collect($followed['payment'])->contains(fn ($l) => str_starts_with($l, 'Payment received')), 'a receipt leads to the receipts page');
     }
