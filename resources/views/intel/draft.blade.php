@@ -16,6 +16,7 @@
 <form method="POST" action="{{ route('intel.assistant.draft.confirm', $draft) }}">
     @csrf
     <x-fx.panel :title="$draft->summary" meta="Expires {{ $draft->expires_at->format('j M, H:i') }}">
+        <div class="fx-stack">
         @if ($draft->kind === 'transaction')
         @php $p = $draft->payload; @endphp
         <div class="fx-row fx-row--2">
@@ -54,6 +55,7 @@
         @else
         <p>This sends a payment reminder to <strong>{{ $draft->payload['party_name'] ?? 'the customer' }}</strong> through the Sales module.</p>
         @endif
+        </div>
         <x-slot name="foot">
             <x-fx.button variant="primary" icon="check">Confirm and record</x-fx.button>
             <x-fx.button :href="route('intel.assistant.index')">Back without confirming</x-fx.button>

@@ -27,7 +27,7 @@ final class SpendHandler extends Handler
     {
         $period = $q->period;
         $rows = $this->byCategory($context, $period->fromDate(), $period->toDate());
-        $link = $this->sources(['Expenses in '.$period->label, fx_route('transactions.index', ['type' => 'expense', 'from' => $period->fromDate(), 'to' => $period->toDate()])]);
+        $link = $this->sources(['Expenses, '.$period->label, fx_route('transactions.index', ['type' => 'expense', 'from' => $period->fromDate(), 'to' => $period->toDate()])]);
 
         if ($rows === []) {
             return Answer::noData(Intent::Spend, "I don't have any expenses recorded for {$period->label}.", $link, [$period->explicit ? '' : 'No period was named, so I looked at this month so far.']);
@@ -69,7 +69,7 @@ final class SpendHandler extends Handler
         return new Answer(
             Intent::Spend,
             Answer::ANSWERED,
-            'You spent '.implode(' and ', $parts)." in {$period->label}.",
+            'You spent '.implode(' and ', $parts)." {$period->inPhrase()}.",
             $facts,
             ['Category', 'Spent'],
             $tableRows,
@@ -84,7 +84,7 @@ final class SpendHandler extends Handler
         $previous = $period->previous();
 
         $now = $this->byCategory($context, $period->fromDate(), $period->toDate());
-        $link = $this->sources(['Expenses in '.$period->label, fx_route('transactions.index', ['type' => 'expense', 'from' => $period->fromDate(), 'to' => $period->toDate()])]);
+        $link = $this->sources(['Expenses, '.$period->label, fx_route('transactions.index', ['type' => 'expense', 'from' => $period->fromDate(), 'to' => $period->toDate()])]);
 
         if ($now === []) {
             return Answer::noData(Intent::ExpensesIncreased, "I don't have any expenses recorded for {$period->label}, so there is nothing to compare.", $link);
@@ -114,7 +114,7 @@ final class SpendHandler extends Handler
         $changes = array_slice($changes, 0, 5);
 
         if ($changes === []) {
-            return new Answer(Intent::ExpensesIncreased, Answer::ANSWERED, "No expense category went up in {$period->label} compared with {$previous->label}.", sources: $link, notes: ["Compared with {$previous->label}."]);
+            return new Answer(Intent::ExpensesIncreased, Answer::ANSWERED, "No expense category went up {$period->inPhrase()} compared with {$previous->label}.", sources: $link, notes: ["Compared with {$previous->label}."]);
         }
 
         $rows = [];
@@ -139,12 +139,12 @@ final class SpendHandler extends Handler
         return new Answer(
             Intent::ExpensesIncreased,
             Answer::ANSWERED,
-            "The biggest increase in {$period->label} is {$topName}, up ".$this->money($top['diff'], $topRow->currency).($top['prev'] > 0 ? ' ('.$this->percent($top['diff'], $top['prev']).'%)' : '')." on {$previous->label}.",
+            "The biggest increase {$period->inPhrase()} is {$topName}, up ".$this->money($top['diff'], $topRow->currency).($top['prev'] > 0 ? ' ('.$this->percent($top['diff'], $top['prev']).'%)' : '')." compared with {$previous->label}.",
             [],
             ['Category', $previous->label, $period->label, 'Change'],
             $rows,
             $link,
-            notes: ["Compared with {$previous->label}, the same length of time just before."],
+            notes: ["Compared with {$previous->label}."],
         );
     }
 

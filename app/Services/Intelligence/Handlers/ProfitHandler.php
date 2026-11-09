@@ -28,7 +28,7 @@ final class ProfitHandler extends Handler
             ->groupBy('currency', 'type')
             ->get();
 
-        $link = $this->sources(['Transactions in '.$period->label, fx_route('transactions.index', ['from' => $period->fromDate(), 'to' => $period->toDate()])], ['Cash flow', fx_route('reports.cash-flow')]);
+        $link = $this->sources(['Transactions, '.$period->label, fx_route('transactions.index', ['from' => $period->fromDate(), 'to' => $period->toDate()])], ['Cash flow', fx_route('reports.cash-flow')]);
 
         if ($rows->isEmpty()) {
             return Answer::noData(Intent::Profitable, "I don't have any income or expenses recorded for {$period->label}, so I cannot say.", $link);

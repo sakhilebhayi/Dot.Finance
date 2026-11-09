@@ -10,6 +10,7 @@ use App\Services\Intelligence\Detectors\Finding;
 use App\Support\FinanceAudit;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Links;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -122,7 +123,9 @@ final class InsightEngine
     {
         return [
             'kind' => $f->kind, 'subject_key' => $f->subjectKey, 'period_key' => $f->periodKey, 'severity' => $f->severity,
-            'title' => mb_substr($f->title, 0, 200), 'body' => $f->body, 'evidence' => $f->evidence, 'href' => $f->href ? mb_substr($f->href, 0, 300) : null,
+            'title' => mb_substr($f->title, 0, 200), 'body' => $f->body,
+            'evidence' => array_map(fn (array $row) => ['href' => Links::relative($row['href'] ?? null)] + $row, $f->evidence),
+            'href' => ($href = Links::relative($f->href)) ? mb_substr($href, 0, 300) : null,
             'basis' => 'calculated',
         ];
     }

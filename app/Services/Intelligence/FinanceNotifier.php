@@ -10,8 +10,10 @@ use App\Models\User;
 use App\Services\Integrations\NotifyClient;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Links;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -52,20 +54,28 @@ final class FinanceNotifier
 
         $prefs = $this->preferenceFor($context, $recipient, $kind);
 
+        $key = mb_substr($dedupeKey, 0, 120);
+
+        if (FinanceNotification::query()->forContext($context)->where('recipient_id', $recipient->id)->where('dedupe_key', $key)->exists()) {
+            return null;
+        }
+
         try {
-            $note = FinanceNotification::create($context->ownerAttributes() + [
+            // A savepoint (a nested transaction) so that losing a race to the unique index does not poison the caller's
+            // transaction: on PostgreSQL a failed statement aborts the whole transaction otherwise.
+            $note = DB::transaction(fn () => FinanceNotification::create($context->ownerAttributes() + [
                 'recipient_id' => $recipient->id,
                 'kind' => $kind,
                 'severity' => $severity,
                 'title' => mb_substr($title, 0, 200),
                 'body' => $body,
-                'href' => $href ? mb_substr($href, 0, 300) : null,
-                'dedupe_key' => mb_substr($dedupeKey, 0, 120),
+                'href' => ($relative = Links::relative($href)) ? mb_substr($relative, 0, 300) : null,
+                'dedupe_key' => $key,
                 'email_status' => 'none',
                 'notify_status' => 'none',
                 // Someone who switched the bell off for this kind still has the record, but it does not badge.
                 'read_at' => $prefs['in_app'] ? null : now(),
-            ]);
+            ]));
         } catch (UniqueConstraintViolationException) {
             return null;
         }

@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Intelligence\FinanceNotification;
+use App\Support\Links;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -22,7 +23,7 @@ class FinanceNotificationMail extends Mailable
         return new Content(markdown: 'emails.finance-notification', with: [
             'title' => $this->notification->title,
             'body' => $this->notification->body,
-            'url' => $this->notification->href,
+            'url' => Links::absolute($this->notification->href),
             'ledger' => $this->ledgerLabel,
         ]);
     }

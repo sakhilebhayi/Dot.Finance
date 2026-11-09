@@ -278,3 +278,32 @@
     line-height: 1rem;
     text-align: center;
 }
+
+/* The figures under an answer: the system table, a little narrower than a page. */
+.intel-table {
+    max-width: 52rem;
+}
+
+.intel-table th.is-lead a {
+    color: inherit;
+}
+
+.intel-actions form {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.intel-actions .fx-select {
+    width: auto;
+    min-height: var(--control-h-sm);
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Settings names such as ANALYTICS_INGEST_SECRET have no break points of their own. */
+.intel-wrap td,
+.intel-wrap th {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}

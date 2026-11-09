@@ -14,6 +14,20 @@ final class Period
         public readonly bool $explicit,
     ) {}
 
+    /** The label as a phrase for "... spent X <phrase>": "so far this month", "today", "over the last 30 days", "in October 2026". */
+    public function inPhrase(): string
+    {
+        if (preg_match('/^this (\w+) so far$/', $this->label, $m)) {
+            return 'so far this '.$m[1];
+        }
+
+        if (preg_match('/^(today|yesterday|last \w+)$/', $this->label)) {
+            return $this->label;
+        }
+
+        return str_starts_with($this->label, 'the last') ? 'over '.$this->label : 'in '.$this->label;
+    }
+
     public function fromDate(): string
     {
         return $this->from->toDateString();
@@ -36,16 +50,11 @@ final class Period
             $wholeMonth = $this->to->isSameDay($this->to->endOfMonth());
             $to = $wholeMonth ? $from->endOfMonth()->startOfDay() : min($from->endOfMonth()->startOfDay(), $from->setDay(min($this->to->day, $from->daysInMonth)));
 
-            return new self($from, $to, $from->format('F Y').($wholeMonth ? '' : ' to the '.$to->day.self::ordinal($to->day)), false);
+            return new self($from, $to, $wholeMonth ? $from->format('F Y') : $from->day.' to '.$to->day.' '.$from->format('F Y'), false);
         }
 
         $days = $this->from->diffInDays($this->to) + 1;
 
         return new self($this->from->subDays($days), $this->from->subDay(), 'the '.$days.' days before', false);
-    }
-
-    private static function ordinal(int $n): string
-    {
-        return in_array($n % 100, [11, 12, 13], true) ? 'th' : [1 => 'st', 2 => 'nd', 3 => 'rd'][$n % 10] ?? 'th';
     }
 }

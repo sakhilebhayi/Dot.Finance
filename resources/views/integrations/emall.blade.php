@@ -18,7 +18,7 @@
     @if ($lines->isEmpty())
         <x-fx.empty title="No Dot.Emall sales have arrived.">Dot.Emall does not send seller sales yet: the signed endpoint is ready and waiting. See the integrations page for what is needed on the Emall side.</x-fx.empty>
     @else
-    <x-fx.table caption="Dot.Emall sale lines">
+    <x-fx.table caption="Dot.Emall sale lines" class="intel-wrap">
         <thead><tr><th scope="col">Sold</th><th scope="col">Order</th><th scope="col">Sale</th><th scope="col" class="is-num">Gross</th><th scope="col" class="is-num">VAT</th><th scope="col" class="is-num">Fee</th><th scope="col">Status</th><th scope="col" class="is-actions">Review</th></tr></thead>
         <tbody>
         @foreach ($lines as $line)

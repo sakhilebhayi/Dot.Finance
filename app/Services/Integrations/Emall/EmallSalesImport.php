@@ -50,9 +50,10 @@ final class EmallSalesImport
                 }
 
                 try {
-                    $event = InboundEvent::create($context->ownerAttributes() + [
+                    // A savepoint, so losing a race to the unique index does not poison this transaction on PostgreSQL.
+                    $event = DB::transaction(fn () => InboundEvent::create($context->ownerAttributes() + [
                         'source' => self::SOURCE, 'external_id' => $payload['delivery_id'], 'payload_sha256' => $hash, 'status' => 'received',
-                    ]);
+                    ]));
                 } catch (UniqueConstraintViolationException) {
                     return ['status' => 'replayed']; // a concurrent delivery of the same id won the race
                 }

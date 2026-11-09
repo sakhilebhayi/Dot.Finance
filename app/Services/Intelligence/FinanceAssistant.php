@@ -8,6 +8,7 @@ use App\Models\Intelligence\AssistantMessage;
 use App\Models\User;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Links;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +63,7 @@ final class FinanceAssistant
                 'intent' => $recognised->intent->value,
                 'status' => $answer->status,
                 'answer_text' => $answer->sentence,
-                'answer' => $answer->toArray(),
+                'answer' => $this->withRelativeLinks($answer->toArray()),
                 'basis' => $answer->basis->value,
                 'model_used' => $rewritten['used'],
                 'model_rejected' => $rewritten['rejected'],
@@ -84,6 +85,22 @@ final class FinanceAssistant
 
             return LedgerContext::run($context, fn () => $message->load('drafts'));
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $answer
+     * @return array<string, mixed>
+     */
+    private function withRelativeLinks(array $answer): array
+    {
+        foreach ($answer['sources'] as $i => $source) {
+            $answer['sources'][$i]['href'] = Links::relative($source['href']);
+        }
+        foreach ($answer['rows'] as $i => $row) {
+            $answer['rows'][$i]['href'] = Links::relative($row['href'] ?? null);
+        }
+
+        return $answer;
     }
 
     private function answer(RecognisedIntent $q, LedgerContext $context, User $user, LedgerAccess $access): Answer

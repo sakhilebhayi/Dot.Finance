@@ -31,15 +31,22 @@
     @endif
 
     @if (! empty($answer['rows']))
-    <ul class="intel-rows" aria-label="{{ implode(', ', $answer['columns'] ?? []) }}">
+    <x-fx.table :caption="'The figures behind this answer: '.implode(', ', $answer['columns'] ?? [])" class="intel-table">
+        <thead><tr>@foreach ($answer['columns'] as $i => $column)<th scope="col" @class(['is-num' => $i > 0])>{{ $column }}</th>@endforeach</tr></thead>
+        <tbody>
         @foreach ($answer['rows'] as $row)
-        <li>
-            @if (! empty($row['href']))<a href="{{ $row['href'] }}">@else<div>@endif
-                @foreach ($row['cells'] as $cell)<span>{{ $cell }}</span>@endforeach
-            @if (! empty($row['href']))</a>@else</div>@endif
-        </li>
+        <tr>
+            @foreach ($row['cells'] as $i => $cell)
+            @if ($i === 0)
+            <th scope="row" class="is-lead" data-label="{{ $answer['columns'][0] ?? '' }}">@if (! empty($row['href']))<a href="{{ $row['href'] }}">{{ $cell }}</a>@else{{ $cell }}@endif</th>
+            @else
+            <td class="is-num" data-label="{{ $answer['columns'][$i] ?? '' }}">{{ $cell }}</td>
+            @endif
+            @endforeach
+        </tr>
         @endforeach
-    </ul>
+        </tbody>
+    </x-fx.table>
     @endif
 
     @if (! empty($answer['notes']))

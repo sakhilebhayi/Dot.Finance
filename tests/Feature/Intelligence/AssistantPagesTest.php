@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Intelligence;
 
+use App\Models\Intelligence\AssistantDraft;
 use App\Models\Intelligence\AssistantMessage;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,7 +51,7 @@ class AssistantPagesTest extends TestCase
         $this->post(route('intel.assistant.ask'), ['question' => 'How much did I spend this month?'])->assertRedirectContains('#answer-');
 
         $page = $this->get(route('intel.assistant.index'))->assertOk();
-        $page->assertSee('You spent ZAR 1,234.50 in this month so far.')->assertSee('Calculated')->assertSee('Expenses in this month so far')->assertSee('Food')->assertSee('Delete this');
+        $page->assertSee('You spent ZAR 1,234.50 so far this month.')->assertSee('Calculated')->assertSee('Expenses, this month so far')->assertSee('Food')->assertSee('Delete this');
         $this->assertCount(1, $this->messages($this->b['owner']));
     }
 
@@ -58,14 +59,14 @@ class AssistantPagesTest extends TestCase
     {
         $this->asOwner()->post(route('intel.assistant.ask'), ['question' => 'Who owes me money?'])->assertRedirect();
 
-        $this->get(route('intel.assistant.index'))->assertSee("I don&#039;t have that information", false)->assertSee('No information');
+        $this->get(route('intel.assistant.index'))->assertSee('I don&#039;t have that information', false)->assertSee('No information');
     }
 
     public function test_an_unrecognised_question_is_answered_honestly_without_figures(): void
     {
         $this->asOwner()->post(route('intel.assistant.ask'), ['question' => 'Tell me a joke about money'])->assertRedirect();
 
-        $this->get(route('intel.assistant.index'))->assertSee("I can&#039;t answer that one.", false)->assertSee('Not understood');
+        $this->get(route('intel.assistant.index'))->assertSee('I can&#039;t answer that one.', false)->assertSee('Not understood');
     }
 
     public function test_the_question_is_validated(): void
@@ -128,7 +129,7 @@ class AssistantPagesTest extends TestCase
     public function test_the_pages_are_csp_clean(): void
     {
         $this->asOwner()->post(route('intel.assistant.ask'), ['question' => 'Add an expense of R250 for fuel']);
-        $draft = LedgerContext::run($this->b['context'], fn () => \App\Models\Intelligence\AssistantDraft::query()->firstOrFail());
+        $draft = LedgerContext::run($this->b['context'], fn () => AssistantDraft::query()->firstOrFail());
 
         foreach ([route('intel.assistant.index'), route('intel.assistant.draft', $draft), route('intel.attention.index'), route('intel.notifications.index'), route('intel.notifications.preferences'), route('intel.integrations.index'), route('intel.integrations.emall.index')] as $url) {
             $response = $this->get($url)->assertOk();

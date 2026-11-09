@@ -5,14 +5,15 @@
 </x-fx.page-head>
 
 <x-fx.panel flush>
-    <x-fx.table caption="Integrations and their status">
+    <x-fx.table caption="Integrations and their status" class="intel-wrap">
         <thead><tr><th scope="col">Platform</th><th scope="col">Status</th><th scope="col">On this server</th><th scope="col">What it does, and what is needed</th></tr></thead>
         <tbody>
             @foreach ($integrations as $row)
             <tr>
                 <th scope="row" class="is-lead" data-label="Platform">{{ $row['name'] }}</th>
                 <td data-label="Status">
-                    @if ($row['status'] === 'connected')<x-fx.pill kind="ticked">Connected</x-fx.pill>
+                    @if ($row['status'] === 'connected' && $row['configured'])<x-fx.pill kind="ticked">Connected</x-fx.pill>
+                    @elseif ($row['status'] === 'connected')<x-fx.pill kind="plain" icon="circle-dashed">Built, switched off</x-fx.pill>
                     @elseif ($row['status'] === 'contract_only')<x-fx.pill kind="plain" icon="circle-dashed">Contract only</x-fx.pill>
                     @else<x-fx.pill kind="plain" icon="ban">Not possible</x-fx.pill>@endif
                 </td>
