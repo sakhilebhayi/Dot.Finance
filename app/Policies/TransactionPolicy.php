@@ -34,11 +34,12 @@ class TransactionPolicy
 
     public function update(User $user, Transaction $transaction): bool
     {
-        return LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false;
+        // R44 SALES: the cash leg of a payment received or a refund is changed by reversing that payment, not by editing the row
+        return $transaction->settlement_ref === null && (LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false);
     }
 
     public function delete(User $user, Transaction $transaction): bool
     {
-        return LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false;
+        return $transaction->settlement_ref === null && (LedgerAccess::forRow($user, $transaction)?->canRecordEntries() ?? false);
     }
 }
