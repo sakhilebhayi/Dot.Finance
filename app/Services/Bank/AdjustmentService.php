@@ -10,6 +10,7 @@ use App\Models\Bank\BankStatementLine;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Accounting\Chart;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\Accounting\GlSync;
@@ -183,6 +184,19 @@ class AdjustmentService
     {
         $existing = Category::query()->forContext($context)->where('type', $type)->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
 
-        return $existing ?? Category::create($context->ownerAttributes() + ['name' => $name, 'type' => $type, 'color' => '#4b5563']);
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        $category = Category::create($context->ownerAttributes() + ['name' => $name, 'type' => $type, 'color' => '#4b5563']);
+
+        // Bank charges already have an account in the chart (the system account the chart template calls bank_charges). A new category
+        // would otherwise get a second "Bank charges" account of its own, and the P&L would list the same cost twice (R-44 integration).
+        $system = $name === 'Bank charges' ? (app(Chart::class)->systemIds($context)['bank_charges'] ?? null) : null;
+        if ($system !== null) {
+            $category->forceFill(['gl_account_id' => $system])->saveQuietly();
+        }
+
+        return $category;
     }
 }

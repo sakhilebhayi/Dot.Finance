@@ -127,7 +127,7 @@ final class BillPoster
             if ($cost > 0) {
                 $base = $this->ledger->toBase($context, $cost, $bill->currency, $rateE8);
                 if ($base > 0) {
-                    $out[] = new PostingLine($line->gl_account_id, ...$side($base), txnCurrency: $foreign ? $bill->currency : null, txnAmountCents: $foreign ? $cost : null, fxRateE8: $foreign ? $rateE8 : null, partyId: $partyId, dimension: $line->dimension, description: mb_substr($line->description, 0, 255));
+                    $out[] = new PostingLine($line->gl_account_id, ...$side($base), txnCurrency: $foreign ? $bill->currency : null, txnAmountCents: $foreign ? $cost : null, fxRateE8: $foreign ? $rateE8 : null, partyId: $partyId, dimension: $line->dimension, taxCodeId: $line->tax_code_id, description: mb_substr($line->description, 0, 255));
                     $totalBase += $base;
                 }
             }

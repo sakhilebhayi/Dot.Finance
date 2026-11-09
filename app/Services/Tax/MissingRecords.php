@@ -8,6 +8,7 @@ use App\Models\Tax\TaxDocument;
 use App\Models\Tax\TaxPayrollRun;
 use App\Models\Tax\TaxProfile;
 use App\Models\Tax\TaxReturn;
+use App\Services\Purchases\MissingDocuments;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 
@@ -22,6 +23,7 @@ final class MissingRecords
         private readonly TaxReturnService $returns,
         private readonly VatReviewQueue $queue,
         private readonly Vat201Builder $vat,
+        private readonly MissingDocuments $purchases,
     ) {}
 
     /**
@@ -51,7 +53,7 @@ final class MissingRecords
             if ($errors > 0) {
                 $items[] = ['key' => 'review_errors', 'label' => $errors.' VAT posting'.($errors === 1 ? '' : 's').' to fix or accept', 'count' => $errors, 'detail' => 'These block the return until fixed or accepted with a note.', 'basis' => TaxBasis::CALCULATED, 'href' => route('tax.vat.review', ['from' => $from->toDateString(), 'to' => $to->toDateString()])];
             }
-            $items = array_merge($items, $this->purchasesModule($ctx));
+            $items = array_merge($items, $this->purchasesModule($ctx, $from, $to));
         }
 
         if ($deadline->obligation === 'emp201') {
@@ -82,26 +84,23 @@ final class MissingRecords
     }
 
     /**
-     * The Purchases module's own count, when that service exists. Its contract is "MissingDocuments::forLedger()"; the shape it returns is not
-     * known here, so anything countable is shown and anything else is ignored. NOT tested against the real class (it was not merged when this was built).
+     * The Purchases module's own list of records with no document (MissingDocuments::forLedger), restricted to the period, so the
+     * VAT201 checklist says how many bills, claim receipts and expenses dated in it have nothing attached. Some of these also appear
+     * as "supplier invoices missing the supporting document" above (the ones that carry input VAT); the detail says how many.
      *
      * @return list<array{key: string, label: string, count: int, detail: string, basis: string, href: ?string}>
      */
-    private function purchasesModule(LedgerContext $ctx): array
+    private function purchasesModule(LedgerContext $ctx, CarbonImmutable $from, CarbonImmutable $to): array
     {
-        $class = 'App\\Services\\Purchases\\MissingDocuments';
-        if (! class_exists($class) || ! method_exists($class, 'forLedger')) {
+        $inPeriod = $this->purchases->forLedger($ctx)->filter(fn (array $i) => $i['date'] >= $from->toDateString() && $i['date'] <= $to->toDateString());
+        $count = $inPeriod->count();
+        if ($count === 0) {
             return [];
         }
 
-        try {
-            $result = app($class)->forLedger($ctx);
-            $count = is_countable($result) ? count($result) : 0;
-        } catch (\Throwable) {
-            return [];
-        }
+        $withVat = $inPeriod->where('counts_for_tax', true)->count();
 
-        return $count > 0 ? [['key' => 'purchases_missing', 'label' => $count.' bill'.($count === 1 ? '' : 's').' or expense'.($count === 1 ? '' : 's').' flagged by Purchases as missing documents', 'count' => $count,
-            'detail' => 'From the Purchases module\'s own check.', 'basis' => TaxBasis::CALCULATED, 'href' => null]] : [];
+        return [['key' => 'purchases_missing', 'label' => $count.' bill'.($count === 1 ? '' : 's').', receipt'.($count === 1 ? '' : 's').' or expense'.($count === 1 ? '' : 's').' in the period with no document attached (Purchases)', 'count' => $count,
+            'detail' => $withVat > 0 ? "{$withVat} of them carry input VAT. The list, with where to attach each file, is in Purchases." : 'None carries input VAT. The list, with where to attach each file, is in Purchases.', 'basis' => TaxBasis::CALCULATED, 'href' => fx_route('purchases.documents.index')]];
     }
 }

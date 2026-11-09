@@ -242,7 +242,7 @@ final class ClaimWorkflow
             foreach ($lines as $line) {
                 $cost = $line->net_cents + ($line->tax_cents - $line->claimable_tax_cents);
                 if ($cost > 0) {
-                    $out[] = new PostingLine($line->gl_account_id, debitCents: $cost, partyId: $party->id, dimension: $line->dimension, description: mb_substr($line->merchant.': '.$line->description, 0, 255));
+                    $out[] = new PostingLine($line->gl_account_id, debitCents: $cost, partyId: $party->id, dimension: $line->dimension, taxCodeId: $line->tax_code_id, description: mb_substr($line->merchant.': '.$line->description, 0, 255));
                 }
                 if ($line->claimable_tax_cents > 0) {
                     $vat[$line->tax_code_id ?? 0] = ($vat[$line->tax_code_id ?? 0] ?? 0) + $line->claimable_tax_cents;

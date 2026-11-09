@@ -11,7 +11,6 @@ use App\Models\Shared\Party;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Accounting\ChartTemplates;
-use App\Services\Accounting\FxRateProvider;
 use App\Services\Accounting\GlBackfill;
 use App\Services\Accounting\GlSync;
 use App\Services\Accounting\Periods;
@@ -60,21 +59,13 @@ class DemoControlsSeed extends Command
 
         $context = LedgerContext::company($company);
 
-        // The demo company keeps one USD account. Until the exchange-rate service is wired into accounting, the posting
-        // engine can only convert at a rate it is given, so the demo supplies a single user-provided USD rate (clearly a
-        // local stand-in) to let the whole ledger verify and switch accounting on.
-        app()->instance(FxRateProvider::class, new class implements FxRateProvider
-        {
-            public function rate(LedgerContext $context, string $from, string $to, CarbonImmutable $on): ?int
-            {
-                return match (true) {
-                    $from === $to => self::ONE,
-                    $from === 'USD' && $to === 'ZAR' => 1_840_000_000,
-                    $from === 'ZAR' && $to === 'USD' => (int) round(self::ONE / 18.4),
-                    default => null,
-                };
-            }
-        });
+        // The demo company keeps one USD account. The posting engine converts at a rate on record (FxServiceRateProvider, the one
+        // binding), so the demo records a user-provided USD/ZAR rate every week for the last 14 months: clearly a local stand-in,
+        // entered through the real exchange-rate service as a ledger rate, never a published one.
+        $fx = app(\App\Services\Shared\FxService::class);
+        for ($day = CarbonImmutable::today()->subDays(430); $day->lte(CarbonImmutable::today()); $day = $day->addDays(7)) {
+            $fx->record('USD', 'ZAR', 1_840_000_000, $day, 'manual', $owner, 'Demo stand-in rate (not a market rate)', false, $context);
+        }
         app()->forgetScopedInstances();
         $backfill = app()->make(GlBackfill::class);
 

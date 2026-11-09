@@ -31,6 +31,7 @@ final class VatReviewQueue
     public function __construct(
         private readonly GlTaxLines $lines,
         private readonly SupportingDocuments $documents,
+        private readonly ClaimEvidence $claims,
         private readonly TaxRules $rules,
     ) {}
 
@@ -72,12 +73,18 @@ final class VatReviewQueue
             $parties = Party::query()->forContext($ctx)->whereIn('id', $inputLines->pluck('party_id')->filter()->unique()->all())->get()->keyBy('id');
             $docs = $this->documents->forEntries($ctx, $inputLines->map(fn ($l) => (object) ['entry_id' => $l->entry_id, 'source_type' => $l->source_type, 'source_id' => $l->source_id]));
             $windowYears = $this->rules->session($ctx)->rule('vat.input_claim_window_years', $to)->integer();
+            // an expense claim's merchant is on the receipt line, not on the party (that is the claimant)
+            $claims = $this->claims->forEntries($ctx, $inputLines->map(fn ($l) => (object) ['entry_id' => $l->entry_id, 'source_type' => $l->source_type, 'source_id' => $l->source_id]));
 
             foreach ($inputLines as $l) {
                 $base = ['journal_line_id' => (int) $l->line_id, 'entry_id' => (int) $l->entry_id, 'entry_number' => (int) $l->entry_number, 'date' => $l->entry_date, 'amount_cents' => (int) ($l->debit_cents - $l->credit_cents)];
                 $party = $l->party_id ? $parties->get($l->party_id) : null;
 
-                if ($party === null) {
+                if (isset($claims[(int) $l->entry_id])) {
+                    if (! $claims[(int) $l->entry_id]['vat_numbers']) {
+                        $issues[] = $base + ['code' => 'input_vat_no_supplier_vat_number', 'severity' => 'warning', 'message' => 'Input VAT on an expense claim where a receipt does not record the merchant\'s VAT number.', 'hint' => 'Add the merchant\'s VAT number to the receipt line from their tax invoice. A claim needs it.'];
+                    }
+                } elseif ($party === null) {
                     $issues[] = $base + ['code' => 'input_vat_no_supplier_vat_number', 'severity' => 'warning', 'message' => 'Input VAT with no supplier recorded: a claim needs the supplier\'s name and VAT number on a valid tax invoice.', 'hint' => 'Record the supplier on the bill or transaction.'];
                 } elseif (blank($party->tax_number)) {
                     $issues[] = $base + ['code' => 'input_vat_no_supplier_vat_number', 'severity' => 'warning', 'message' => "Input VAT from {$party->name}, who has no VAT number on file.", 'hint' => 'Add the VAT number to the supplier, from their tax invoice. If they are not a VAT vendor, no input VAT can be claimed.'];

@@ -13,6 +13,8 @@ use Illuminate\Support\Collection;
  */
 final class SupportingDocuments
 {
+    public function __construct(private readonly ClaimEvidence $claims) {}
+
     private const TYPES = [
         'transaction' => ['transaction'],
         'bill' => ['bill'],
@@ -55,6 +57,11 @@ final class SupportingDocuments
                     break;
                 }
             }
+        }
+
+        // an expense claim's entry carries source_id "claim-<id>": its evidence is the receipts on its lines
+        foreach ($this->claims->forEntries($ctx, $entries) as $entryId => $evidence) {
+            $has[$entryId] = $has[$entryId] || $evidence['documented'];
         }
 
         return $has;
