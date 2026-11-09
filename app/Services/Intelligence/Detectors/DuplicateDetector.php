@@ -28,42 +28,47 @@ final class DuplicateDetector implements Detector
     {
         $window = (int) config('intelligence.detectors.duplicate_window_days', 3);
 
+        // The last 60 days of a busy ledger are tens of thousands of rows, so they are read in key order from a cursor, one row at
+        // a time: identical entries (same account, direction, amount and description) arrive next to each other, and only the
+        // previous row is held.
         $rows = Transaction::query()->forContext($context)->counted()
             ->whereIn('type', ['income', 'expense'])
             ->where('date', '>=', $asOf->subDays(60)->toDateString())->where('date', '<=', $asOf->toDateString())
-            ->orderBy('date')->orderBy('id')->get();
-
-        $groups = [];
-        foreach ($rows as $t) {
-            $groups[$t->account_id.'|'.$t->type.'|'.$t->amount_cents.'|'.mb_strtolower(trim((string) $t->description))][] = $t;
-        }
+            ->orderBy('account_id')->orderBy('type')->orderBy('amount_cents')->orderByRaw('LOWER(TRIM(description))')->orderBy('date')->orderBy('id')
+            ->cursor();
 
         $findings = [];
-        foreach ($groups as $items) {
-            for ($i = 1; $i < count($items); $i++) {
-                $a = $items[$i - 1];
-                $b = $items[$i];
-
-                if (($a->recurring_rule_id !== null && $b->recurring_rule_id !== null) || $a->date->diffInDays($b->date, true) > $window) {
-                    continue;
-                }
-
-                $ids = [min($a->id, $b->id), max($a->id, $b->id)];
-
-                $findings[] = new Finding(
-                    $this->kind(),
-                    "dup:{$ids[0]}:{$ids[1]}",
-                    $b->date->format('Y-m'),
-                    $b->amount_cents >= 100000 ? 'warning' : 'notice',
-                    'Possible duplicate: '.Money::format((int) $b->amount_cents, $b->currency).' for '.$b->description,
-                    'Two entries on the same account have the same direction, amount and description, '.$a->date->toDateString().' and '.$b->date->toDateString().'. If one was entered twice, delete it; if both are real, dismiss this.',
-                    [
-                        ['label' => $a->date->toDateString().', '.$a->description, 'value' => Money::format((int) $a->amount_cents, $a->currency), 'href' => fx_route('transactions.edit', ['transaction' => $a->id])],
-                        ['label' => $b->date->toDateString().', '.$b->description, 'value' => Money::format((int) $b->amount_cents, $b->currency), 'href' => fx_route('transactions.edit', ['transaction' => $b->id])],
-                    ],
-                    fx_route('transactions.edit', ['transaction' => $b->id]),
-                );
+        $previous = null;
+        $previousKey = null;
+        foreach ($rows as $b) {
+            $key = $b->account_id.'|'.$b->type.'|'.$b->amount_cents.'|'.mb_strtolower(trim((string) $b->description));
+            $a = $previous;
+            $previous = $b;
+            $sameGroup = $previousKey === $key;
+            $previousKey = $key;
+            if ($a === null || ! $sameGroup) {
+                continue;
             }
+
+            if (($a->recurring_rule_id !== null && $b->recurring_rule_id !== null) || $a->date->diffInDays($b->date, true) > $window) {
+                continue;
+            }
+
+            $ids = [min($a->id, $b->id), max($a->id, $b->id)];
+
+            $findings[] = new Finding(
+                $this->kind(),
+                "dup:{$ids[0]}:{$ids[1]}",
+                $b->date->format('Y-m'),
+                $b->amount_cents >= 100000 ? 'warning' : 'notice',
+                'Possible duplicate: '.Money::format((int) $b->amount_cents, $b->currency).' for '.$b->description,
+                'Two entries on the same account have the same direction, amount and description, '.$a->date->toDateString().' and '.$b->date->toDateString().'. If one was entered twice, delete it; if both are real, dismiss this.',
+                [
+                    ['label' => $a->date->toDateString().', '.$a->description, 'value' => Money::format((int) $a->amount_cents, $a->currency), 'href' => fx_route('transactions.edit', ['transaction' => $a->id])],
+                    ['label' => $b->date->toDateString().', '.$b->description, 'value' => Money::format((int) $b->amount_cents, $b->currency), 'href' => fx_route('transactions.edit', ['transaction' => $b->id])],
+                ],
+                fx_route('transactions.edit', ['transaction' => $b->id]),
+            );
         }
 
         return $findings;

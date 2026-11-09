@@ -54,7 +54,8 @@ class GlOpenItemsProvider implements OpenItemsProvider
 
         // The control account of a busy ledger holds hundreds of thousands of lines. They are read one customer at a time
         // (ordered by customer, then in posting order) from a cursor, never all at once; only the customer being worked on is in memory.
-        $partyIds = (clone $base)->whereNotNull('l.party_id')->distinct()->pluck('l.party_id')->map(fn ($id) => (int) $id)->all();
+        $partyIds = $this->query->ownedLines($context)->where('l.gl_account_id', $control->id)->where('l.entry_date', '<=', $asOf->toDateString())
+            ->whereNotNull('l.party_id')->distinct()->pluck('l.party_id')->map(fn ($id) => (int) $id)->all();
         $parties = collect();
         foreach (array_chunk($partyIds, 2000) as $chunk) {
             $parties = $parties->concat(Party::query()->forContext($context)->whereIn('id', $chunk)->get());

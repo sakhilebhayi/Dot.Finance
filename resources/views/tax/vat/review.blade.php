@@ -19,7 +19,7 @@
         <x-fx.table caption="VAT postings to review">
             <thead><tr><th scope="col">Entry</th><th scope="col">What is wrong</th><th scope="col">Amount</th><th scope="col">Decision</th></tr></thead>
             <tbody>
-            @foreach ($issues as $i)
+            @foreach (array_slice($issues, 0, 200) as $i)
                 <tr>
                     <td data-label="Entry" class="is-lead">@if($i['entry_id'])<a class="fx-link" href="{{ route('accounting.journals.show', $i['entry_id']) }}">JE-{{ str_pad((string) $i['entry_number'], 6, '0', STR_PAD_LEFT) }}</a>@endif<span class="fx-cell-sub">{{ $i['date'] }}</span></td>
                     <td data-label="What is wrong"><x-fx.pill :kind="$i['severity'] === 'error' ? 'variance' : 'plain'">{{ $i['severity'] === 'error' ? 'Error' : 'Warning' }}</x-fx.pill> {{ $i['message'] }}@if($i['hint'])<span class="fx-cell-sub">{{ $i['hint'] }}</span>@endif</td>
@@ -43,6 +43,7 @@
             @endforeach
             </tbody>
         </x-fx.table>
+        @if (count($issues) > 200)<p class="fx-hint">The first 200 of {{ number_format(count($issues)) }} postings are listed. The count above covers all of them.</p>@endif
     </x-fx.panel>
     @endif
     @include('tax._footer')

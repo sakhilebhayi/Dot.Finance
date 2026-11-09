@@ -59,7 +59,14 @@ final class Reminders
             $before = (int) $profile->reminder_before_days;
             $after = $profile->reminderAfterDays();
 
-            $documents = SalesDocument::query()->forContext($context)->open()->whereNotNull('due_date')->with('party')->get();
+            // Only an invoice due today, $before days from now, or a reminder-day ago can be sent a reminder today: the query asks
+            // for exactly those due dates instead of reading every open invoice.
+            $dueDates = array_values(array_unique(array_merge(
+                [$today->toDateString()],
+                $before > 0 ? [$today->addDays($before)->toDateString()] : [],
+                array_map(fn (int $d) => $today->subDays($d)->toDateString(), $after),
+            )));
+            $documents = SalesDocument::query()->forContext($context)->open()->whereIn('due_date', $dueDates)->with('party')->lazyById(500);
 
             foreach ($documents as $document) {
                 $delta = (int) CarbonImmutable::parse($document->due_date->toDateString())->diffInDays($today, false);   // negative: still to come

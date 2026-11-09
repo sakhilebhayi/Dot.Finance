@@ -268,13 +268,13 @@ final class ReceivablesLedger
      *
      * @return array{ok: bool, documents_cents: int, ledger_cents: int, difference_cents: int, parties: list<array{party_id: int, name: string, documents_cents: int, ledger_cents: int, difference_cents: int}>, unattributed_cents: int}
      */
-    public function reconcile(LedgerContext $context): array
+    public function reconcile(LedgerContext $context, ?Collection $rows = null, ?Collection $credits = null): array
     {
         $subledger = [];
-        foreach (LedgerContext::run($context, fn () => $this->openRows($context, null)) as $item) {
+        foreach ($rows ?? LedgerContext::run($context, fn () => $this->openRows($context, null)) as $item) {
             $subledger[$item->party_id] = ($subledger[$item->party_id] ?? 0) + $item->open_base_cents;
         }
-        foreach ($this->unappliedCredits($context) as $credit) {
+        foreach ($credits ?? $this->unappliedCredits($context) as $credit) {
             $subledger[$credit['party_id']] = ($subledger[$credit['party_id']] ?? 0) - $credit['base_cents'];
         }
 
@@ -319,7 +319,7 @@ final class ReceivablesLedger
 
         $overdue = $items->filter(fn ($i) => $i->due_date !== null && $i->due_date < $day);
         $dueSoon = $items->filter(fn ($i) => $i->due_date !== null && $i->due_date >= $day && $i->due_date <= $soon);
-        $reconcile = $this->reconcile($context);
+        $reconcile = $this->reconcile($context, $items, $credits);
 
         return [
             'owed_base_cents' => (int) $items->sum('open_base_cents'),
