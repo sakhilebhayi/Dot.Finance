@@ -6,6 +6,7 @@ use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesDocumentLine;
 use App\Models\Sales\SalesProfile;
 use App\Models\Shared\Party;
+use App\Services\Sales\Support\VatStatus;
 use App\Services\Shared\TaxRuleBook;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -20,7 +21,7 @@ use Illuminate\Support\Collection;
  */
 final class TaxInvoiceChecklist
 {
-    public function __construct(private readonly TaxRuleBook $rules) {}
+    public function __construct(private readonly TaxRuleBook $rules, private readonly VatStatus $vat) {}
 
     /**
      * @param  Party|null  $party  the customer as they are now (the snapshot is used for an issued document)
@@ -28,7 +29,9 @@ final class TaxInvoiceChecklist
      */
     public function evaluate(SalesDocument $document, SalesProfile $profile, ?Party $party, ?CarbonImmutable $on = null): array
     {
-        $registered = (bool) ($document->exists && $document->sealed_at !== null ? $document->vat_registered : $profile->vat_registered);
+        // An issued document keeps the status it was issued under; anything else asks VatStatus, because the Tax profile (not the
+        // Sales business profile) is the answer once it exists (D-1204).
+        $registered = (bool) ($document->exists && $document->sealed_at !== null ? $document->vat_registered : $this->vat->isRegistered($profile->ledgerContext()));
         $applies = $registered && in_array($document->kind, ['tax_invoice', 'credit_note', 'debit_note'], true);
         $on ??= CarbonImmutable::parse(($document->issue_date ?? now())->toDateString());
         $kind = $document->kind;
@@ -133,7 +136,7 @@ final class TaxInvoiceChecklist
     public function supplierArray(SalesProfile $profile): array
     {
         return [
-            'name' => $profile->legal_name ?: $profile->trading_name, 'trading_name' => $profile->trading_name, 'vat_number' => $profile->vat_number,
+            'name' => $profile->legal_name ?: $profile->trading_name, 'trading_name' => $profile->trading_name, 'vat_number' => $this->vat->isRegistered($profile->ledgerContext()) ? ($this->vat->vatNumber($profile->ledgerContext()) ?: $profile->vat_number) : $profile->vat_number,
             'registration_number' => $profile->registration_number, 'address' => $profile->addressLines(), 'email' => $profile->email, 'phone' => $profile->phone,
         ];
     }

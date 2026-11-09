@@ -181,6 +181,7 @@ class IncomeTaxController extends TaxController
         $yearEnd = $estimator->taxYearEnd($profile, $request->filled('year_end') ? CarbonImmutable::parse($request->query('year_end')) : CarbonImmutable::today());
         $e = $estimator->estimate($this->ctx(), $profile, $yearEnd);
 
+        FinanceAudit::exported($this->ctx()->ownerAttributes(), 'Income tax estimate (CSV)', ['report' => 'income-tax-estimate', 'format' => 'csv', 'tax_year_end' => $e->taxYearEnd]);
         $rows = [
             ['INCOME TAX ESTIMATE, NOT A RETURN. Prepared by a person from the books; Dot.Finance does not submit anything to SARS.'],
             ['Tax year', $e->taxYearStart, $e->taxYearEnd], ['Regime', $e->regimeLabel], ['Source of profit', $e->sourceText()], ['Year complete', $e->yearComplete ? 'yes' : 'no, year to date'],

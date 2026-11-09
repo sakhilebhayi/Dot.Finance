@@ -64,6 +64,7 @@ final class ReceiptService
                 ?? throw new SalesViolation('Pick one of this ledger\'s accounts for the money.', 'account');
             $amount = (int) $data['amount_cents'];
             $paidOn = $this->date($data['paid_on'], 'The date received');
+            $this->assertNotBeforeOpening($account, $paidOn);
             $currency = $account->currency;
             $allocations = $this->normaliseAllocations($context, $party, $currency, $data['allocations'] ?? [], $amount);
 
@@ -109,6 +110,17 @@ final class ReceiptService
         });
     }
 
+    /**
+     * The cash ledger does not count rows dated before an account opened (D-100), so a receipt or refund dated before then would be
+     * journalled but missing from the account's balance and the books would stop tying out. Purchases refuses the same thing.
+     */
+    private function assertNotBeforeOpening(Account $account, CarbonImmutable $on): void
+    {
+        if ($account->opening_balance_date !== null && $on->lt(CarbonImmutable::parse($account->opening_balance_date->toDateString()))) {
+            throw new SalesViolation("{$account->name} opened on {$account->opening_balance_date->toDateString()}; money cannot be dated before it.", 'before_opening');
+        }
+    }
+
     /** Apply some of a payment's unapplied money to an invoice, later. */
     public function allocate(LedgerContext $context, User $by, Payment $payment, SalesDocument $document, int $amountCents): SalesApplication
     {
@@ -140,6 +152,7 @@ final class ReceiptService
             $paidOn = $this->date($data['paid_on'], 'The date paid');
             $account = Account::query()->forContext($context)->find((int) $data['cash_account_id'])
                 ?? throw new SalesViolation('Pick one of this ledger\'s accounts to pay from.', 'account');
+            $this->assertNotBeforeOpening($account, $paidOn);
 
             try {
                 return DB::transaction(function () use ($context, $by, $data, $settings, $reason, $amount, $paidOn, $account) {

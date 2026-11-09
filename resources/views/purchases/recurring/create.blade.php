@@ -22,7 +22,7 @@
         </div>
     </x-fx.panel>
     <x-fx.panel title="The bill each time" flush>
-        <x-fx.table caption="Template lines" scroll>
+        <x-fx.table caption="Template lines">
             <thead><tr><th scope="col">Description</th><th scope="col">Charge to</th><th scope="col" class="is-num">Qty</th><th scope="col" class="is-num">Price</th><th scope="col" class="is-num">Disc. %</th><th scope="col">Tax code</th><th scope="col">Project</th></tr></thead>
             <tbody>@foreach ($rows as $i => $r)<tr>
                 <td data-label="Description"><input class="fx-input" name="lines[{{ $i }}][description]" value="{{ $r['description'] ?? '' }}" aria-label="Line {{ $i + 1 }} description"></td>

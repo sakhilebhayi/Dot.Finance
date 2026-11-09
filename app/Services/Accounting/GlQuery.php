@@ -168,14 +168,38 @@ class GlQuery
             'opening_balance' => ['label' => 'Opening balance of account #'.$entry->source_id, 'route' => 'accounts.edit', 'parameter' => $entry->source_id],
             // R44 SALES: documents and money received, so "show the entries" can go back to what made them
             'invoice', 'credit_note' => ['label' => ($entry->source_type === 'credit_note' ? 'Credit note ' : 'Invoice ').'#'.$entry->source_id, 'route' => 'sales.documents.show', 'parameter' => $entry->source_id],
+            // R-44 acceptance (D-1602): a supplier bill or claim, a supplier payment and a payroll summary lead back to their own page too.
+            'bill' => str_starts_with((string) $entry->source_id, 'claim-')
+                ? ['label' => 'Expense claim #'.substr((string) $entry->source_id, 6), 'route' => 'purchases.claims.show', 'parameter' => substr((string) $entry->source_id, 6)]
+                : ['label' => 'Supplier bill #'.$entry->source_id, 'route' => 'purchases.bills.show', 'parameter' => $entry->source_id],
+            'payroll' => ['label' => 'Payroll summary #'.$entry->source_id, 'route' => 'tax.payroll.show', 'parameter' => $entry->source_id],
             'payment' => ctype_digit((string) $entry->source_id)
-                ? ['label' => 'Payment #'.$entry->source_id, 'route' => 'sales.payments.show', 'parameter' => $entry->source_id]
+                ? $this->paymentSource((int) $entry->source_id)
                 : ['label' => 'Exchange difference', 'route' => null, 'parameter' => null],
             'reversal' => ['label' => 'Reversal of entry #'.$entry->source_id, 'route' => 'accounting.journals.show', 'parameter' => $entry->source_id],
             'manual' => ['label' => 'Manual journal', 'route' => null, 'parameter' => null],
             'period_close' => ['label' => 'Year-end close', 'route' => 'accounting.periods.index', 'parameter' => null],
             default => ['label' => ucfirst(str_replace('_', ' ', $entry->source_type)).' '.$entry->source_id, 'route' => null, 'parameter' => null],
         };
+    }
+
+    /** @var array<int, array{label: string, route: string, parameter: int}> */
+    private array $paymentSources = [];
+
+    /**
+     * Money in is a receipt (Sales); money out is a supplier payment (Purchases) unless it is a refund Sales gave back to a customer.
+     *
+     * @return array{label: string, route: string, parameter: int}
+     */
+    private function paymentSource(int $id): array
+    {
+        return $this->paymentSources[$id] ??= (function () use ($id) {
+            $payment = DB::table('payments')->where('id', $id)->first(['direction']);
+            $refund = $payment !== null && $payment->direction === 'out' && DB::table('sales_refunds')->where('payment_id', $id)->exists();
+            $sales = $payment === null || $payment->direction === 'in' || $refund;
+
+            return ['label' => ($sales ? ($refund ? 'Refund #' : 'Payment received #') : 'Supplier payment #').$id, 'route' => $sales ? 'sales.payments.show' : 'purchases.payments.show', 'parameter' => $id];
+        })();
     }
 
     /** Exclude year-end closing entries and the reversals of them. */

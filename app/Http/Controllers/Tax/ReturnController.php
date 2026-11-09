@@ -14,6 +14,7 @@ use App\Services\Tax\FilingAdapter;
 use App\Services\Tax\TaxReturnService;
 use App\Services\Tax\Vat201Builder;
 use App\Services\Tax\Workpaper;
+use App\Support\FinanceAudit;
 use App\Support\Money;
 use App\Support\Shared\Exceptions\AttachmentRejected;
 use Carbon\CarbonImmutable;
@@ -215,6 +216,7 @@ class ReturnController extends TaxController
     {
         $this->require(Capability::ExportReports);
         $taxReturn->forceFill(['export_count' => $taxReturn->export_count + 1, 'last_exported_at' => now()])->save();
+        FinanceAudit::exported($this->ctx()->ownerAttributes(), $taxReturn->kindLabel().' '.$taxReturn->period_label.' working paper (CSV)', ['report' => $taxReturn->kind, 'format' => 'csv', 'tax_return_id' => $taxReturn->id, 'revision' => $taxReturn->revision]);
         $paper = $workpapers->build($this->ctx(), $taxReturn);
 
         return response($workpapers->csv($paper), 200, [

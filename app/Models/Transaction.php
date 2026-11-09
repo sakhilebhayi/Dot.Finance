@@ -29,7 +29,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'account_id', 'category_id', 'user_id', 'team_id', 'description', 'amount', 'amount_cents', 'currency', 'type', 'date', 'notes',
-        'transfer_direction', 'transfer_group', 'recurring_rule_id', 'import_fingerprint', 'import_batch_id',
+        'transfer_direction', 'transfer_group', 'recurring_rule_id', 'import_fingerprint', 'import_batch_id', 'client_token',
     ];
 
     protected $casts = [

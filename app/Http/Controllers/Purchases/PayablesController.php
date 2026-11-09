@@ -11,6 +11,7 @@ use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\ExpenseTrends;
 use App\Services\Purchases\MissingDocuments;
 use App\Services\Purchases\PurchaseLedger;
+use App\Support\FinanceAudit;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -52,6 +53,8 @@ class PayablesController extends PurchasesController
         $items = $ap->openItems($context, $asAt, isset($v['party_id']) ? (int) $v['party_id'] : null);
 
         if (($v['format'] ?? null) === 'csv') {
+            FinanceAudit::exported($context->ownerAttributes(), 'Payables, open items (CSV)', ['report' => 'payables', 'format' => 'csv', 'as_at' => $asAt->toDateString()]);
+
             return Response::streamDownload(function () use ($items, $asAt, $ap, $context) {
                 $out = fopen('php://output', 'w');
                 $rec = $ap->reconcile($context);

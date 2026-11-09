@@ -8,6 +8,7 @@
 
 <form method="POST" action="{{ route('transactions.store') }}" class="fx-panel fx-panel__body fx-form r-stack">
     @csrf
+    <input type="hidden" name="client_token" value="{{ old('client_token', (string) \Illuminate\Support\Str::uuid()) }}">
 
     <x-fx.input name="description" id="transactions-create-description" label="Description" required maxlength="255" placeholder="e.g. Groceries at Woolworths" />
 

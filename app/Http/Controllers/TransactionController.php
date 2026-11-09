@@ -13,6 +13,7 @@ use App\Services\Accounting\GlSync;
 use App\Services\TransactionRecurrenceService;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerRule;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -96,6 +97,15 @@ class TransactionController extends Controller
         $validated = $this->validateTransaction($request, $context);
         $validated += $context->ownerAttributes();
 
+        // A one-time token from the form: a double click, a retry or a re-submit records the transaction once.
+        $token = $request->validate(['client_token' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-]+$/']])['client_token'] ?? null;
+        if ($token !== null && $token !== '') {
+            if (Transaction::query()->where('client_token', $token)->exists()) {
+                return redirect()->route('transactions.index')->with('status', 'That transaction was already added; it was not recorded twice.');
+            }
+            $validated['client_token'] = $token;
+        }
+
         $recurrence = $this->validateRecurrence($request);
 
         try {
@@ -128,6 +138,13 @@ class TransactionController extends Controller
             });
         } catch (PeriodClosed $e) {
             return back()->withErrors(['date' => $e->getMessage().' Record it in an open period, or ask someone who can reopen the period.'])->withInput();
+        } catch (UniqueConstraintViolationException) {
+            // two copies of the same submit raced: the other one won
+            if (isset($validated['client_token']) && Transaction::query()->where('client_token', $validated['client_token'])->exists()) {
+                return redirect()->route('transactions.index')->with('status', 'That transaction was already added; it was not recorded twice.');
+            }
+
+            throw ValidationException::withMessages(['client_token' => 'That form was already used. Reload the page and try again.']);
         }
 
         return redirect()->route('transactions.index')->with('status', 'Transaction added.');
