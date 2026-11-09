@@ -123,7 +123,6 @@ final class GlTaxLines
         ];
     }
 
-
     /**
      * The statutory payroll liabilities raised by payroll journals in [from, to]: per system key, credits less debits.
      *

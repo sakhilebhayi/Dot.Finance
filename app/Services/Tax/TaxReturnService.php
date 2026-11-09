@@ -17,8 +17,8 @@ use App\Services\Tax\Exceptions\NotReady;
 use App\Services\Tax\Exceptions\TaxException;
 use App\Support\FinanceAudit;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -147,7 +147,7 @@ final class TaxReturnService
             }
             $rec = $computed->reconciliation;
             if (($rec['ties'] ?? false) !== true) {
-                $blockers[] = 'The return does not reconcile to the VAT accounts: '.\App\Support\Money::format(abs((int) ($rec['unexplained_cents'] ?? 0)), 'ZAR').' is unexplained.';
+                $blockers[] = 'The return does not reconcile to the VAT accounts: '.Money::format(abs((int) ($rec['unexplained_cents'] ?? 0)), 'ZAR').' is unexplained.';
             }
             if ($profile?->vat_category) {
                 $warnings = array_merge($warnings, $this->categoryWarnings($ctx, $return, $profile));

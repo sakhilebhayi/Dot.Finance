@@ -61,9 +61,15 @@ class PayrollController extends TaxController
         $session = $rules->session($this->ctx());
         $defaulted = [];
         $uif = $calculator->uif($session, $gross, $month);
-        $uifEe = $this->given($data, 'uif_employee') ?? tap($uif['employee_cents'], function () use (&$defaulted) { $defaulted[] = 'employee UIF'; });
-        $uifEr = $this->given($data, 'uif_employer') ?? tap($uif['employer_cents'], function () use (&$defaulted) { $defaulted[] = 'employer UIF'; });
-        $sdl = $this->given($data, 'sdl') ?? tap($calculator->sdl($session, $gross, $gross * 12, $month)['cents'], function () use (&$defaulted) { $defaulted[] = 'SDL'; });
+        $uifEe = $this->given($data, 'uif_employee') ?? tap($uif['employee_cents'], function () use (&$defaulted) {
+            $defaulted[] = 'employee UIF';
+        });
+        $uifEr = $this->given($data, 'uif_employer') ?? tap($uif['employer_cents'], function () use (&$defaulted) {
+            $defaulted[] = 'employer UIF';
+        });
+        $sdl = $this->given($data, 'sdl') ?? tap($calculator->sdl($session, $gross, $gross * 12, $month)['cents'], function () use (&$defaulted) {
+            $defaulted[] = 'SDL';
+        });
 
         try {
             $runs->capture($this->ctx(), $month, [

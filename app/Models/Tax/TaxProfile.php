@@ -2,6 +2,7 @@
 
 namespace App\Models\Tax;
 
+use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
 use Illuminate\Database\Eloquent\Model;
 
@@ -32,7 +33,7 @@ class TaxProfile extends Model
 
     protected $casts = [
         'vat_registered' => 'boolean',
-        'vat_registered_on' => \App\Casts\DateOnly::class,
+        'vat_registered_on' => DateOnly::class,
         'provisional_taxpayer' => 'boolean',
         'employs_staff' => 'boolean',
         'shareholders_natural_persons' => 'boolean',

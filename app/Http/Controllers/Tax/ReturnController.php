@@ -6,13 +6,16 @@ use App\Enums\Capability;
 use App\Models\Tax\TaxReturn;
 use App\Models\Tax\TaxReturnAdjustment;
 use App\Rules\MoneyAmount;
+use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Shared\Attachments;
 use App\Services\Tax\Exceptions\NotReady;
 use App\Services\Tax\Exceptions\TaxException;
 use App\Services\Tax\FilingAdapter;
 use App\Services\Tax\TaxReturnService;
+use App\Services\Tax\Vat201Builder;
 use App\Services\Tax\Workpaper;
 use App\Support\Money;
+use App\Support\Shared\Exceptions\AttachmentRejected;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,7 +53,7 @@ class ReturnController extends TaxController
             'liveChecks' => $checks,
             'ruleVersions' => $frozen ? ($taxReturn->rule_versions ?? []) : $computed->ruleVersions,
             'adjustments' => $taxReturn->adjustments()->get(),
-            'adjustable' => \App\Services\Tax\Vat201Builder::ADJUSTABLE,
+            'adjustable' => Vat201Builder::ADJUSTABLE,
             'adjustmentKinds' => TaxReturnAdjustment::KINDS,
             'instructions' => $filing->instructions($taxReturn),
             'integrity' => $frozen ? $service->figuresIntact($taxReturn) : null,
@@ -81,7 +84,7 @@ class ReturnController extends TaxController
         try {
             $attachment = $request->file('file') ? $attachments->store($request->file('file'), null, $request->user(), true, $this->ctx()) : null;
             $service->addAdjustment($this->ctx(), $taxReturn, $data['box_code'], $data['kind'], $cents, $data['reason'], $request->user(), $attachment?->id);
-        } catch (TaxException|\App\Support\Shared\Exceptions\AttachmentRejected $e) {
+        } catch (TaxException|AttachmentRejected $e) {
             return back()->withInput()->withErrors(['adjustment' => $e->getMessage()]);
         }
 
@@ -146,7 +149,7 @@ class ReturnController extends TaxController
         try {
             $proof = $request->file('proof') ? $attachments->store($request->file('proof'), null, $request->user(), true, $this->ctx()) : null;
             $service->recordSubmission($this->ctx(), $taxReturn, $data['sars_reference'], CarbonImmutable::parse($data['submitted_on']), $request->user(), $proof?->id, $data['note'] ?? null);
-        } catch (TaxException|\App\Support\Shared\Exceptions\AttachmentRejected $e) {
+        } catch (TaxException|AttachmentRejected $e) {
             return back()->withInput()->withErrors(['submission' => $e->getMessage()]);
         }
 
@@ -166,7 +169,7 @@ class ReturnController extends TaxController
         try {
             $proof = $request->file('proof') ? $attachments->store($request->file('proof'), null, $request->user(), true, $this->ctx()) : null;
             $service->recordPayment($this->ctx(), $taxReturn, Money::parse($data['amount']), CarbonImmutable::parse($data['paid_on']), $data['reference'] ?? null, $request->user(), $proof?->id);
-        } catch (TaxException|\App\Support\Shared\Exceptions\AttachmentRejected $e) {
+        } catch (TaxException|AttachmentRejected $e) {
             return back()->withInput()->withErrors(['payment' => $e->getMessage()]);
         }
 
@@ -193,7 +196,7 @@ class ReturnController extends TaxController
 
         try {
             $entry = $service->postSettlement($this->ctx(), $taxReturn, $request->user());
-        } catch (TaxException|\App\Services\Accounting\Exceptions\AccountingException $e) {
+        } catch (TaxException|AccountingException $e) {
             return back()->withErrors(['settlement' => $e->getMessage()]);
         }
 

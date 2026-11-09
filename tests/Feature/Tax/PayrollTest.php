@@ -3,6 +3,8 @@
 namespace Tests\Feature\Tax;
 
 use App\Models\Tax\TaxPayrollRun;
+use App\Services\Accounting\Chart;
+use App\Services\Accounting\GlQuery;
 use App\Services\Tax\Emp201Builder;
 use App\Services\Tax\Exceptions\ImportRejected;
 use App\Services\Tax\Exceptions\TaxException;
@@ -14,6 +16,7 @@ use App\Services\Tax\TaxRules;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\Concerns\BuildsTaxFixtures;
 use Tests\TestCase;
 
@@ -85,7 +88,7 @@ class PayrollTest extends TestCase
         $this->assertSame($a->id, $b->id);
         $this->assertSame($this->r(19_000), $b->paye_cents);
         $this->assertSame(1, TaxPayrollRun::query()->forContext($this->tax)->count());
-        $this->assertSame($this->r(3_000) + $this->r(19_000) - 0, $b->emp201LiabilityCents() - $this->r(0) , 'PAYE 19,000 + UIF 2,000 + SDL 1,000 - ETI 0 = 22,000');
+        $this->assertSame($this->r(3_000) + $this->r(19_000) - 0, $b->emp201LiabilityCents() - $this->r(0), 'PAYE 19,000 + UIF 2,000 + SDL 1,000 - ETI 0 = 22,000');
     }
 
     public function test_paye_cannot_exceed_gross_pay(): void
@@ -105,7 +108,7 @@ class PayrollTest extends TestCase
         $this->assertSame($run->fresh()->journal_entry_id, $entry->id);
 
         // salaries expense: Dr 18,000 + 1,000 withheld; Cr 1,500 ETI. PAYE payable: Cr 18,000, Dr 1,500
-        $net = fn (string $key) => LedgerContext::run($this->tax, fn () => app(\App\Services\Accounting\GlQuery::class)->netThrough($this->tax, app(\App\Services\Accounting\Chart::class)->system($key)));
+        $net = fn (string $key) => LedgerContext::run($this->tax, fn () => app(GlQuery::class)->netThrough($this->tax, app(Chart::class)->system($key)));
         $this->assertSame($this->r(17_500), $net('salaries_expense'), '19,000 withheld less 1,500 ETI');
         $this->assertSame(-$this->r(16_500), $net('paye_payable'), 'owed 18,000 less the 1,500 incentive');
         $this->assertSame(-$this->r(2_000), $net('uif_payable'));
@@ -173,7 +176,7 @@ class PayrollTest extends TestCase
         return ['HTTP_X-Dot-Signature' => 'sha256='.hash_hmac('sha256', $body, $secret), 'CONTENT_TYPE' => 'application/json'];
     }
 
-    private function importPost(array $payload, ?string $secret = 'test-secret'): \Illuminate\Testing\TestResponse
+    private function importPost(array $payload, ?string $secret = 'test-secret'): TestResponse
     {
         config(['tax.payroll_import.secret' => 'test-secret']);
         $body = json_encode($payload);

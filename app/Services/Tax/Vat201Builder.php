@@ -2,6 +2,7 @@
 
 namespace App\Services\Tax;
 
+use App\Models\Tax\TaxReturnAdjustment;
 use App\Services\Tax\Dto\ComputedReturn;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
@@ -44,7 +45,7 @@ final class Vat201Builder
     public function __construct(private readonly TaxRules $rules, private readonly GlTaxLines $lines) {}
 
     /**
-     * @param  iterable<\App\Models\Tax\TaxReturnAdjustment>  $adjustments  the active (not voided) adjustments of the return
+     * @param  iterable<TaxReturnAdjustment>  $adjustments  the active (not voided) adjustments of the return
      */
     public function build(LedgerContext $ctx, CarbonImmutable $from, CarbonImmutable $to, iterable $adjustments = [], ?CarbonImmutable $postedUntil = null): ComputedReturn
     {
@@ -72,7 +73,7 @@ final class Vat201Builder
         foreach ($adjustments as $adj) {
             $add($adj->box_code, (int) $adj->amount_cents, [[
                 'type' => 'adjustment', 'id' => $adj->id, 'entry_id' => null, 'entry_number' => null, 'date' => null,
-                'description' => (\App\Models\Tax\TaxReturnAdjustment::KINDS[$adj->kind] ?? $adj->kind).': '.$adj->reason,
+                'description' => (TaxReturnAdjustment::KINDS[$adj->kind] ?? $adj->kind).': '.$adj->reason,
                 'amount_cents' => (int) $adj->amount_cents, 'note' => 'You entered this adjustment.',
             ]]);
         }

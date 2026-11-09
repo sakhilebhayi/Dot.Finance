@@ -10,6 +10,7 @@ use App\Services\Tax\IncomeTaxEstimator;
 use App\Services\Tax\ProvisionalTaxPlanner;
 use App\Services\Tax\TaxRules;
 use App\Support\Money;
+use App\Support\Shared\Exceptions\NoValidTaxRule;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class ProvisionalController extends TaxController
                     $penalty['actual_is_final'] = $estimate->yearComplete;
                 }
             } catch (\Throwable $e) {
-                if (! $e instanceof TaxException && ! $e instanceof \App\Support\Shared\Exceptions\NoValidTaxRule) {
+                if (! $e instanceof TaxException && ! $e instanceof NoValidTaxRule) {
                     throw $e;
                 }
             }
@@ -75,7 +76,7 @@ class ProvisionalController extends TaxController
         try {
             $planner->saveEstimate($this->ctx(), $profile, CarbonImmutable::parse($data['year_end']), (int) $data['period'], Money::parse($data['estimate']),
                 isset($data['basic_amount']) ? Money::parse($data['basic_amount']) : null, isset($data['basic_amount_year_end']) ? CarbonImmutable::parse($data['basic_amount_year_end']) : null, $request->user());
-        } catch (TaxException|\App\Support\Shared\Exceptions\NoValidTaxRule $e) {
+        } catch (TaxException|NoValidTaxRule $e) {
             return back()->withInput()->withErrors(['estimate' => $e->getMessage()]);
         }
 

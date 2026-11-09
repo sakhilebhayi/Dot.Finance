@@ -3,6 +3,7 @@
 namespace App\Services\Tax;
 
 use App\Models\Tax\TaxReturn;
+use App\Services\Tax\Exceptions\NotSubmittableElectronically;
 
 /**
  * How a prepared return reaches SARS. Only ManualFilingAdapter exists: SARS publishes no open API, and third-party
@@ -24,6 +25,6 @@ interface FilingAdapter
      */
     public function instructions(TaxReturn $return): array;
 
-    /** @throws \App\Services\Tax\Exceptions\NotSubmittableElectronically when the adapter cannot transmit */
+    /** @throws NotSubmittableElectronically when the adapter cannot transmit */
     public function submit(TaxReturn $return): never;
 }

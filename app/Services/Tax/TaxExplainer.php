@@ -8,7 +8,6 @@ use App\Models\Tax\TaxProfile;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Rule-based, grounded explanations. Each one is assembled from rows that exist (journal lines, the rule book, the return) and
@@ -69,7 +68,7 @@ final class TaxExplainer
             }
 
             $text = "{$code}: ".($isSale ? 'a sale' : 'a purchase').' of '.Money::format(abs($netCents), 'ZAR').' before VAT'
-                .($rate !== null ? ", with VAT at ".rtrim(rtrim(number_format($rate / 100, 2), '0'), '.').' percent on '.$entry->entry_date->toDateString().' ('.Money::format(abs($vatCents), 'ZAR').' booked)' : ', with no VAT charged')
+                .($rate !== null ? ', with VAT at '.rtrim(rtrim(number_format($rate / 100, 2), '0'), '.').' percent on '.$entry->entry_date->toDateString().' ('.Money::format(abs($vatCents), 'ZAR').' booked)' : ', with no VAT charged')
                 .'.';
             $paragraphs[] = $text;
 

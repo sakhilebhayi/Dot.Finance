@@ -2,8 +2,8 @@
 
 namespace App\Services\Tax;
 
-use App\Models\Team;
 use App\Models\Tax\TaxPayrollRun;
+use App\Models\Team;
 use App\Services\Accounting\GlSync;
 use App\Services\Tax\Exceptions\ImportRejected;
 use App\Support\FinanceAudit;
@@ -157,7 +157,7 @@ final class PayrollImport
         if ($age > (int) config('tax.payroll_import.max_age_minutes')) {
             throw new ImportRejected('The payload is too old or dated in the future (replay protection).', 422);
         }
-        if ($t['paye_cents'] + $t['uif_employee_cents'] > $t['gross_pay_cents']) {
+        if ($t['gross_pay_cents'] < $t['paye_cents'] + $t['uif_employee_cents']) {
             throw new ImportRejected('PAYE and employee UIF cannot be more than gross pay.', 422);
         }
 

@@ -36,7 +36,7 @@ final class PayrollRuns
             if ($values['paye_cents'] > $values['gross_pay_cents']) {
                 throw new TaxException('PAYE cannot be more than gross pay.');
             }
-            if ($values['paye_cents'] + $values['uif_employee_cents'] > $values['gross_pay_cents']) {
+            if ($values['gross_pay_cents'] < $values['paye_cents'] + $values['uif_employee_cents']) {
                 throw new TaxException('PAYE and employee UIF together cannot be more than gross pay.');
             }
 

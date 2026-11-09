@@ -10,6 +10,8 @@ use App\Services\Shared\Attachments;
 use App\Services\Tax\Exceptions\TaxException;
 use App\Services\Tax\MissingRecords;
 use App\Services\Tax\TaxDocuments;
+use App\Support\Shared\Exceptions\AttachmentRejected;
+use App\Support\Shared\Exceptions\DuplicateAttachment;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,7 +71,7 @@ class DocumentController extends TaxController
 
         try {
             $documents->add($this->ctx(), $data, $request->file('file'), $request->user());
-        } catch (TaxException|\App\Support\Shared\Exceptions\AttachmentRejected|\App\Support\Shared\Exceptions\DuplicateAttachment $e) {
+        } catch (TaxException|AttachmentRejected|DuplicateAttachment $e) {
             return back()->withInput()->withErrors(['document' => $e->getMessage()]);
         }
 
@@ -123,7 +125,7 @@ class DocumentController extends TaxController
 
         try {
             $documents->logCorrespondence($this->ctx(), $data, $request->file('file'), $request->user());
-        } catch (TaxException|\App\Support\Shared\Exceptions\AttachmentRejected|\App\Support\Shared\Exceptions\DuplicateAttachment $e) {
+        } catch (TaxException|AttachmentRejected|DuplicateAttachment $e) {
             return back()->withInput()->withErrors(['correspondence' => $e->getMessage()]);
         }
 

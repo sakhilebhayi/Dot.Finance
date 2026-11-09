@@ -6,6 +6,7 @@ use App\Enums\Capability;
 use App\Models\Tax\TaxDeadline;
 use App\Models\Tax\TaxHoliday;
 use App\Services\Tax\DeadlineGenerator;
+use App\Services\Tax\Exceptions\TaxException;
 use App\Services\Tax\TaxChecklists;
 use App\Services\Tax\TaxExplainer;
 use App\Services\Tax\TaxReminder;
@@ -93,7 +94,7 @@ class CalendarController extends TaxController
             } else {
                 $checklists->tick($this->ctx(), $taxDeadline, $data['item'], $data['note'] ?? null, $request->user());
             }
-        } catch (\App\Services\Tax\Exceptions\TaxException $e) {
+        } catch (TaxException $e) {
             return back()->withErrors(['item' => $e->getMessage()]);
         }
 

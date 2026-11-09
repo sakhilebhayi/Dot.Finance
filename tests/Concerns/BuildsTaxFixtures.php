@@ -2,6 +2,7 @@
 
 namespace Tests\Concerns;
 
+use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Tax\TaxProfile;
 use App\Services\Accounting\JournalPoster;
@@ -109,6 +110,6 @@ trait BuildsTaxFixtures
 
     protected function glByName(string $name, LedgerContext $ctx): int
     {
-        return \App\Models\Accounting\GlAccount::query()->forContext($ctx)->where('name', $name)->firstOrFail()->id;
+        return GlAccount::query()->forContext($ctx)->where('name', $name)->firstOrFail()->id;
     }
 }

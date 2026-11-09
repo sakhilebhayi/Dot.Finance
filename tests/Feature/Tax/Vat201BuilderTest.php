@@ -2,7 +2,14 @@
 
 namespace Tests\Feature\Tax;
 
+use App\Models\Accounting\JournalLine;
+use App\Models\Shared\TaxRate;
+use App\Models\Shared\TaxRule;
+use App\Services\Accounting\JournalPoster;
+use App\Services\Accounting\PostingLine;
+use App\Services\Tax\Dto\ComputedReturn;
 use App\Services\Tax\Vat201Builder;
+use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsTaxFixtures;
@@ -24,9 +31,9 @@ class Vat201BuilderTest extends TestCase
         $this->vatProfile();
     }
 
-    private function build(string $from = '2026-09-01', string $to = '2026-10-31', iterable $adjustments = []): \App\Services\Tax\Dto\ComputedReturn
+    private function build(string $from = '2026-09-01', string $to = '2026-10-31', iterable $adjustments = []): ComputedReturn
     {
-        return \App\Support\Ledger\LedgerContext::run($this->tax, fn () => app(Vat201Builder::class)->build($this->tax, CarbonImmutable::parse($from), CarbonImmutable::parse($to), $adjustments));
+        return LedgerContext::run($this->tax, fn () => app(Vat201Builder::class)->build($this->tax, CarbonImmutable::parse($from), CarbonImmutable::parse($to), $adjustments));
     }
 
     public function test_a_standard_rated_sale_fills_fields_1_4_13_and_20(): void
@@ -108,7 +115,7 @@ class Vat201BuilderTest extends TestCase
     public function test_a_sale_and_its_reversal_in_the_same_period_cancel_out(): void
     {
         $entry = $this->sale('2026-09-10', 100_000);
-        \App\Support\Ledger\LedgerContext::run($this->tax, fn () => app(\App\Services\Accounting\JournalPoster::class)->reverse($entry, 'Invoice cancelled', CarbonImmutable::parse('2026-09-20')));
+        LedgerContext::run($this->tax, fn () => app(JournalPoster::class)->reverse($entry, 'Invoice cancelled', CarbonImmutable::parse('2026-09-20')));
         $r = $this->build();
 
         $this->assertSame(0, $r->amount('1'));
@@ -120,7 +127,7 @@ class Vat201BuilderTest extends TestCase
     public function test_a_reversal_in_a_later_period_shows_as_a_field_18_credit_in_that_period(): void
     {
         $entry = $this->sale('2026-08-20', 100_000);
-        \App\Support\Ledger\LedgerContext::run($this->tax, fn () => app(\App\Services\Accounting\JournalPoster::class)->reverse($entry, 'Cancelled next period', CarbonImmutable::parse('2026-09-12')));
+        LedgerContext::run($this->tax, fn () => app(JournalPoster::class)->reverse($entry, 'Cancelled next period', CarbonImmutable::parse('2026-09-12')));
 
         $earlier = $this->build('2026-07-01', '2026-08-31');
         $later = $this->build('2026-09-01', '2026-10-31');
@@ -174,9 +181,9 @@ class Vat201BuilderTest extends TestCase
     {
         $zero = $this->taxCodeId('ZA_VAT_ZERO');
         $this->postEntry($this->tax, '2026-09-10', 'invoice', 'Mixed up', [
-            new \App\Services\Accounting\PostingLine('ar', debitCents: 115_000),
-            new \App\Services\Accounting\PostingLine('sales', creditCents: 100_000, taxCodeId: $zero),
-            new \App\Services\Accounting\PostingLine('vat_output', creditCents: 15_000, taxCodeId: $zero),
+            new PostingLine('ar', debitCents: 115_000),
+            new PostingLine('sales', creditCents: 100_000, taxCodeId: $zero),
+            new PostingLine('vat_output', creditCents: 15_000, taxCodeId: $zero),
         ]);
 
         $this->assertContains('zero_rated_with_vat', array_column($this->build()->issues, 'code'));
@@ -214,7 +221,7 @@ class Vat201BuilderTest extends TestCase
         $e = $this->sale('2026-09-10', 100_000);
         $r = $this->build();
 
-        $lineIds = \App\Models\Accounting\JournalLine::withoutGlobalScopes()->where('journal_entry_id', $e->id)->pluck('id')->all();
+        $lineIds = JournalLine::withoutGlobalScopes()->where('journal_entry_id', $e->id)->pluck('id')->all();
         $contributors1 = array_column($r->box('1')['contributors'], 'id');
         $this->assertCount(2, $contributors1, 'the sales line and the VAT line make up field 1');
         foreach ($contributors1 as $id) {
@@ -227,10 +234,10 @@ class Vat201BuilderTest extends TestCase
     public function test_a_period_that_straddles_a_rate_change_checks_each_entry_at_its_own_rate(): void
     {
         // A made-up change: ZA_VAT_STD becomes 16% from 2030-01-01. Entries either side are checked against their own date's rate.
-        \App\Models\Shared\TaxRate::query()->where('rate_key', 'ZA_VAT_STD')->update(['valid_to' => '2029-12-31']);
-        \App\Models\Shared\TaxRate::query()->create(['jurisdiction' => 'ZA', 'rate_key' => 'ZA_VAT_STD', 'rate_bp' => 1600, 'valid_from' => '2030-01-01', 'legal_status' => 'enacted',
+        TaxRate::query()->where('rate_key', 'ZA_VAT_STD')->update(['valid_to' => '2029-12-31']);
+        TaxRate::query()->create(['jurisdiction' => 'ZA', 'rate_key' => 'ZA_VAT_STD', 'rate_bp' => 1600, 'valid_from' => '2030-01-01', 'legal_status' => 'enacted',
             'source_url' => 'https://example.test/hypothetical-rate', 'accessed_at' => '2026-11-09', 'confidence' => 'low']);
-        \App\Models\Shared\TaxRule::query()->where('rule_key', 'vat201.fields')->update(['valid_to' => null]);
+        TaxRule::query()->where('rule_key', 'vat201.fields')->update(['valid_to' => null]);
         // the code rows are versioned from 2018 and carry no end, so they cover 2030 too
 
         $this->sale('2029-12-30', 100_000, 'ZA_VAT_STD', 15_000);   // at 15% on the old rate: correct

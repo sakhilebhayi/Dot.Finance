@@ -3,6 +3,7 @@
 namespace Tests\Feature\Tax;
 
 use App\Models\Tax\TaxAdjustment;
+use App\Services\Accounting\PostingLine;
 use App\Services\Tax\IncomeTaxCalculator;
 use App\Services\Tax\IncomeTaxEstimator;
 use App\Services\Tax\ProvisionalTaxPlanner;
@@ -248,12 +249,12 @@ class IncomeTaxTest extends TestCase
         $profile = $this->vatProfile(['legal_entity' => 'company', 'financial_year_end_month' => 2]);
         $this->sale('2026-06-15', $this->r(500_000), 'ZA_VAT_ZERO');
         $this->postEntry($this->tax, '2026-07-01', 'manual', 'Interest to SARS', [
-            new \App\Services\Accounting\PostingLine($this->glByName('Bank charges', $this->tax), debitCents: $this->r(1_000)),
-            new \App\Services\Accounting\PostingLine('ap', creditCents: $this->r(1_000)),
+            new PostingLine($this->glByName('Bank charges', $this->tax), debitCents: $this->r(1_000)),
+            new PostingLine('ap', creditCents: $this->r(1_000)),
         ]);
         $this->postEntry($this->tax, '2026-07-02', 'manual', 'Depreciation', [
-            new \App\Services\Accounting\PostingLine($this->glByName('Depreciation', $this->tax), debitCents: $this->r(8_000)),
-            new \App\Services\Accounting\PostingLine('accumulated_depreciation', creditCents: $this->r(8_000)),
+            new PostingLine($this->glByName('Depreciation', $this->tax), debitCents: $this->r(8_000)),
+            new PostingLine('accumulated_depreciation', creditCents: $this->r(8_000)),
         ]);
 
         $e = LedgerContext::run($this->tax, fn () => app(IncomeTaxEstimator::class)->estimate($this->tax, $profile, CarbonImmutable::parse('2027-02-28'), CarbonImmutable::today()));

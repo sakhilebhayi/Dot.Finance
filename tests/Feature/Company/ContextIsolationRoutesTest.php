@@ -12,6 +12,14 @@ use App\Models\Insight;
 use App\Models\RecurringRule;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
+use App\Models\Tax\TaxAdjustment;
+use App\Models\Tax\TaxCorrespondence;
+use App\Models\Tax\TaxDeadline;
+use App\Models\Tax\TaxDocument;
+use App\Models\Tax\TaxPayrollRun;
+use App\Models\Tax\TaxProvisionalPayment;
+use App\Models\Tax\TaxReturn;
+use App\Models\Tax\TaxReturnAdjustment;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Accounting\ChartTemplates;
@@ -128,14 +136,14 @@ class ContextIsolationRoutesTest extends TestCase
         ]);
 
         // R-44 Tax: one of each kind of row, so every tax route can be smuggled a foreign id.
-        $deadline = \App\Models\Tax\TaxDeadline::create($owner + ['obligation' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel period {$label}", 'base_due_date' => '2026-11-30', 'due_date' => '2026-11-30']);
-        $taxReturn = \App\Models\Tax\TaxReturn::create($owner + ['kind' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel return {$label}", 'status' => 'draft']);
-        $returnAdjustment = \App\Models\Tax\TaxReturnAdjustment::create($owner + ['tax_return_id' => $taxReturn->id, 'box_code' => '15', 'kind' => 'other', 'amount_cents' => 100, 'reason' => "Sentinel adjustment {$label}"]);
-        $payrollRun = \App\Models\Tax\TaxPayrollRun::create($owner + ['period_month' => '2026-10-01', 'source' => 'manual', 'status' => 'draft', 'gross_pay_cents' => 100]);
-        $taxAdjustment = \App\Models\Tax\TaxAdjustment::create($owner + ['tax_year_end' => '2027-02-28', 'kind' => 'add_back', 'label' => "Sentinel add-back {$label}", 'amount_cents' => 100, 'reason' => 'Sentinel reason']);
-        $provisional = \App\Models\Tax\TaxProvisionalPayment::create($owner + ['tax_year_end' => '2027-02-28', 'period' => 1, 'due_date' => '2026-08-31']);
-        $taxDocument = \App\Models\Tax\TaxDocument::create($owner + ['category' => 'other', 'title' => "Sentinel document {$label}", 'retention_until' => '2031-01-01', 'retention_basis' => 'Sentinel']);
-        $correspondence = \App\Models\Tax\TaxCorrespondence::create($owner + ['direction' => 'received', 'channel' => 'letter', 'subject' => "Sentinel letter {$label}", 'occurred_on' => '2026-10-01']);
+        $deadline = TaxDeadline::create($owner + ['obligation' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel period {$label}", 'base_due_date' => '2026-11-30', 'due_date' => '2026-11-30']);
+        $taxReturn = TaxReturn::create($owner + ['kind' => 'vat201', 'period_start' => '2026-09-01', 'period_end' => '2026-10-31', 'period_label' => "Sentinel return {$label}", 'status' => 'draft']);
+        $returnAdjustment = TaxReturnAdjustment::create($owner + ['tax_return_id' => $taxReturn->id, 'box_code' => '15', 'kind' => 'other', 'amount_cents' => 100, 'reason' => "Sentinel adjustment {$label}"]);
+        $payrollRun = TaxPayrollRun::create($owner + ['period_month' => '2026-10-01', 'source' => 'manual', 'status' => 'draft', 'gross_pay_cents' => 100]);
+        $taxAdjustment = TaxAdjustment::create($owner + ['tax_year_end' => '2027-02-28', 'kind' => 'add_back', 'label' => "Sentinel add-back {$label}", 'amount_cents' => 100, 'reason' => 'Sentinel reason']);
+        $provisional = TaxProvisionalPayment::create($owner + ['tax_year_end' => '2027-02-28', 'period' => 1, 'due_date' => '2026-08-31']);
+        $taxDocument = TaxDocument::create($owner + ['category' => 'other', 'title' => "Sentinel document {$label}", 'retention_until' => '2031-01-01', 'retention_basis' => 'Sentinel']);
+        $correspondence = TaxCorrespondence::create($owner + ['direction' => 'received', 'channel' => 'letter', 'subject' => "Sentinel letter {$label}", 'occurred_on' => '2026-10-01']);
 
         return ['taxDeadline' => $deadline->id, 'taxReturn' => $taxReturn->id, 'returnAdjustment' => $returnAdjustment->id, 'taxPayrollRun' => $payrollRun->id, 'taxAdjustment' => $taxAdjustment->id, 'provisionalPayment' => $provisional->id, 'taxDocument' => $taxDocument->id, 'taxCorrespondence' => $correspondence->id,
             'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];

@@ -7,6 +7,7 @@ use App\Models\Accounting\GlAccount;
 use App\Models\Tax\TaxAdjustment;
 use App\Models\Tax\TaxIncomeEstimate;
 use App\Rules\MoneyAmount;
+use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Shared\Attachments;
 use App\Services\Tax\CsvSafe;
 use App\Services\Tax\Exceptions\TaxException;
@@ -15,6 +16,8 @@ use App\Services\Tax\IncomeTaxProvision;
 use App\Services\Tax\TaxBasis;
 use App\Support\FinanceAudit;
 use App\Support\Money;
+use App\Support\Shared\Exceptions\AttachmentRejected;
+use App\Support\Shared\Exceptions\NoValidTaxRule;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,7 +44,7 @@ class IncomeTaxController extends TaxController
             $error = null;
         } catch (\Throwable $e) {
             $estimate = null;
-            $error = $e instanceof TaxException || $e instanceof \App\Support\Shared\Exceptions\NoValidTaxRule ? $e->getMessage() : throw $e;
+            $error = $e instanceof TaxException || $e instanceof NoValidTaxRule ? $e->getMessage() : throw $e;
         }
 
         $expenseAccounts = GlAccount::query()->forContext($this->ctx())->where('class', 'expense')->where('is_active', true)->where('is_postable', true)->orderBy('code')->get();
@@ -90,7 +93,7 @@ class IncomeTaxController extends TaxController
 
         try {
             $attachment = $request->file('file') ? $attachments->store($request->file('file'), null, $request->user(), true, $this->ctx()) : null;
-        } catch (\App\Support\Shared\Exceptions\AttachmentRejected $e) {
+        } catch (AttachmentRejected $e) {
             return back()->withInput()->withErrors(['file' => $e->getMessage()]);
         }
 
@@ -149,7 +152,7 @@ class IncomeTaxController extends TaxController
         try {
             $yearEnd = $estimator->taxYearEnd($profile, CarbonImmutable::parse($data['year_end']));
             $entry = $provision->post($this->ctx(), $estimator->estimate($this->ctx(), $profile, $yearEnd), $account, $request->user());
-        } catch (TaxException|\App\Services\Accounting\Exceptions\AccountingException $e) {
+        } catch (TaxException|AccountingException $e) {
             return back()->withErrors(['provision' => $e->getMessage()]);
         }
 

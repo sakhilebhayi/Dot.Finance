@@ -8,7 +8,6 @@ use App\Services\Shared\Tax\ResolvedRule;
 use App\Services\Tax\Dto\DueDate;
 use App\Services\Tax\Jurisdiction\JurisdictionRegistry;
 use App\Support\Ledger\LedgerContext;
-use App\Support\Shared\Exceptions\NoValidTaxRule;
 use Carbon\CarbonImmutable;
 
 /**
@@ -178,8 +177,12 @@ final class DeadlineGenerator
             $label = 'year ending '.$year['end']->format('j F Y');
             foreach ([1, 2, 3] as $period) {
                 $due = $dueDates->provisional($rules, $year['start'], $year['end'], $period);
-                $periodStart = match ($period) { 1 => $year['start'], 2 => $year['start'], 3 => $year['end']->addDay() };
-                $periodEnd = match ($period) { 1 => $year['start']->addMonthsNoOverflow(5)->endOfMonth()->startOfDay(), 2 => $year['end'], 3 => $due->base };
+                $periodStart = match ($period) {
+                    1 => $year['start'], 2 => $year['start'], 3 => $year['end']->addDay()
+                };
+                $periodEnd = match ($period) {
+                    1 => $year['start']->addMonthsNoOverflow(5)->endOfMonth()->startOfDay(), 2 => $year['end'], 3 => $due->base
+                };
                 $emit("irp6_{$period}", $periodStart, $periodEnd, ['', 'First', 'Second', 'Third (optional top-up)'][$period]." provisional payment, {$label}", $due, $rules);
             }
         }

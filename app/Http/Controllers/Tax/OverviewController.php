@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tax;
 
+use App\Enums\Capability;
 use App\Models\Tax\TaxCorrespondence;
 use App\Models\Tax\TaxDeadline;
 use App\Services\Tax\ObligationEngine;
@@ -27,7 +28,7 @@ class OverviewController extends TaxController
             'today' => $today,
             'correspondence' => TaxCorrespondence::query()->forContext($ctx)->where('status', 'open')->orderBy('response_due_on')->limit(5)->get(),
             'undelivered' => $reminders->undelivered($ctx)->count(),
-            'canManage' => $this->can(\App\Enums\Capability::ManageTax),
+            'canManage' => $this->can(Capability::ManageTax),
         ]);
     }
 }

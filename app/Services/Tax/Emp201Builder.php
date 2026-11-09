@@ -88,7 +88,7 @@ final class Emp201Builder
             $totals = ['gross' => $run->gross_pay_cents, 'paye' => $run->paye_cents, 'uif_ee' => $run->uif_employee_cents, 'uif_er' => $run->uif_employer_cents, 'sdl' => $run->sdl_cents, 'eti' => $run->eti_claimed_cents];
             foreach ($sums as $k => $v) {
                 if ((int) $v !== (int) $totals[$k]) {
-                    $issues[] = $mk('lines_do_not_add_up', 'error', "The employee lines add up to ".Money::format((int) $v)." for {$k} but the summary says ".Money::format((int) $totals[$k]).'.');
+                    $issues[] = $mk('lines_do_not_add_up', 'error', 'The employee lines add up to '.Money::format((int) $v)." for {$k} but the summary says ".Money::format((int) $totals[$k]).'.');
                 }
             }
             foreach ($lines as $l) {

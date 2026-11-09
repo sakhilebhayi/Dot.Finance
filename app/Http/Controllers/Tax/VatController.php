@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Tax;
 
 use App\Enums\Capability;
+use App\Models\Accounting\JournalLine;
 use App\Models\Tax\TaxDeadline;
 use App\Models\Tax\TaxReturn;
 use App\Services\Tax\Exceptions\TaxException;
@@ -111,7 +112,7 @@ class VatController extends TaxController
         ]);
 
         // the line must belong to this ledger (the ledger scope on the model makes another ledger's id a miss)
-        $line = \App\Models\Accounting\JournalLine::query()->find($data['journal_line_id']);
+        $line = JournalLine::query()->find($data['journal_line_id']);
         abort_if($line === null, 404);
 
         $queue->resolve($this->ctx(), $line->id, $data['issue_code'], $data['resolution'], $data['note'], $request->user());

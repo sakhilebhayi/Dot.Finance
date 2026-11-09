@@ -15,6 +15,7 @@ use App\Support\FinanceAudit;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -214,7 +215,7 @@ final class IncomeTaxEstimator
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, object>  $expenseAccounts
+     * @param  Collection<int, object>  $expenseAccounts
      * @return list<array<string, mixed>>
      */
     private function flag($ctx, $expenseAccounts, CarbonImmutable $end): array

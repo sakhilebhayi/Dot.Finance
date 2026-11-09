@@ -2,17 +2,22 @@
 
 namespace Tests\Feature\Tax;
 
+use App\Models\Accounting\JournalLine;
+use App\Models\FinanceAuditLog;
+use App\Models\Shared\TaxRate;
 use App\Models\Tax\TaxDeadline;
 use App\Models\Tax\TaxProfile;
 use App\Models\Tax\TaxReturn;
 use App\Models\Tax\TaxReturnAdjustment;
+use App\Services\Accounting\Chart;
+use App\Services\Accounting\GlQuery;
 use App\Services\Accounting\PostingLine;
 use App\Services\Tax\DeadlineGenerator;
 use App\Services\Tax\Exceptions\NotReady;
 use App\Services\Tax\Exceptions\TaxException;
 use App\Services\Tax\TaxReturnService;
-use App\Services\Tax\VatReviewQueue;
 use App\Services\Tax\Vat201Builder;
+use App\Services\Tax\VatReviewQueue;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -69,7 +74,7 @@ class ReturnLifecycleTest extends TestCase
         $this->assertSame(64, strlen($r->figures_hash));
         $this->assertTrue($this->svc->figuresIntact($r));
         $this->assertNotEmpty($r->rule_versions);
-        $this->assertContains('tax_rates#'.\App\Models\Shared\TaxRate::query()->where('rate_key', 'ZA_VAT_STD')->value('id'), array_column($r->rule_versions, 'version'));
+        $this->assertContains('tax_rates#'.TaxRate::query()->where('rate_key', 'ZA_VAT_STD')->value('id'), array_column($r->rule_versions, 'version'));
         $this->assertSame('prepared', TaxDeadline::query()->forContext($this->tax)->where('obligation', 'vat201')->where('period_end', '2026-10-31')->first()->status);
         $this->assertTrue($r->reconciliation['ties']);
     }
@@ -96,7 +101,7 @@ class ReturnLifecycleTest extends TestCase
             $this->assertStringContainsString('no VAT line', implode(' ', $ex->reasons()));
         }
 
-        $lineId = \App\Models\Accounting\JournalLine::withoutGlobalScopes()->where('journal_entry_id', $e->id)->where('gl_account_id', $this->glByName('Sales', $this->tax))->value('id');
+        $lineId = JournalLine::withoutGlobalScopes()->where('journal_entry_id', $e->id)->where('gl_account_id', $this->glByName('Sales', $this->tax))->value('id');
         LedgerContext::run($this->tax, fn () => app(VatReviewQueue::class)->resolve($this->tax, $lineId, 'standard_without_vat', 'accepted', 'Customer is a diplomat: no VAT due, code to be corrected', $this->people['owner']));
         $this->assertSame('prepared', $this->prepare($r)->status);
     }
@@ -333,7 +338,7 @@ class ReturnLifecycleTest extends TestCase
         $this->assertSame(array_sum(array_column($lines, 'debit_cents')), array_sum(array_column($lines, 'credit_cents')));
 
         $entry = LedgerContext::run($this->tax, fn () => $this->svc->postSettlement($this->tax, $r, $this->people['owner']));
-        $net = fn (string $key) => LedgerContext::run($this->tax, fn () => app(\App\Services\Accounting\GlQuery::class)->netThrough($this->tax, app(\App\Services\Accounting\Chart::class)->system($key)));
+        $net = fn (string $key) => LedgerContext::run($this->tax, fn () => app(GlQuery::class)->netThrough($this->tax, app(Chart::class)->system($key)));
         $this->assertSame(0, $net('vat_output'));
         $this->assertSame(0, $net('vat_input'));
         $this->assertSame(-9_000, $net('vat_control'), 'owed to SARS: 15,000 output less 6,000 input');
@@ -349,9 +354,9 @@ class ReturnLifecycleTest extends TestCase
     public function test_every_change_is_in_the_audit_log_with_who_did_it(): void
     {
         $s = $this->submit($this->prepare($this->start()));
-        $actions = \App\Models\FinanceAuditLog::query()->forContext($this->tax)->where('subject_type', 'tax_return')->orderBy('id')->pluck('action')->all();
+        $actions = FinanceAuditLog::query()->forContext($this->tax)->where('subject_type', 'tax_return')->orderBy('id')->pluck('action')->all();
         $this->assertSame(['created', 'prepared', 'submission_recorded'], $actions);
-        $row = \App\Models\FinanceAuditLog::query()->forContext($this->tax)->where('action', 'submission_recorded')->first();
+        $row = FinanceAuditLog::query()->forContext($this->tax)->where('action', 'submission_recorded')->first();
         $this->assertSame($this->people['owner']->id, $row->actor_user_id);
         $this->assertStringContainsString('not submitted by Dot.Finance', $row->context);
     }

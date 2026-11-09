@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\Database\TableChecks;
+use Database\Seeders\TaxHolidaysSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,7 @@ return new class extends Migration
         $this->checks();
         $this->freezeReturns();
 
-        \Database\Seeders\TaxHolidaysSeeder::seed();
+        TaxHolidaysSeeder::seed();
     }
 
     public function down(): void
@@ -470,7 +471,7 @@ return new class extends Migration
 
         TableChecks::add('tax_payroll_runs', 'status_values', "status IN ('draft','posted')", ['status'], 'tax_payroll_runs: unknown status');
         TableChecks::add('tax_payroll_runs', 'source_values', "source IN ('manual','hr_import')", ['source'], 'tax_payroll_runs: unknown source');
-        TableChecks::add('tax_payroll_runs', 'month_start', "period_month IS NOT NULL", ['period_month'], 'tax_payroll_runs: month required');
+        TableChecks::add('tax_payroll_runs', 'month_start', 'period_month IS NOT NULL', ['period_month'], 'tax_payroll_runs: month required');
 
         TableChecks::add('tax_correspondence', 'direction_values', "direction IN ('received','sent')", ['direction'], 'tax_correspondence: unknown direction');
         TableChecks::add('tax_correspondence', 'status_values', "status IN ('open','responded','closed')", ['status'], 'tax_correspondence: unknown status');

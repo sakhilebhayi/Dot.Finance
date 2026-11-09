@@ -73,7 +73,7 @@ final class ObligationEngine
 
         if ($p->vat_registered) {
             $period = $p->vat_category ? "category {$p->vat_category}" : 'a period category you have not entered yet';
-            $reasoning[] = "You told us the business is VAT-registered (".($p->vat_number ?: 'VAT number not entered').") on the {$p->vat_basis} basis, so a VAT201 return is due for every tax period ({$period}).";
+            $reasoning[] = 'You told us the business is VAT-registered ('.($p->vat_number ?: 'VAT number not entered').") on the {$p->vat_basis} basis, so a VAT201 return is due for every tax period ({$period}).";
             if ($m['cents'] < $voluntary) {
                 $reasoning[] = 'Taxable supplies for the last 12 months are below the new voluntary threshold of '.Money::format($voluntary, 'ZAR').'. SARS does not cancel existing registrations automatically; a vendor below the threshold may apply to cancel (cancelling can trigger exit VAT).';
             }
