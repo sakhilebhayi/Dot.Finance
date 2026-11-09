@@ -50,4 +50,39 @@ class TaxPagesTest extends TestCase
             $this->assertSame(200, $response->getStatusCode(), "{$url} answered {$response->getStatusCode()}");
         }
     }
+
+    public function test_the_tax_pages_use_plain_labels_and_keep_internal_words_behind_show_working(): void
+    {
+        $owner = $this->people['owner'];
+
+        $overview = $this->inCompany($owner, $this->acme)->get(route('tax.index'))->assertOk();
+        $overview->assertSee('VAT return (VAT201)')->assertSee('Applies to you')->assertDontSee('category B')->assertDontSee('reminder record(s)');
+        $this->assertStringNotContainsString('str_replace', $overview->getContent());
+
+        $return = $this->inCompany($owner, $this->acme)->get(route('tax.returns.show', $this->vat))->assertOk();
+        $return->assertSee('Sep 2026 to Oct 2026 (two-month period)')->assertDontSee('(category B)')->assertSee('Output tax (VAT you charged)')->assertSee('Input tax (VAT you paid)');
+
+        // Every amount in the box table and the totals carries one of the four basis tags.
+        $html = $return->getContent();
+        $this->assertGreaterThanOrEqual(substr_count($html, 'class="tax-box"'), substr_count($html, 'Calculated') + substr_count($html, 'You entered'), 'each field shows how its amount came to be');
+
+        $obligations = $this->inCompany($owner, $this->acme)->get(route('tax.obligations'))->assertOk();
+        $obligations->assertSee('Show working');
+        // Internal identifiers may appear, but only inside a "Show working" disclosure.
+        $outside = preg_replace('#<details.*?</details>#s', '', $obligations->getContent());
+        $this->assertDoesNotMatchRegularExpression('/tax_rules#\d+|tax_rates#\d+|ZA_VAT_STD/', $outside);
+    }
+
+    public function test_the_working_paper_is_a_standalone_light_page_with_print_rules(): void
+    {
+        $paper = $this->inCompany($this->people['owner'], $this->acme)->get(route('tax.returns.workpaper', $this->vat))->assertOk();
+        $html = $paper->getContent();
+
+        $this->assertStringContainsString('class="tax-print"', $html);
+        $this->assertStringContainsString('data-theme="light"', $html);
+        $this->assertSame(1, substr_count($html, '<h1>'), 'one title');
+        $this->assertStringContainsString('PREPARED, NOT SUBMITTED', $html, 'the banner a printed copy must carry');
+        $this->assertStringContainsString('<caption>', $html);
+        $this->assertStringNotContainsString('fx-side', $html, 'no app chrome on the paper');
+    }
 }

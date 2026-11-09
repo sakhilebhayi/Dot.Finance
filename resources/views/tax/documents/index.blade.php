@@ -5,7 +5,7 @@
 
     @if (count($needs))
     <x-fx.panel title="Missing records" meta="Worked out from your books for the latest periods">
-        <ul class="fx-list">@foreach ($needs as $n)<li><strong>{{ $n['label'] }}</strong> <span class="fx-hint">({{ $n['deadline']->label() }}, {{ $n['deadline']->period_label }})</span><p class="fx-hint">{{ $n['detail'] }} @if($n['href'])<a class="fx-link" href="{{ $n['href'] }}">Fix it</a>@endif <x-tax.basis :basis="$n['basis']" /></p></li>@endforeach</ul>
+        <ul class="fx-list">@foreach ($needs as $n)<li><strong>{{ $n['label'] }}</strong> <span class="fx-hint">({{ $n['deadline']->label() }}, {{ $n['deadline']->periodText() }})</span><p class="fx-hint">{{ $n['detail'] }} @if($n['href'])<a class="fx-link" href="{{ $n['href'] }}">Fix it</a>@endif <x-tax.basis :basis="$n['basis']" /></p></li>@endforeach</ul>
     </x-fx.panel>
     @endif
 
@@ -17,7 +17,7 @@
             <tbody>
             @foreach ($docs as $d)
                 <tr>
-                    <td data-label="Document" class="is-lead">{{ $d->title }}<span class="fx-cell-sub">{{ $d->categoryLabel() }}@if($d->period_label), {{ $d->period_label }}@endif</span></td>
+                    <td data-label="Document" class="is-lead">{{ $d->title }}<span class="fx-cell-sub">{{ $d->categoryLabel() }}@if($d->periodText()), {{ $d->periodText() }}@endif</span></td>
                     <td data-label="Date">{{ $d->document_date?->format('j M Y') ?? 'not dated' }}</td>
                     <td data-label="Keep until">{{ $d->retention_until->format('j M Y') }}@if($d->legal_hold) <x-fx.pill kind="variance">Legal hold</x-fx.pill>@endif<span class="fx-cell-sub">{{ \Illuminate\Support\Str::limit($d->retention_basis, 90) }}</span></td>
                     <td data-label="File">@if($d->attachment_id)<a class="fx-link" href="{{ route('tax.documents.file', $d) }}">Open</a>@else<span class="fx-hint">none attached</span>@endif</td>
@@ -40,7 +40,7 @@
                     <x-fx.input name="title" label="Title" />
                     <x-fx.input name="document_date" label="Document date" type="date" optional />
                     <x-fx.input name="period_label" label="Period" optional />
-                    <x-fx.select name="tax_deadline_id" label="Belongs to a deadline" optional><option value="">None</option>@foreach ($deadlines as $dl)<option value="{{ $dl->id }}">{{ $dl->label() }}, {{ $dl->period_label }}</option>@endforeach</x-fx.select>
+                    <x-fx.select name="tax_deadline_id" label="Belongs to a deadline" optional><option value="">None</option>@foreach ($deadlines as $dl)<option value="{{ $dl->id }}">{{ $dl->label() }}, {{ $dl->periodText() }}</option>@endforeach</x-fx.select>
                     <x-fx.input name="file" label="File" type="file" optional />
                 </div>
                 <x-fx.check name="legal_hold">Legal hold: never archive this record</x-fx.check>

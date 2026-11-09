@@ -5,8 +5,8 @@
     $openReview = collect($review)->where('resolved', false)->count();
     $reviewUrl = route('tax.vat.review', ['from' => $return->period_start->toDateString(), 'to' => $return->period_end->toDateString()]);
 @endphp
-<x-app-layout :title="$return->kindLabel().' '.$return->period_label">
-    <x-fx.page-head :title="$return->kindLabel().' for '.$return->period_label" :sub="$return->period_start->format('j M Y').' to '.$return->period_end->format('j M Y').($return->revision > 1 ? ', revision '.$return->revision : '')">
+<x-app-layout :title="$return->kindLabel().' '.$return->periodText()">
+    <x-fx.page-head :title="$return->kindLabel().' for '.$return->periodText()" :sub="$return->period_start->format('j M Y').' to '.$return->period_end->format('j M Y').($return->revision > 1 ? ', revision '.$return->revision : '')">
         <x-slot name="actions">
             @if ($canExport)
                 <x-fx.button :href="route('tax.returns.workpaper', $return)" icon="file-text">Working paper</x-fx.button>

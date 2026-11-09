@@ -27,7 +27,7 @@
                         @php $s = $d->displayStatus($today); @endphp
                         <tr>
                             <td data-label="What" class="is-lead"><a class="fx-link" href="{{ route('tax.calendar.show', $d) }}">{{ $d->label() }}</a></td>
-                            <td data-label="Period">{{ $d->period_label }}</td>
+                            <td data-label="Period">{{ $d->periodText() }}</td>
                             <td data-label="Due">{{ $d->due_date->format('j M Y') }}</td>
                             <td data-label="Status"><x-fx.pill :kind="$s === 'overdue' ? 'variance' : 'plain'">{{ ucfirst($s) }}</x-fx.pill></td>
                         </tr>

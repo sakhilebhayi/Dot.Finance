@@ -27,7 +27,7 @@ final class Workpaper
             'return' => $return,
             'kind' => $return->kind,
             'title' => $return->kindLabel().' working paper',
-            'period' => $return->period_label,
+            'period' => $return->periodText(),
             'period_start' => $return->period_start->toDateString(),
             'period_end' => $return->period_end->toDateString(),
             'basis' => $return->basis,

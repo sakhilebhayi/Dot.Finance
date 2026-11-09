@@ -135,4 +135,10 @@ class TaxReturn extends Model
             default => $this->status,
         };
     }
+
+    /** The period in plain words (the stored label may carry a SARS category letter). */
+    public function periodText(): string
+    {
+        return \App\Services\Tax\TaxLabels::plainPeriod($this->period_label, $this->period_start, $this->period_end);
+    }
 }

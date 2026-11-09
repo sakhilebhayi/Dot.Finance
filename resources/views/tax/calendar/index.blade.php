@@ -29,8 +29,8 @@
                 @php $s = $d->displayStatus($today); @endphp
                 <tr>
                     <td data-label="What" class="is-lead"><a class="fx-link" href="{{ route('tax.calendar.show', $d) }}">{{ $d->label() }}</a>@if($d->adjustment_note)<span class="fx-cell-sub">{{ \Illuminate\Support\Str::limit($d->adjustment_note, 110) }}</span>@endif</td>
-                    <td data-label="Period">{{ $d->period_label }}</td>
-                    <td data-label="Due">{{ $d->due_date->format('D j M Y') }}@if($d->payment_due_date && ! $d->payment_due_date->equalTo($d->due_date))<span class="fx-cell-sub">payment outside eFiling {{ $d->payment_due_date->format('D j M') }}</span>@endif</td>
+                    <td data-label="Period">{{ $d->periodText() }}</td>
+                    <td data-label="Due"><span class="fx-cellbody">{{ $d->due_date->format('D j M Y') }}@if($d->payment_due_date && ! $d->payment_due_date->equalTo($d->due_date))<span class="fx-cell-sub">payment outside eFiling {{ $d->payment_due_date->format('D j M') }}</span>@endif</span></td>
                     <td data-label="Status"><x-fx.pill :kind="$s === 'overdue' ? 'variance' : (in_array($s, ['submitted', 'paid'], true) ? 'ticked' : 'plain')">{{ ucfirst($s) }}</x-fx.pill></td>
                     <td data-label="How sure">{{ ucfirst($d->confidence) }}</td>
                 </tr>

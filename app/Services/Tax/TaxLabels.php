@@ -38,6 +38,21 @@ final class TaxLabels
         return ucfirst($text);
     }
 
+    /**
+     * A stored period label such as "Sep 2026 to Oct 2026 (category B)" in words a person can use: the SARS category letter
+     * means nothing to an owner, the length of the period does. Labels without a category letter are returned as they are.
+     */
+    public static function plainPeriod(?string $label, mixed $start, mixed $end): string
+    {
+        $label = (string) $label;
+        if (! preg_match('/\s*\(category [A-F]\)/', $label) || $start === null || $end === null) {
+            return $label;
+        }
+        $months = (int) round(\Carbon\CarbonImmutable::parse($start)->diffInMonths(\Carbon\CarbonImmutable::parse($end)->addDay()));
+
+        return preg_replace('/\s*\(category [A-F]\)/', ' ('.self::months(max(1, $months)).' period)', $label) ?? $label;
+    }
+
     public static function months(int $n): string
     {
         return [1 => 'one-month', 2 => 'two-month', 3 => 'three-month', 6 => 'six-month', 12 => 'twelve-month'][$n] ?? $n.'-month';
