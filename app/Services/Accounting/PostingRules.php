@@ -86,71 +86,90 @@ final class PostingRules
     }
 
     /**
-     * A transfer: both legs, or the one leg that remains. $group is the shared transfer_group.
-     * Returns null when neither leg counts.
+     * A transfer. $out and $in are the two legs as they exist (a deleted or pre-opening leg is still passed, because the
+     * pair's own amounts are what value the movement); $outCounts / $inCounts say which of them affect the books now.
+     * Both count: one entry for the pair. One counts: that leg against the suspense account, valued at the rate the pair
+     * implies, so a leg left alone (its peer deleted with an account, or dated before its account opened) still ties out
+     * to its own account to the cent. Neither counts: null.
      */
-    public function transfer(LedgerContext $context, ?Transaction $out, ?Transaction $in, string $group, PostingMap $map): ?PostingRequest
+    public function transfer(LedgerContext $context, ?Transaction $out, ?Transaction $in, string $group, PostingMap $map, bool $outCounts = true, bool $inCounts = true): ?PostingRequest
     {
-        $live = array_values(array_filter([$out, $in]));
-        if ($live === []) {
+        $outCounts = $outCounts && $out !== null;
+        $inCounts = $inCounts && $in !== null;
+
+        if (! $outCounts && ! $inCounts) {
             return null;
         }
 
-        $date = CarbonImmutable::parse($live[0]->date->toDateString());
+        $anchor = $outCounts ? $out : $in;
+        $date = CarbonImmutable::parse($anchor->date->toDateString());
         $base = $map->baseCurrency;
-        $description = $live[0]->description !== null ? mb_substr($live[0]->description, 0, 255) : null;
+        $description = $anchor->description !== null ? mb_substr($anchor->description, 0, 255) : null;
         $memo = 'Transfer'.($description !== null ? ': '.$description : '');
 
-        if ($out === null || $in === null) {
+        // Value both legs in the base currency (when both are known).
+        $outMoney = $out !== null ? ['base' => 0, 'currency' => null, 'amount' => null, 'rate' => null] : null;
+        $inMoney = $in !== null ? ['base' => 0, 'currency' => null, 'amount' => null, 'rate' => null] : null;
+
+        if ($out !== null && $in !== null) {
+            $outCash = $map->cashAccount((int) $out->account_id);
+            $inCash = $map->cashAccount((int) $in->account_id);
+            $outCents = (int) $out->amount_cents;
+            $inCents = (int) $in->amount_cents;
+
+            if ($outCash['currency'] === $base && $inCash['currency'] === $base) {
+                $outMoney['base'] = $outCents;
+                $inMoney['base'] = $inCents;
+            } elseif ($outCash['currency'] === $base) {
+                // The base-currency leg is the truth; the rate is implied by the two typed amounts and stored.
+                $outMoney['base'] = $outCents;
+                $inMoney = ['base' => $outCents, 'currency' => $inCash['currency'], 'amount' => $inCents, 'rate' => Money::ratioE8($outCents, $inCents)];
+            } elseif ($inCash['currency'] === $base) {
+                $inMoney['base'] = $inCents;
+                $outMoney = ['base' => $inCents, 'currency' => $outCash['currency'], 'amount' => $outCents, 'rate' => Money::ratioE8($inCents, $outCents)];
+            } else {
+                $outMoney = $this->convert($context, $outCents, $outCash['currency'], $date, $base);
+                $inMoney = $this->convert($context, $inCents, $inCash['currency'], $date, $base);
+            }
+        } else {
             $leg = $out ?? $in;
             $cash = $map->cashAccount((int) $leg->account_id);
-            $m = $this->convert($context, (int) $leg->amount_cents, $cash['currency'], $date, $base);
-            $suspense = $map->system('suspense');
-            $cashLine = fn (bool $debit) => new PostingLine($cash['gl'], $debit ? $m['base'] : 0, $debit ? 0 : $m['base'], $m['currency'], $m['amount'], $m['rate'], cashAccountId: (int) $leg->account_id, description: $description);
-            $suspenseLine = fn (bool $debit) => new PostingLine($suspense, $debit ? $m['base'] : 0, $debit ? 0 : $m['base'], $m['currency'], $m['amount'], $m['rate'], description: 'Other leg of the transfer no longer exists');
-
-            return new PostingRequest(
-                $date, 'transfer', $group, 1, $memo.' (one leg only)',
-                $leg->transfer_direction === 'in' ? [$cashLine(true), $suspenseLine(false)] : [$suspenseLine(true), $cashLine(false)],
-            );
+            $money = $this->convert($context, (int) $leg->amount_cents, $cash['currency'], $date, $base);
+            $out !== null ? $outMoney = $money : $inMoney = $money;
         }
 
-        $outCash = $map->cashAccount((int) $out->account_id);
-        $inCash = $map->cashAccount((int) $in->account_id);
-        $outCents = (int) $out->amount_cents;
-        $inCents = (int) $in->amount_cents;
+        if ($outCounts && $inCounts) {
+            $outCash = $map->cashAccount((int) $out->account_id);
+            $inCash = $map->cashAccount((int) $in->account_id);
 
-        $outMoney = ['base' => 0, 'currency' => null, 'amount' => null, 'rate' => null];
-        $inMoney = $outMoney;
+            $lines = [
+                new PostingLine($inCash['gl'], $inMoney['base'], 0, $inMoney['currency'], $inMoney['amount'], $inMoney['rate'], cashAccountId: (int) $in->account_id, description: $description),
+                new PostingLine($outCash['gl'], 0, $outMoney['base'], $outMoney['currency'], $outMoney['amount'], $outMoney['rate'], cashAccountId: (int) $out->account_id, description: $description),
+            ];
 
-        if ($outCash['currency'] === $base && $inCash['currency'] === $base) {
-            $outMoney['base'] = $outCents;
-            $inMoney['base'] = $inCents;
-        } elseif ($outCash['currency'] === $base) {
-            // The base-currency leg is the truth; the rate is implied by the two typed amounts and stored.
-            $outMoney['base'] = $outCents;
-            $inMoney = ['base' => $outCents, 'currency' => $inCash['currency'], 'amount' => $inCents, 'rate' => Money::ratioE8($outCents, $inCents)];
-        } elseif ($inCash['currency'] === $base) {
-            $inMoney['base'] = $inCents;
-            $outMoney = ['base' => $inCents, 'currency' => $outCash['currency'], 'amount' => $outCents, 'rate' => Money::ratioE8($inCents, $outCents)];
-        } else {
-            $outMoney = $this->convert($context, $outCents, $outCash['currency'], $date, $base);
-            $inMoney = $this->convert($context, $inCents, $inCash['currency'], $date, $base);
+            $difference = $outMoney['base'] - $inMoney['base']; // positive: more left than arrived (a loss)
+            if ($difference !== 0) {
+                $key = abs($difference) <= 1 ? 'rounding' : 'fx_realised';
+                $lines[] = $difference > 0
+                    ? new PostingLine($map->system($key), $difference, description: 'Conversion difference')
+                    : new PostingLine($map->system($key), 0, -$difference, description: 'Conversion difference');
+            }
+
+            return new PostingRequest($date, 'transfer', $group, 1, $memo, $lines);
         }
 
-        $debits = new PostingLine($inCash['gl'], $inMoney['base'], 0, $inMoney['currency'], $inMoney['amount'], $inMoney['rate'], cashAccountId: (int) $in->account_id, description: $description);
-        $credits = new PostingLine($outCash['gl'], 0, $outMoney['base'], $outMoney['currency'], $outMoney['amount'], $outMoney['rate'], cashAccountId: (int) $out->account_id, description: $description);
-        $lines = [$debits, $credits];
+        // One leg counts: it stands against suspense, at the value the pair gave it.
+        $leg = $outCounts ? $out : $in;
+        $m = $outCounts ? $outMoney : $inMoney;
+        $cash = $map->cashAccount((int) $leg->account_id);
+        $suspense = $map->system('suspense');
+        $cashLine = fn (bool $debit) => new PostingLine($cash['gl'], $debit ? $m['base'] : 0, $debit ? 0 : $m['base'], $m['currency'], $m['amount'], $m['rate'], cashAccountId: (int) $leg->account_id, description: $description);
+        $suspenseLine = fn (bool $debit) => new PostingLine($suspense, $debit ? $m['base'] : 0, $debit ? 0 : $m['base'], $m['currency'], $m['amount'], $m['rate'], description: 'The other leg of the transfer is not in the books');
 
-        $difference = $outMoney['base'] - $inMoney['base']; // positive: more left than arrived (a loss)
-        if ($difference !== 0) {
-            $key = abs($difference) <= 1 ? 'rounding' : 'fx_realised';
-            $lines[] = $difference > 0
-                ? new PostingLine($map->system($key), $difference, description: 'Conversion difference')
-                : new PostingLine($map->system($key), 0, -$difference, description: 'Conversion difference');
-        }
-
-        return new PostingRequest($date, 'transfer', $group, 1, $memo, $lines);
+        return new PostingRequest(
+            $date, 'transfer', $group, 1, $memo.' (one leg)',
+            $leg->transfer_direction === 'in' ? [$cashLine(true), $suspenseLine(false)] : [$suspenseLine(true), $cashLine(false)],
+        );
     }
 
     /** The opening balance of a cash account as of $date. Null when it is zero. */

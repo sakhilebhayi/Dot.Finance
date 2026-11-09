@@ -112,16 +112,19 @@ class GlSync
     /** @return string posted|reposted|reversed|unchanged|skipped */
     public function syncTransfer(LedgerContext $context, string $group): string
     {
-        $legs = Transaction::query()->forContext($context)->where('transfer_group', $group)->with('account')->get()
-            ->filter(fn (Transaction $leg) => $this->countsFor($leg));
+        // Every leg that still exists, deleted ones included: the pair's own amounts value the movement even when one
+        // leg no longer counts. Which legs count is decided separately.
+        $legs = Transaction::query()->forContext($context)->withTrashed()->where('transfer_group', $group)->with('account')->get();
 
         $out = $legs->firstWhere('transfer_direction', 'out');
         $in = $legs->firstWhere('transfer_direction', 'in');
+        $outCounts = $out !== null && $this->countsFor($out);
+        $inCounts = $in !== null && $this->countsFor($in);
 
         $desired = null;
-        if ($out !== null || $in !== null) {
+        if ($outCounts || $inCounts) {
             $map = $this->mapFor($context, array_filter([$out?->account_id, $in?->account_id]));
-            $desired = $this->rules->transfer($context, $out, $in, $group, $map);
+            $desired = $this->rules->transfer($context, $out, $in, $group, $map, $outCounts, $inCounts);
         }
 
         return $this->ensure($context, 'transfer', $group, $desired, 'The transfer was deleted or changed');
@@ -160,9 +163,9 @@ class GlSync
     }
 
     /**
-     * The date the opening entry is dated. The account's own opening date; for an account with none,
-     * the earlier of the ledger's accounting start and the account's first transaction (every transaction
-     * counts for such an account, so the opening must not come after any of them).
+     * The date the opening entry is dated: the account's own opening date; for an account with none (legacy data,
+     * where every row counts) the ledger's accounting start date, fixed when accounting was prepared, so it does not
+     * wander as later rows arrive.
      */
     public function openingDate(LedgerContext $context, Account $account): CarbonImmutable
     {
@@ -171,10 +174,8 @@ class GlSync
         }
 
         $start = $this->settings($context)?->accounting_start_date?->toDateString();
-        $first = Transaction::query()->forContext($context)->where('account_id', $account->id)->min('date');
-        $dates = array_filter([$start, $first !== null ? substr((string) $first, 0, 10) : null]);
 
-        return CarbonImmutable::parse($dates === [] ? now()->toDateString() : min($dates));
+        return CarbonImmutable::parse($start ?? now()->toDateString());
     }
 
     /** Whether a cash-ledger row affects the books: live and dated on or after its account's opening date. */

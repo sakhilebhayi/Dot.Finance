@@ -72,7 +72,8 @@ class Transaction extends Model
         // can tell that someone saved version n+1 in the meantime (see TransactionController::update).
         static::updating(function (Transaction $transaction): void {
             if ($transaction->isDirty() && ! $transaction->isDirty('version') && ! $transaction->isDirty('deleted_at')) {
-                $transaction->version = ((int) $transaction->getOriginal('version')) + 1;
+                // (a model created in this request has not read the column default back, so a missing version counts as 1)
+                $transaction->version = max(1, (int) $transaction->getOriginal('version')) + 1;
             }
         });
 
