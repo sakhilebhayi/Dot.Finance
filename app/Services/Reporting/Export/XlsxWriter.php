@@ -25,7 +25,14 @@ final class XlsxWriter
             throw new RuntimeException('The PHP zip extension is not installed, so a spreadsheet cannot be written. Use CSV.');
         }
 
-        [$sheetRows, $count] = self::rows($report);
+        // The sheet is written to a temporary file as the rows come, then added to the archive: a spreadsheet of hundreds of
+        // thousands of rows costs the memory of one row, not of the whole sheet (and not of the copies a string would make).
+        $sheetFile = $path.'.sheet.part';
+        $handle = fopen($sheetFile, 'w');
+        fwrite($handle, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>');
+        $count = self::rows($report, $handle);
+        fwrite($handle, '</sheetData></worksheet>');
+        fclose($handle);
 
         $tmp = $path.'.part';
         @unlink($tmp);
@@ -39,24 +46,25 @@ final class XlsxWriter
         $zip->addFromString('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'.self::esc(self::sheetName($report->title)).'" sheetId="1" r:id="rId1"/></sheets></workbook>');
         $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
         $zip->addFromString('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>');
-        $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'.$sheetRows.'</sheetData></worksheet>');
+        $zip->addFile($sheetFile, 'xl/worksheets/sheet1.xml');
 
         if (! $zip->close()) {
             @unlink($tmp);
+            @unlink($sheetFile);
             throw new RuntimeException('Could not finish the spreadsheet file.');
         }
+        @unlink($sheetFile);
 
         rename($tmp, $path);
 
         return $count;
     }
 
-    /** @return array{0: string, 1: int} the sheetData rows and how many there are */
-    private static function rows(ReportResult $report): array
+    /** Write every row to $handle; returns how many rows the sheet has. @param  resource  $handle */
+    private static function rows(ReportResult $report, $handle): int
     {
-        $rows = [];
         $n = 0;
-        $emit = function (array $cells, bool $bold = false) use (&$rows, &$n) {
+        $emit = function (array $cells, bool $bold = false) use ($handle, &$n) {
             $n++;
             $xml = '<row r="'.$n.'">';
             foreach (array_values($cells) as $i => $cell) {
@@ -70,7 +78,7 @@ final class XlsxWriter
                     $xml .= '<c r="'.$ref.'" t="inlineStr"'.($bold ? ' s="1"' : '').'><is><t xml:space="preserve">'.self::esc((string) $cell).'</t></is></c>';
                 }
             }
-            $rows[] = $xml.'</row>';
+            fwrite($handle, $xml.'</row>');
         };
 
         $h = $report->header;
@@ -89,7 +97,7 @@ final class XlsxWriter
         $emit([]);
         $emit(array_map(fn ($c) => $c['label'], $report->columns), true);
 
-        foreach ($report->rows as $row) {
+        foreach ($report->eachRow() as $row) {
             if ($row['type'] === 'section') {
                 $emit([$row['label']], true);
 
@@ -118,7 +126,7 @@ final class XlsxWriter
             $emit(['Note', $note]);
         }
 
-        return [implode('', $rows), $n];
+        return $n;
     }
 
     private static function column(int $index): string

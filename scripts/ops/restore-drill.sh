@@ -114,6 +114,12 @@ RESTORE_SECONDS=$(( $(date +%s) - T0 ))
 if [ "$RC" = 0 ]; then ok "pg_restore finished in ${RESTORE_SECONDS}s"; else bad "pg_restore failed (exit $RC): $(head -3 "$WORK/restore.err" | tr '\n' ' ')"; exit 1; fi
 q() { "$PSQL" "${PGARGS[@]}" -d "$DRILL_DB" -Atq "$@"; }
 
+# A dump holds rows, not planner statistics: a restored database has none until ANALYZE runs, and until then PostgreSQL plans
+# every query blind (measured: finance:gl:verify 23 s instead of 5 s, sales:check-receivables 70 s instead of under 1 s).
+# This is the step to run on a real restore before the application is let back in.
+T0=$(date +%s)
+q -c "ANALYZE" >/dev/null 2>&1 && ok "ANALYZE finished in $(( $(date +%s) - T0 ))s (do this on a real restore before reopening the app)" || bad "ANALYZE failed"
+
 # ---- 2. row counts --------------------------------------------------------------------------------------------------------
 step "2. row counts equal the counts recorded at backup time"
 if [ -n "$COUNTS" ] && [ -s "$COUNTS" ]; then

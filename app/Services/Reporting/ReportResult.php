@@ -32,6 +32,21 @@ final class ReportResult
         public ?string $empty = null,
     ) {}
 
+    /**
+     * When set, the rows are produced one at a time by this generator factory instead of being held in $rows. Only an export
+     * asks for that (a general ledger of a year can be hundreds of thousands of lines); the page and everything that reads
+     * $rows is unchanged. The result is not for caching: it holds a closure.
+     *
+     * @var (\Closure(): iterable<int, array<string, mixed>>)|null
+     */
+    public ?\Closure $rowStream = null;
+
+    /** The rows to write: the stream when there is one, otherwise the array. @return iterable<int, array<string, mixed>> */
+    public function eachRow(): iterable
+    {
+        return $this->rowStream !== null ? ($this->rowStream)() : $this->rows;
+    }
+
     public function rowCount(): int
     {
         return count(array_filter($this->rows, fn ($r) => in_array($r['type'], ['line', 'subtotal', 'total'], true)));

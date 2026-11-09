@@ -98,7 +98,8 @@ class ExportService
             }
 
             try {
-                $report = $this->runner->run($context, $row->report_key, $row->params);
+                // 'stream' is read by the reports that can produce their rows one at a time (the general ledger); the others drop it
+                $report = $this->runner->run($context, $row->report_key, $row->params + ['stream' => '1']);
                 $disk = Storage::disk(config('reporting.export_disk'));
                 $dir = 'report-exports/'.str_replace(':', '-', $context->key());
                 $path = $dir.'/'.$row->id.'-'.substr($row->idempotency_key, 0, 12).'.'.$row->format;
