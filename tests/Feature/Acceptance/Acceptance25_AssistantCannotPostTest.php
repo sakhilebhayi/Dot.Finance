@@ -4,8 +4,11 @@ namespace Tests\Feature\Acceptance;
 
 use App\Contracts\Intelligence\ModelClient;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Controls\ApprovalPolicy;
 use App\Models\FinanceAuditLog;
 use App\Models\Intelligence\AssistantDraft;
+use App\Models\Purchases\Bill;
+use App\Models\Sales\SalesDocument;
 use App\Models\Shared\Payment;
 use App\Models\Transaction;
 use App\Services\Intelligence\FinanceAssistant;
@@ -38,8 +41,8 @@ class Acceptance25_AssistantCannotPostTest extends AcceptanceCase
             'transactions' => Transaction::query()->forContext($this->ledger)->count(),
             'journals' => JournalEntry::query()->forContext($this->ledger)->count(),
             'payments' => Payment::query()->forContext($this->ledger)->count(),
-            'bills' => \App\Models\Purchases\Bill::query()->forContext($this->ledger)->count(),
-            'invoices' => \App\Models\Sales\SalesDocument::query()->forContext($this->ledger)->count(),
+            'bills' => Bill::query()->forContext($this->ledger)->count(),
+            'invoices' => SalesDocument::query()->forContext($this->ledger)->count(),
         ];
     }
 
@@ -185,7 +188,7 @@ class Acceptance25_AssistantCannotPostTest extends AcceptanceCase
         $this->asOwner()->post(route('intel.assistant.draft.confirm', $fresh), $this->body(['date' => '2026-10-15']))->assertSessionHasErrors('date');
         $this->assertSame('pending', $fresh->fresh()->status, 'it stays open so another date can be chosen');
 
-        \App\Models\Controls\ApprovalPolicy::create($this->ledger->ownerAttributes() + ['subject_type' => 'expense', 'name' => 'Big', 'threshold_cents' => 10_000, 'currency' => 'ZAR', 'approver_capability' => 'approve-expense', 'steps_required' => 1, 'is_active' => true]);
+        ApprovalPolicy::create($this->ledger->ownerAttributes() + ['subject_type' => 'expense', 'name' => 'Big', 'threshold_cents' => 10_000, 'currency' => 'ZAR', 'approver_capability' => 'approve-expense', 'steps_required' => 1, 'is_active' => true]);
         $this->asOwner()->post(route('intel.assistant.draft.confirm', $fresh), $this->body())->assertSessionHasErrors('draft');
         $this->assertSame($before, $this->books(), 'nothing got in through the side door');
     }

@@ -3,10 +3,12 @@
 namespace Tests\Feature\Acceptance;
 
 use App\Models\Account;
+use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalLine;
+use App\Services\Accounting\Chart;
+use App\Services\Accounting\GlSync;
 use App\Services\CashFlowReport;
 use App\Services\Reporting\DrillDown;
-use App\Support\Ledger\LedgerContext;
 
 /**
  * Owner criterion 15: cash-flow reporting reflects actual transactions. The cash-flow statement is the real movement through the bank
@@ -100,13 +102,13 @@ class Acceptance15_CashFlowTest extends AcceptanceCase
 
     private function enableAccountingMapping(Account $account): void
     {
-        app(\App\Services\Accounting\Chart::class)->mapAll($this->ledger);
-        app(\App\Services\Accounting\GlSync::class)->account($account->fresh());
+        app(Chart::class)->mapAll($this->ledger);
+        app(GlSync::class)->account($account->fresh());
     }
 
     private function glLabel(Account $account): string
     {
-        $gl = \App\Models\Accounting\GlAccount::query()->forContext($this->ledger)->findOrFail($account->fresh()->gl_account_id);
+        $gl = GlAccount::query()->forContext($this->ledger)->findOrFail($account->fresh()->gl_account_id);
 
         return $gl->code.' '.$gl->name;
     }

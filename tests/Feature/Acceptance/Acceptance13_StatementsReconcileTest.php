@@ -4,6 +4,7 @@ namespace Tests\Feature\Acceptance;
 
 use App\Models\Account;
 use App\Models\Accounting\JournalEntry;
+use App\Services\Accounting\GlVerifier;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\LiftsJournalGuards;
 
@@ -107,7 +108,7 @@ class Acceptance13_StatementsReconcileTest extends AcceptanceCase
         $tb = $this->report('trial-balance', ['to' => '2026-11-30']);
         $this->assertNotSame([], $tb->failedChecks(), 'the trial balance reports the one-cent difference');
         $this->asOwner()->get(route('reports.trial-balance', ['to' => '2026-11-30']))->assertOk();
-        $verify = app(\App\Services\Accounting\GlVerifier::class)->verify($this->ledger);
+        $verify = app(GlVerifier::class)->verify($this->ledger);
         $this->assertFalse($verify['ok'], 'finance:gl:verify fails');
         $this->artisan('finance:gl:verify')->assertExitCode(1);
     }

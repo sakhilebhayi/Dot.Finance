@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Acceptance;
 
+use App\Models\Accounting\JournalLine;
+use App\Models\Purchases\Bill;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\SupplierStatement;
 use App\Support\Ledger\LedgerContext;
@@ -79,7 +81,7 @@ class Acceptance09_PayablesReconcileTest extends AcceptanceCase
 
     public function test_a_supplier_credit_note_and_a_voided_bill_move_the_ageing_and_the_books_together(): void
     {
-        $bill = \App\Models\Purchases\Bill::query()->forContext($this->ledger)->where('supplier_reference', 'LU-1')->firstOrFail();
+        $bill = Bill::query()->forContext($this->ledger)->where('supplier_reference', 'LU-1')->firstOrFail();
         $this->asOwner()->post(route('purchases.bills.void', $bill), ['reason' => 'Billed twice'])->assertSessionHasNoErrors();
 
         $r = $this->report('ageing-payables', ['to' => '2026-11-30']);
@@ -105,7 +107,7 @@ class Acceptance09_PayablesReconcileTest extends AcceptanceCase
 
     private function supplierBooks(int $partyId): int
     {
-        return (int) \App\Models\Accounting\JournalLine::query()->forContext($this->ledger)->where('gl_account_id', $this->gl('ap')->id)->where('party_id', $partyId)
+        return (int) JournalLine::query()->forContext($this->ledger)->where('gl_account_id', $this->gl('ap')->id)->where('party_id', $partyId)
             ->selectRaw('COALESCE(SUM(credit_cents),0) - COALESCE(SUM(debit_cents),0) as n')->value('n');
     }
 }

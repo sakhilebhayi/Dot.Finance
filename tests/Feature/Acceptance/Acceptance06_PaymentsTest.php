@@ -2,11 +2,15 @@
 
 namespace Tests\Feature\Acceptance;
 
+use App\Models\Account;
 use App\Models\Accounting\JournalLine;
 use App\Models\Sales\SalesDocument;
+use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Models\Shared\PaymentAllocation;
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
+use Illuminate\Testing\TestResponse;
 
 /**
  * Owner criterion 6: payments are recorded and allocated. Money in from customers and money out to suppliers goes through the payment
@@ -26,7 +30,7 @@ class Acceptance06_PaymentsTest extends AcceptanceCase
         $this->b = $this->issueInvoice($this->acme, [['description' => 'Job B', 'quantity' => '1', 'unit_cents' => 100_000, 'tax_code' => 'ZA_VAT_STD']], '2026-11-03');   // 1,150.00
     }
 
-    private function pay(array $over = []): \Illuminate\Testing\TestResponse
+    private function pay(array $over = []): TestResponse
     {
         return $this->asOwner()->post(route('sales.payments.store'), $over + [
             'party_id' => $this->acme->id, 'cash_account_id' => $this->bank->id, 'amount' => '1000.00', 'paid_on' => '2026-11-10', 'method' => 'eft', 'reference' => 'ACME EFT',
@@ -132,10 +136,10 @@ class Acceptance06_PaymentsTest extends AcceptanceCase
 
         $other = $this->user();
         $theirCompany = $this->company($other, 'Another Ltd');
-        $theirCtx = \App\Support\Ledger\LedgerContext::company($theirCompany);
-        $theirBank = \App\Models\Account::factory()->forCompany($theirCompany)->create(['type' => 'checking', 'currency' => 'ZAR']);
+        $theirCtx = LedgerContext::company($theirCompany);
+        $theirBank = Account::factory()->forCompany($theirCompany)->create(['type' => 'checking', 'currency' => 'ZAR']);
         $this->enableAccounting($theirCtx, 'ZAR');
-        $theirCustomer = \App\Models\Shared\Party::factory()->forCompany($theirCompany)->create(['type' => 'customer']);
+        $theirCustomer = Party::factory()->forCompany($theirCompany)->create(['type' => 'customer']);
 
         // their user tries to pay OUR invoice with THEIR bank account and customer
         $response = $this->inCompany($other, $theirCompany)->post(route('sales.payments.store'), [

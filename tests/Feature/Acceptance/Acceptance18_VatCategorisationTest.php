@@ -9,6 +9,8 @@ use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
 use App\Services\Accounting\PostingRequest;
 use App\Services\Shared\TaxRuleBook;
+use App\Services\Tax\Vat201Builder;
+use App\Services\Tax\VatReviewQueue;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -94,8 +96,8 @@ class Acceptance18_VatCategorisationTest extends AcceptanceCase
             $this->assertStringContainsStringIgnoringCase($needle, $text, "the review mentions: {$needle}");
         }
 
-        $queue = app(\App\Services\Tax\VatReviewQueue::class);
-        $computed = LedgerContext::run($this->ledger, fn () => app(\App\Services\Tax\Vat201Builder::class)->build($this->ledger, CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-30'), []));
+        $queue = app(VatReviewQueue::class);
+        $computed = LedgerContext::run($this->ledger, fn () => app(Vat201Builder::class)->build($this->ledger, CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-30'), []));
         $issues = collect(LedgerContext::run($this->ledger, fn () => $queue->forPeriod($this->ledger, CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-30'), $computed)));
         $codes = $issues->where('severity', 'error')->pluck('code')->unique()->sort()->values()->all();
         foreach (['standard_without_vat', 'untagged_vat_line', 'denied_input_claimed', 'zero_rated_with_vat'] as $expected) {

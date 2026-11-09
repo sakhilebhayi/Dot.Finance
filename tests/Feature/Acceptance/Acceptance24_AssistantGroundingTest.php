@@ -13,6 +13,7 @@ use App\Services\Sales\SalesProfiles;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 
 /**
  * Owner criterion 24: AI financial answers use authorised real data. The assistant answers from the books of the ledger it was asked
@@ -48,7 +49,7 @@ class Acceptance24_AssistantGroundingTest extends AcceptanceCase
         $this->empty = $this->company($this->owner, 'Blank Slate (Pty) Ltd');
     }
 
-    private function ask(string $question, ?Team $team = null, $user = null): \Illuminate\Testing\TestResponse
+    private function ask(string $question, ?Team $team = null, $user = null): TestResponse
     {
         return $this->inCompany($user ?? $this->owner, $team ?? $this->company)->post(route('intel.assistant.ask'), ['question' => $question]);
     }

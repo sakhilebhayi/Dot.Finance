@@ -5,6 +5,7 @@ namespace Tests\Feature\Acceptance;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
 use App\Services\Accounting\GlQuery;
+use App\Services\Reporting\DrillDown;
 
 /**
  * Owner criterion 11: ledger transactions are traceable. From a figure on a report to the journal lines behind it (adding up to the
@@ -31,7 +32,7 @@ class Acceptance11_TraceabilityTest extends AcceptanceCase
             }
             $drill = $row['drill']['total'];
             $page = $this->asOwner()->get(route('reports.drill', $drill))->assertOk();
-            $result = app(\App\Services\Reporting\DrillDown::class)->lines($this->ledger, $drill);
+            $result = app(DrillDown::class)->lines($this->ledger, $drill);
             $this->assertSame($row['cells']['total'], $result['total_cents'], $row['label'].': the drill-down total is the report figure');
             $this->assertSame($result['count'], $result['lines']->total());
             $page->assertSee('JE-0000');

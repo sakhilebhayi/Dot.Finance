@@ -3,6 +3,7 @@
 namespace Tests\Feature\Acceptance;
 
 use App\Models\Tax\TaxDeadline;
+use App\Models\Tax\TaxHoliday;
 use App\Models\Tax\TaxReminderNotice;
 use App\Services\Tax\TaxProfiles;
 use Illuminate\Support\Carbon;
@@ -104,7 +105,7 @@ class Acceptance22_TaxDeadlinesTest extends AcceptanceCase
 
     public function test_a_year_that_the_holiday_table_does_not_cover_is_flagged_not_assumed(): void
     {
-        $this->assertSame(0, \App\Models\Tax\TaxHoliday::query()->where('jurisdiction', 'ZA')->where('holiday_date', '>=', '2029-01-01')->count(), 'holidays are seeded for 2026 to 2028 only');
+        $this->assertSame(0, TaxHoliday::query()->where('jurisdiction', 'ZA')->where('holiday_date', '>=', '2029-01-01')->count(), 'holidays are seeded for 2026 to 2028 only');
         $text = preg_replace('/\s+/', ' ', strip_tags($this->asOwner()->get(route('tax.calendar.index'))->getContent()));
         $this->assertMatchesRegularExpression('/derived|unverified|confirm/i', $text, 'the calendar admits its holiday list is derived');
     }

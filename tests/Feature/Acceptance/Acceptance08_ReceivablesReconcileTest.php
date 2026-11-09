@@ -2,9 +2,14 @@
 
 namespace Tests\Feature\Acceptance;
 
+use App\Models\Sales\SalesDocument;
+use App\Models\Shared\Party;
+use App\Models\Shared\Payment;
+use App\Services\Sales\ReceiptService;
 use App\Services\Sales\ReceivablesLedger;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Owner criterion 8: AR reports reconcile. The ageing report, the Sales receivables page, the customer ledgers and the general
@@ -30,8 +35,8 @@ class Acceptance08_ReceivablesReconcileTest extends AcceptanceCase
         $e = $this->issueInvoice($this->beta, $line('100000'), '2026-08-20');
         $this->receive($this->beta, 15_000, '2026-10-05', $e);
         // 300.00 received from Beta that is not applied to any invoice
-        \Illuminate\Support\Facades\Auth::login($this->owner);
-        LedgerContext::run($this->ledger, fn () => app(\App\Services\Sales\ReceiptService::class)->receive($this->ledger, $this->owner, [
+        Auth::login($this->owner);
+        LedgerContext::run($this->ledger, fn () => app(ReceiptService::class)->receive($this->ledger, $this->owner, [
             'party_id' => $this->beta->id, 'cash_account_id' => $this->bank->id, 'amount_cents' => 30_000, 'paid_on' => '2026-11-20', 'method' => 'eft', 'idempotency_key' => $this->idem('onacct'), 'allocations' => [],
         ]));
     }
@@ -77,17 +82,17 @@ class Acceptance08_ReceivablesReconcileTest extends AcceptanceCase
     /** Defect D-1601: a receipt dated before the account opened was journalled but not counted in the account, so the books stopped tying out. */
     public function test_a_receipt_dated_before_the_bank_account_opened_is_refused_and_the_books_still_tie_out(): void
     {
-        $doc = \App\Models\Sales\SalesDocument::query()->forContext($this->ledger)->where('number', 'INV-00005')->firstOrFail();
+        $doc = SalesDocument::query()->forContext($this->ledger)->where('number', 'INV-00005')->firstOrFail();
         $this->asOwner()->post(route('sales.payments.store'), [
             'party_id' => $this->beta->id, 'cash_account_id' => $this->bank->id, 'amount' => '100.00', 'paid_on' => '2026-09-01', 'idempotency_key' => 'pre-open', 'allocations' => [$doc->id => '100.00'],
         ])->assertSessionHasErrors('sales');
-        $this->assertSame(0, \App\Models\Shared\Payment::query()->forContext($this->ledger)->where('idempotency_key', 'pre-open')->count());
+        $this->assertSame(0, Payment::query()->forContext($this->ledger)->where('idempotency_key', 'pre-open')->count());
         $this->assertBooksVerify();
     }
 
     public function test_a_credit_note_and_a_part_payment_move_the_ageing_and_the_books_together(): void
     {
-        $doc = \App\Models\Sales\SalesDocument::query()->forContext($this->ledger)->where('number', 'INV-00002')->firstOrFail(); // Acme's October invoice, 2,300.00
+        $doc = SalesDocument::query()->forContext($this->ledger)->where('number', 'INV-00002')->firstOrFail(); // Acme's October invoice, 2,300.00
         $this->receive($this->acme, 100_000, '2026-11-25', $doc);
         $this->issueCreditNote($doc, '2026-11-26', 50_000);   // 500.00 + 75.00 VAT credited
 
@@ -119,7 +124,7 @@ class Acceptance08_ReceivablesReconcileTest extends AcceptanceCase
     {
         $other = $this->user();
         $company = $this->company($other, 'Other Trading');
-        $this->assertSame(0, \App\Models\Shared\Party::query()->withoutGlobalScopes()->where('team_id', $company->id)->count());
+        $this->assertSame(0, Party::query()->withoutGlobalScopes()->where('team_id', $company->id)->count());
         $this->asMember($other)->get(route('reports.ageing-receivables'))->assertOk()->assertDontSee('Acme Retail');
         $this->inCompany($other, $company)->get(route('sales.receivables.index'))->assertDontSee('Acme Retail')->assertDontSee('Beta Stores');
         $this->assertTrue(CarbonImmutable::parse('2026-11-30')->isSameDay(now()));

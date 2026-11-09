@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Planning\PlanBudget;
 use App\Services\Controls\ApprovalPolicies;
 use App\Services\Controls\ApprovalService;
+use App\Support\Ledger\LedgerContext;
 
 /**
  * Owner criterion 14: budgets are created and monitored. A plan is created and filled through the forms, approved, and compared with
@@ -132,7 +133,7 @@ class Acceptance14_BudgetsTest extends AcceptanceCase
         $plan = $this->createPlan();
         $other = $this->user();
         $company = $this->company($other, 'Elsewhere');
-        $this->enableAccounting(\App\Support\Ledger\LedgerContext::company($company), 'ZAR');
+        $this->enableAccounting(LedgerContext::company($company), 'ZAR');
         $this->inCompany($other, $company)->get(route('planning.budgets.show', $plan))->assertNotFound();
         $this->inCompany($other, $company)->post(route('planning.budgets.submit', $plan))->assertNotFound();
         $this->inCompany($other, $company)->get(route('reports.budget-vs-actual', ['budget' => $plan->id]))->assertNotFound();

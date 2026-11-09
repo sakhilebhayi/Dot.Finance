@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Acceptance;
 
+use App\Models\Shared\Party;
 use App\Models\Tax\TaxDeadline;
+use App\Models\Tax\TaxReturn;
 use App\Services\Purchases\MissingDocuments;
 use App\Services\Tax\MissingRecords;
 use App\Services\Tax\TaxProfiles;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 
@@ -77,7 +80,7 @@ class Acceptance21_MissingTaxDocumentsTest extends AcceptanceCase
     public function test_a_supplier_with_no_vat_number_is_flagged_for_the_input_vat_claimed_from_it(): void
     {
         $this->assertArrayNotHasKey('supplier_vat_numbers', $this->missing('vat201'), 'the month\'s suppliers all have numbers');
-        \App\Models\Shared\Party::query()->forContext($this->ledger)->whereKey($this->paperCo->id)->update(['tax_number' => null]);
+        Party::query()->forContext($this->ledger)->whereKey($this->paperCo->id)->update(['tax_number' => null]);
         $items = $this->missing('vat201');
         $this->assertArrayHasKey('supplier_vat_numbers', $items);
         $this->assertGreaterThanOrEqual(2, $items['supplier_vat_numbers']['count'], 'Paper Co\'s bill, its credit note and the toner bill');
@@ -101,7 +104,7 @@ class Acceptance21_MissingTaxDocumentsTest extends AcceptanceCase
     {
         $accountant = $this->memberAs('accountant');
         $this->asMember($accountant)->post(route('tax.vat.start'), ['period_start' => '2026-11-01'])->assertSessionHasNoErrors();
-        $return = \App\Models\Tax\TaxReturn::query()->forContext($this->ledger)->firstOrFail();
+        $return = TaxReturn::query()->forContext($this->ledger)->firstOrFail();
         $this->asMember($accountant)->post(route('tax.returns.prepare', $return))->assertSessionHasNoErrors();
         $this->asMember($accountant)->post(route('tax.returns.submission', $return), ['sars_reference' => 'SARS-Z-9', 'submitted_on' => '2026-12-01'])->assertSessionHasNoErrors();
 
@@ -114,8 +117,8 @@ class Acceptance21_MissingTaxDocumentsTest extends AcceptanceCase
     {
         $other = $this->user();
         $company = $this->company($other, 'Elsewhere');
-        $this->enableAccounting(\App\Support\Ledger\LedgerContext::company($company), 'ZAR');
+        $this->enableAccounting(LedgerContext::company($company), 'ZAR');
         $this->inCompany($other, $company)->get(route('purchases.documents.index'))->assertOk()->assertDontSee('Paper Co');
-        $this->assertSame(0, app(MissingDocuments::class)->countForLedger(\App\Support\Ledger\LedgerContext::company($company)));
+        $this->assertSame(0, app(MissingDocuments::class)->countForLedger(LedgerContext::company($company)));
     }
 }

@@ -3,7 +3,9 @@
 namespace Tests\Feature\Acceptance;
 
 use App\Models\Reporting\ReportExport;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Testing\TestResponse;
 use ZipArchive;
 
 /**
@@ -21,7 +23,7 @@ class Acceptance23_ExportsTest extends AcceptanceCase
         $this->runMonth();
     }
 
-    private function export(string $report, string $format = 'csv', array $more = []): \Illuminate\Testing\TestResponse
+    private function export(string $report, string $format = 'csv', array $more = []): TestResponse
     {
         return $this->asOwner()->post(route('reports.exports.store'), ['report' => $report, 'format' => $format, 'from' => '2026-11-01', 'to' => '2026-11-30'] + $more);
     }
@@ -127,7 +129,7 @@ class Acceptance23_ExportsTest extends AcceptanceCase
         $export = ReportExport::query()->forContext($this->ledger)->firstOrFail();
         $other = $this->user();
         $company = $this->company($other, 'Elsewhere');
-        $this->enableAccounting(\App\Support\Ledger\LedgerContext::company($company), 'ZAR');
+        $this->enableAccounting(LedgerContext::company($company), 'ZAR');
         $signed = URL::temporarySignedRoute('reports.exports.download', now()->addMinutes(5), ['reportExport' => $export->id]);
         $this->inCompany($other, $company)->get($signed)->assertNotFound();
         $this->inCompany($other, $company)->get(route('reports.exports.show', $export))->assertNotFound();

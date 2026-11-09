@@ -2,10 +2,11 @@
 
 namespace Tests\Feature\Acceptance;
 
-use App\Models\Sales\SalesDocument;
 use App\Models\Shared\TaxRate;
+use App\Models\Tax\TaxReturn;
 use App\Services\Sales\DocumentDrafts;
 use App\Services\Sales\DocumentIssuer;
+use App\Services\Tax\TaxReturnService;
 use App\Support\Ledger\LedgerContext;
 
 /**
@@ -78,8 +79,8 @@ class Acceptance19_EffectiveRulesTest extends AcceptanceCase
         $this->postBill($this->paperCo, '2026-11-25', [$this->billLine()]);
 
         $this->asOwner()->post(route('tax.vat.start'), ['period_start' => '2026-11-01'])->assertSessionHasNoErrors();
-        $return = \App\Models\Tax\TaxReturn::query()->forContext($this->ledger)->firstOrFail();
-        $computed = LedgerContext::run($this->ledger, fn () => app(\App\Services\Tax\TaxReturnService::class)->compute($this->ledger, $return));
+        $return = TaxReturn::query()->forContext($this->ledger)->firstOrFail();
+        $computed = LedgerContext::run($this->ledger, fn () => app(TaxReturnService::class)->compute($this->ledger, $return));
         $this->assertSame(31_000, $computed->outputTaxCents, '150.00 + 160.00');
         $this->assertSame(124_000, $computed->inputTaxCents, '600.00 + 640.00');
         $this->assertSame(31_000 - 124_000, $computed->payableCents);

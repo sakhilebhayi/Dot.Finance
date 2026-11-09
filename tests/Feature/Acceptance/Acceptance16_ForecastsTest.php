@@ -5,6 +5,7 @@ namespace Tests\Feature\Acceptance;
 use App\Models\Account;
 use App\Models\Planning\Scenario;
 use App\Services\Planning\Forecaster;
+use App\Services\Reporting\Books;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -68,7 +69,7 @@ class Acceptance16_ForecastsTest extends AcceptanceCase
         $this->assertSame($strip($one), $strip($two));
 
         // income is 10,000 11,000 ... 15,000: a straight line continues at 16,000 17,000 18,000
-        $f = new Forecaster(app(\App\Services\Reporting\Books::class));
+        $f = new Forecaster(app(Books::class));
         $this->assertSame(1_600_000, $f->predict('linear_trend', [1_000_000, 1_100_000, 1_200_000, 1_300_000, 1_400_000, 1_500_000], 1));
         $this->assertStringContainsString('16,000.00', $one);
         $this->assertStringContainsString('17,000.00', $one);

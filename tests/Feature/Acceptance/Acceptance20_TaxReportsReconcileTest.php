@@ -6,6 +6,7 @@ use App\Models\Tax\TaxReturn;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
 use App\Services\Accounting\PostingRequest;
+use App\Services\Tax\TaxReturnService;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
@@ -115,7 +116,7 @@ class Acceptance20_TaxReportsReconcileTest extends AcceptanceCase
         $this->asMember($accountant)->post(route('tax.vat.start'), ['period_start' => '2026-11-01'])->assertSessionHasNoErrors();
         $return = TaxReturn::query()->forContext($this->ledger)->firstOrFail();
 
-        $computed = LedgerContext::run($this->ledger, fn () => app(\App\Services\Tax\TaxReturnService::class)->compute($this->ledger, $return));
+        $computed = LedgerContext::run($this->ledger, fn () => app(TaxReturnService::class)->compute($this->ledger, $return));
         $this->assertGreaterThan(0, $computed->reconciliation['untagged_count'] ?? 0, 'the untagged VAT line is counted');
         $this->asMember($accountant)->post(route('tax.returns.prepare', $return))->assertSessionHasErrors();
         $this->assertSame('draft', $return->fresh()->status, 'the return is not prepared while the books and the codes disagree');

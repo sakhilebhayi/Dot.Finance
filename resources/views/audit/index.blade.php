@@ -89,6 +89,11 @@
                                 <div class="fx-cell-sub">dates read as {{ $changes['date_format'] ?? '?' }}, amounts as {{ $changes['amount_locale'] ?? '?' }}</div>
                             @else
                                 @forelse($changes as $field => $change)
+                                @php
+                                    // Some writers log a flat summary ({file: "x.csv", rows_total: 7}, as the bank statement import does) instead of
+                                    // {before, after} pairs: show the value instead of failing the whole page.
+                                    if (! is_array($change)) { $change = ['after' => $change]; }
+                                @endphp
                                 <div>
                                     <span class="fx-cell-main">{{ $fieldLabels[$field] ?? ucfirst(str_replace('_', ' ', $field)) }}</span>
                                     @if(isset($change['changed']))
