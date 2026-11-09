@@ -208,19 +208,19 @@ final class LedgerAccess
     /** Post (and reverse) manual journal entries. Reading the journals, trial balance and general ledger needs only membership. */
     public function canPost(): bool
     {
-        return $this->isManager() || $this->isEditor();
+        return $this->can(Capability::PostJournal);
     }
 
     /** Create, rename, renumber and deactivate chart-of-accounts entries; enable accounting for the ledger. */
     public function canManageChart(): bool
     {
-        return $this->isManager();
+        return $this->can(Capability::ManageChart);
     }
 
     /** Close and reopen accounting periods. */
     public function canClosePeriod(): bool
     {
-        return $this->isManager();
+        return $this->can(Capability::ClosePeriod);
     }
     // ── end R-44 F1 block ──
 }

@@ -119,9 +119,13 @@ class AccountingPagesTest extends TestCase
 
     // ── manual journals ─────────────────────────────────────────────────────
 
-    public function test_an_editor_can_post_a_balanced_manual_entry(): void
+    public function test_a_manager_can_post_a_balanced_manual_entry_and_a_bookkeeper_cannot(): void
     {
-        $this->asRole('editor')->post(route('accounting.journals.store'), $this->manual())->assertSessionHasNoErrors()->assertRedirect();
+        // R-44 Controls (D-300s): an InfoDot editor is a bookkeeper by default, and bookkeepers do not post manual journals (separation of duties).
+        $this->asRole('editor')->post(route('accounting.journals.store'), $this->manual())->assertForbidden();
+        $this->assertSame(0, JournalEntry::withoutGlobalScopes()->where('team_id', $this->company->id)->where('source_type', 'manual')->count());
+
+        $this->asRole('owner')->post(route('accounting.journals.store'), $this->manual())->assertSessionHasNoErrors()->assertRedirect();
 
         $entry = JournalEntry::withoutGlobalScopes()->where('team_id', $this->company->id)->where('source_type', 'manual')->firstOrFail();
         $this->assertSame(100_000, $entry->total_cents);
@@ -229,12 +233,12 @@ class AccountingPagesTest extends TestCase
         $this->asRole('viewer')->post(route('accounting.setup.apply'))->assertForbidden();
     }
 
-    public function test_an_editor_posts_entries_but_cannot_manage_the_chart_or_close_periods(): void
+    public function test_a_bookkeeper_cannot_post_journals_manage_the_chart_or_close_periods(): void
     {
         $period = AccountingPeriod::withoutGlobalScopes()->where('team_id', $this->company->id)->firstOrFail();
         $account = GlAccount::withoutGlobalScopes()->where('team_id', $this->company->id)->firstOrFail();
 
-        $this->asRole('editor')->get(route('accounting.journals.create'))->assertOk();
+        $this->asRole('editor')->get(route('accounting.journals.create'))->assertForbidden();
         $this->asRole('editor')->post(route('accounting.chart.store'), ['code' => '6999', 'name' => 'X', 'class' => 'expense'])->assertForbidden();
         $this->asRole('editor')->post(route('accounting.chart.deactivate', $account))->assertForbidden();
         $this->asRole('editor')->post(route('accounting.periods.close', $period))->assertForbidden();
