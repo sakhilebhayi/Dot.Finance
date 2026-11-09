@@ -42,7 +42,7 @@ class DesignSystemTest extends TestCase
 
     public function test_fx_route_resolves_registered_routes_and_is_null_for_the_rest(): void
     {
-        $this->assertNull(fx_route('purchases.bills.index'));
+        $this->assertNull(fx_route('zz.unbuilt.index'));
         $this->assertSame(route('dashboard'), fx_route('dashboard'));
         $this->assertSame(route('dashboard'), fx_route(['nope.one', 'dashboard']), 'the first registered alternative wins');
         $this->assertNull(fx_route('transactions.edit'), 'a route that needs a parameter it was not given is treated as absent');
@@ -52,24 +52,27 @@ class DesignSystemTest extends TestCase
 
     public function test_a_destination_that_is_not_built_yet_is_a_disabled_item_never_a_dead_link(): void
     {
+        // Every real module is built now, so the 'not built yet' case is a destination the test adds itself, with a route that does not exist.
+        Navigation::add('purchases', ['key' => 'zz-unbuilt', 'label' => 'Zz Unbuilt ledger', 'icon' => 'file-text', 'routes' => ['zz.unbuilt.index']]);
         $user = User::factory()->withPersonalTeam()->create();
 
         $x = $this->xpath($this->actingAs($user)->get(route('dashboard'))->getContent());
 
-        $this->assertSame(1, $x->query('//span[@class="fx-nav__item"][@aria-disabled="true"][contains(normalize-space(.), "Bills")][.//span[@class="fx-nav__soon"]]')->length);
-        $this->assertSame(0, $x->query('//a[contains(@class, "fx-nav__item")][contains(normalize-space(.), "Bills")]')->length, 'Bills is not a link while its route does not exist');
+        $this->assertSame(1, $x->query('//span[@class="fx-nav__item"][@aria-disabled="true"][contains(normalize-space(.), "Zz Unbuilt ledger")][.//span[@class="fx-nav__soon"]]')->length);
+        $this->assertSame(0, $x->query('//a[contains(@class, "fx-nav__item")][contains(normalize-space(.), "Zz Unbuilt ledger")]')->length, 'the item is not a link while its route does not exist');
     }
 
     public function test_the_moment_a_module_registers_a_route_its_item_becomes_a_normal_link(): void
     {
-        Route::middleware('web')->get('/__test/bills', fn () => 'ok')->name('purchases.bills.index');
+        Navigation::add('purchases', ['key' => 'zz-unbuilt', 'label' => 'Zz Unbuilt ledger', 'icon' => 'file-text', 'routes' => ['zz.unbuilt.index']]);
+        Route::middleware('web')->get('/__test/unbuilt', fn () => 'ok')->name('zz.unbuilt.index');
         Route::getRoutes()->refreshNameLookups();
         $user = User::factory()->withPersonalTeam()->create();
 
         $x = $this->xpath($this->actingAs($user)->get(route('dashboard'))->getContent());
 
-        $this->assertSame(1, $x->query('//a[contains(@class, "fx-nav__item")][contains(@href, "/__test/bills")][contains(normalize-space(.), "Bills")]')->length);
-        $this->assertSame(0, $x->query('//span[@aria-disabled="true"][contains(normalize-space(.), "Bills")]')->length);
+        $this->assertSame(1, $x->query('//a[contains(@class, "fx-nav__item")][contains(@href, "/__test/unbuilt")][contains(normalize-space(.), "Zz Unbuilt ledger")]')->length);
+        $this->assertSame(0, $x->query('//span[@aria-disabled="true"][contains(normalize-space(.), "Zz Unbuilt ledger")]')->length);
     }
 
     public function test_the_nav_is_grouped_and_the_current_page_is_marked(): void
@@ -89,12 +92,13 @@ class DesignSystemTest extends TestCase
         Route::middleware('web')->get('/__test/payables-ageing', fn () => 'ok')->name('purchases.test-ageing.index');
         Route::getRoutes()->refreshNameLookups();
         Navigation::add('purchases', ['key' => 'test-ageing', 'label' => 'Payables ageing', 'icon' => 'file-text', 'routes' => ['purchases.test-ageing.index']]);
+        Navigation::add('purchases', ['key' => 'zz-unbuilt', 'label' => 'Zz Unbuilt ledger', 'icon' => 'file-text', 'routes' => ['zz.unbuilt.index']]);
         $user = User::factory()->withPersonalTeam()->create();
 
         $x = $this->xpath($this->actingAs($user)->get(route('dashboard'))->getContent());
 
         $this->assertSame(1, $x->query('//dialog[@id="fx-command"]//a[@data-command-option][@data-label="Purchases Payables ageing"][contains(@href, "/__test/payables-ageing")]')->length);
-        $this->assertSame(0, $x->query('//dialog[@id="fx-command"]//a[@data-label="Purchases Bills"]')->length, 'the command bar never offers a destination that does not exist');
+        $this->assertSame(0, $x->query('//dialog[@id="fx-command"]//a[@data-label="Purchases Zz Unbuilt ledger"]')->length, 'the command bar never offers a destination that does not exist');
         $this->assertSame(1, $x->query('//dialog[@id="fx-command"]//a[@data-label="Money Transactions"]')->length);
     }
 
