@@ -139,7 +139,8 @@ class BudgetController extends Controller
     /** @return list<string> currencies the ledger actually holds an account in (plus $keep, so an existing budget stays editable) */
     private function userCurrencies(?string $keep = null): array
     {
-        $currencies = Account::query()->distinct()->orderBy('currency')->pluck('currency')->all();
+        // The currency the ledger holds most accounts in comes first, so the form does not default to a small foreign account (D-1700).
+        $currencies = Account::query()->selectRaw('currency, COUNT(*) AS n')->groupBy('currency')->orderByDesc('n')->orderBy('currency')->pluck('currency')->all();
 
         if ($keep !== null && ! in_array($keep, $currencies, true)) {
             $currencies[] = $keep;

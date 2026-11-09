@@ -13,14 +13,6 @@
             foreach (['favicon-32x32.png', 'favicon-16x16.png'] as $faviconCandidate) {
                 if (file_exists(public_path($faviconCandidate))) { $faviconPath = $faviconCandidate; break; }
             }
-            // Every Dot platform, from the shared ecosystem registry (config/ecosystem.php).
-            $currentPlatformName = 'Dot.Finance';
-            $discover = collect(config('ecosystem.platforms', []))
-                ->reject(fn ($p) => ($p['name'] ?? null) === $currentPlatformName)
-                ->reject(fn ($p) => ($p['active'] ?? true) === false)
-                ->reject(fn ($p, $k) => ($p['internal'] ?? false) === true || in_array($k, ['memory', 'brain', 'dopemine'], true))
-                ->values()
-                ->all();
         @endphp
         @isset($faviconPath)<link rel="icon" href="{{ asset($faviconPath) }}">@endisset
         <script nonce="{{ $fxNonce }}">
@@ -45,16 +37,6 @@
                     @yield('actions')
                 </div>
 
-                @if (! empty($discover))
-                    <nav class="fx-eco" aria-label="The rest of the Dot Ecosystem">
-                        <p class="fx-eco__title">While you are here: the rest of the Dot Ecosystem ({{ count($discover) }})</p>
-                        <ul class="fx-eco__list" role="list">
-                            @foreach ($discover as $platform)
-                                <li><a href="{{ $platform['url'] }}"><svg class="fx-eco__dot" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="5" fill="{{ preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($platform['accent'] ?? '')) ? $platform['accent'] : '#8a93a2' }}" /></svg>{{ $platform['name'] }}</a></li>
-                            @endforeach
-                        </ul>
-                    </nav>
-                @endif
             </main>
 
             <footer class="fx-bare__foot">

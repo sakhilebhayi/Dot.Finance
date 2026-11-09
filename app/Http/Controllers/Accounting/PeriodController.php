@@ -55,7 +55,7 @@ class PeriodController extends AccountingController
             return back()->withErrors(['through' => $e->getMessage()]);
         }
 
-        return redirect()->route('accounting.periods.index')->with('status', $closed === 0 ? 'Those months were already closed.' : "{$closed} period(s) closed through {$end->toDateString()}.");
+        return redirect()->route('accounting.periods.index')->with('status', $closed === 0 ? 'Those months were already closed.' : ($closed === 1 ? '1 period' : "{$closed} periods")." closed through {$end->toDateString()}.");
     }
 
     public function reopen(Request $request, AccountingPeriod $period, Periods $periods): RedirectResponse

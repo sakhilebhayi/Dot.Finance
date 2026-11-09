@@ -1,6 +1,6 @@
 <x-app-layout title="Add a transaction">
 
-<x-fx.page-head title="Add Transaction">
+<x-fx.page-head title="Add transaction">
     <x-slot name="sub">Log income or an expense. To move money between your own accounts, <a href="{{ route('transfers.create') }}">record a transfer</a>.</x-slot>
 </x-fx.page-head>
 
@@ -51,7 +51,7 @@
     </div>
 
     <div class="fx-formactions">
-        <x-fx.button variant="primary">Save Transaction</x-fx.button>
+        <x-fx.button variant="primary">Save transaction</x-fx.button>
         <x-fx.button :href="route('transactions.index')">Cancel</x-fx.button>
     </div>
 </form>

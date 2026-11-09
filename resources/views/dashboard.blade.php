@@ -10,7 +10,7 @@
 <x-fx.page-head title="Command centre" :sub="now()->format('l, j F Y').'. '.($company ? $activeLedger->label() : 'Your own ledger').', '.now()->format('F Y').' to date.'">
     <x-slot name="actions">
         @if ($canRecord)
-        <x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add Transaction</x-fx.button>
+        <x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add transaction</x-fx.button>
         @endif
     </x-slot>
 </x-fx.page-head>
@@ -20,19 +20,25 @@
     <div class="fx-stack">
 
     {{-- Cash position: the answer this screen exists to give. One block per currency, never a mixed total. --}}
-    <x-fx.panel title="Cash position" id="cash-position" :meta="'Balances are derived from '.$whose.' ledger. '.now()->format('F Y').' income and spending exclude transfers.'">
+    <x-fx.panel title="Cash position" id="cash-position" :meta="'Worked out from '.$whose.' ledger, one currency at a time. '.now()->format('F Y').' income and spending leave out transfers.'">
         @if (count($position) > 0)
         <div class="fx-cash">
-            @foreach ($position as $code => $row)
+            @foreach ($currencyOrder as $code)
+            @php $row = $position[$code]; @endphp
             <div class="fx-cash__block">
                 <div class="fx-cash__title">
                     <strong>{{ $code }}</strong>
-                    <span>{{ $row['accounts'] }} account{{ $row['accounts'] === 1 ? '' : 's' }}</span>
+                    <span>{{ $row['accounts'] }} account{{ $row['accounts'] === 1 ? '' : 's' }}{{ $loop->first && count($currencyOrder) > 1 ? ', main currency' : '' }}</span>
                 </div>
                 <div class="fx-cash__cols">
                     <div>
-                        <p class="fx-hint">Balance</p>
-                        <x-fx.money :cents="$row['balance_cents']" :currency="$code" lead :trace="route('accounts.index')" trace-label="See the accounts this balance is made of" />
+                        <p class="fx-hint">Cash available</p>
+                        @if ($row['cash_accounts'] > 0)
+                        <x-fx.money :cents="$row['cash_cents']" :currency="$code" lead :trace="route('accounts.index')" trace-label="See the accounts this cash is made of" />
+                        <p class="fx-hint fx-cash__def">What is in your {{ $row['cash_accounts'] === 1 ? 'one checking, savings or cash account' : $row['cash_accounts'].' checking, savings and cash accounts' }}. Cards and loans are not taken off it.</p>
+                        @else
+                        <p class="fx-cash__none">No cash accounts in {{ $code }}</p>
+                        @endif
                     </div>
                     <x-fx.statement aria-label="{{ $code }} for {{ now()->format('F Y') }}">
                         <x-fx.statement-row label="Income this month"><x-fx.money :cents="$row['income_cents']" :currency="$code" :trace="route('transactions.index', ['type' => 'income', 'from' => $monthStart, 'to' => $monthEnd])" trace-label="Show this month's income entries" /></x-fx.statement-row>
@@ -40,11 +46,36 @@
                         <x-fx.statement-row label="Net this month" kind="total"><x-fx.money :cents="$row['net_cents']" :currency="$code" :signed="true" :trace="route('transactions.index', ['from' => $monthStart, 'to' => $monthEnd])" trace-label="Show every entry this month" /></x-fx.statement-row>
                     </x-fx.statement>
                 </div>
+                @if ($row['bridge'] !== [])
+                <div class="fx-cash__bridge">
+                    <p class="fx-hint">Not in the cash figure above</p>
+                    <ul class="fx-bridge" role="list">
+                        @foreach ($row['bridge'] as $b)
+                        <li>
+                            <span class="fx-bridge__name">{{ $b['name'] }} <span class="fx-hint">{{ \App\Support\FigureWords::accountType($b['type']) }}</span></span>
+                            <span class="fx-bridge__fig">
+                                @if ($b['type'] === 'credit')
+                                    @if ($b['balance_cents'] < 0)owed <x-fx.money :cents="-$b['balance_cents']" :currency="$code" />@elseif ($b['balance_cents'] > 0)credit balance <x-fx.money :cents="$b['balance_cents']" :currency="$code" />@else nothing owed @endif
+                                @else
+                                    <x-fx.money :cents="$b['balance_cents']" :currency="$code" />
+                                @endif
+                            </span>
+                        </li>
+                        @endforeach
+                    </ul>
+                    @if ($row['owed_cents'] > 0 && $row['cash_accounts'] > 0)
+                    <p class="fx-hint">Cash after settling the cards: <x-fx.money :cents="$row['cash_cents'] - $row['owed_cents']" :currency="$code" /></p>
+                    @endif
+                </div>
+                @endif
             </div>
             @endforeach
         </div>
         @else
         <x-fx.empty :title="$company ? $activeLedger->label().' has no accounts yet.' : 'No accounts yet.'">
+            @if ($accountingOn)
+            The books already hold entries (the profit and loss further down is worked out from them), but no bank, cash or card account is set up here, so there is no cash figure to show.
+            @endif
             @if ($company)
                 @can('create', \App\Models\Account::class)
                 Add the first company account with an opening balance and the company ledger takes it from there.
@@ -126,20 +157,7 @@
     <x-fx.panel title="Budgets this month" id="budgets-this-month">
         @if ($budgets->count() > 0)
         @foreach ($budgets->take(5) as $budget)
-        @php
-            $spent = $budget->spentCents();
-            $limit = $budget->amount_cents;
-            $pct = $limit > 0 ? min(100, intdiv($spent * 100, $limit)) : 0;
-            $over = $limit > 0 && $spent >= $limit;
-        @endphp
-        <div class="fx-budgetrow">
-            <div class="fx-budgetrow__top">
-                <span class="fx-budgetrow__name">{{ $budget->category?->name ?? 'Uncategorized' }} <span class="fx-hint">{{ $budget->currency }}</span></span>
-                <span class="fx-budgetrow__fig fx-fig">{{ \App\Support\Money::format($spent) }} / {{ \App\Support\Money::format($limit, $budget->currency) }}</span>
-            </div>
-            <x-fx.meter :pct="$pct" :variance="$over" :label="$pct.'% of the limit used'" />
-            <div class="fx-budgetrow__foot"><span @class(['is-variance' => $over])>{{ $pct }}% used @if ($over)(at or over the limit)@endif</span></div>
-        </div>
+        <x-fx.budget-row :budget="$budget" />
         @endforeach
         @if ($budgets->count() > 5)<p class="fx-hint">+ {{ $budgets->count() - 5 }} more budgets</p>@endif
         <x-slot name="foot"><a href="{{ route('budgets.index') }}" class="fx-link">Manage budgets</a></x-slot>
@@ -164,7 +182,8 @@
     <p class="fx-panel__title">There are no {{ $code }} reserves to measure: {{ $company ? 'its' : 'your' }} {{ $code }} checking, savings and cash accounts hold <x-fx.money :cents="$cushion['liquid_reserves_cents']" :currency="$code" /> today.</p>
     <p class="fx-hint">A number of months is only worked out where there is money to spend down. {{ $code }} spending recently averages <x-fx.money :cents="$cushion['avg_monthly_burn_cents']" :currency="$code" /> a month.</p>
     @else
-    <p class="fx-panel__title">Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.</p>
+    <p class="fx-panel__title">@if ($cushion['months'] < 1)Less than a month of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.@else About {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.@endif</p>
+    @endif
     <p class="fx-hint">{{ $cushion['basis'] }}</p>
     @endif
     @if ($cushion['what_if'] && ! $cushion['no_reserves'])
@@ -182,62 +201,82 @@
     @include($panelView)
 @endforeach
 
+@if (! $accountingOn)
+{{-- While the double-entry books are off the module panels above have nothing to read, so say what turning them on adds (D-1711). --}}
+<x-fx.panel title="More on this page once accounting is on" id="accounting-off">
+    <p class="fx-hint">Cash, spending and budgets above come from your transactions and already work. Switching accounting on adds a profit and loss, what customers owe you, what you owe suppliers, VAT dates and the bank reconciliation to this page, each worked out from balanced journals. Your transactions stay as they are.</p>
+    @if (fx_route_exists('accounting.setup'))
+    <x-slot name="foot"><a href="{{ route('accounting.setup') }}" class="fx-link">Set up accounting</a></x-slot>
+    @endif
+</x-fx.panel>
+@endif
+
 {{-- Spending trend (one currency at a time) --}}
 @if ($spendingTrend)
 @php
     $trendMonths = $spendingTrend['months'];
     $trendPeak = $spendingTrend['peak_cents'];
     $hasTrendData = collect($trendMonths)->contains(fn ($m) => $m['income_cents'] > 0 || $m['expense_cents'] > 0);
-    $chartW = 700; $chartH = 160;
-    $slot = $chartW / max(count($trendMonths), 1);
+    $axisW = 52; $chartW = 700; $plotW = $chartW - $axisW; $chartH = 160; $top = 14;
+    $slot = $plotW / max(count($trendMonths), 1);
     $barW = $slot * 0.3; $barGap = $slot * 0.06;
+    $lastIndex = count($trendMonths) - 1;
+    // Round gridline steps (0, 60k, 120k ...) and a top line above the tallest bar, not quarters of the peak.
+    $step = \App\Support\FigureWords::niceStep($trendPeak);
+    $scaleMax = $step * 4;
 @endphp
-<x-fx.panel :title="'Spending Trend'" :meta="'In '.$trendCurrency.', month by month'">
+<x-fx.panel :title="'Spending trend'" :meta="'In '.$trendCurrency.', month by month. The scale starts at zero.'">
     <x-slot name="head">
         <div class="fx-cluster">
             @if (count($currencies) > 1)
-            <span class="fx-hint">Currency:
+            <div class="fx-seg" role="group" aria-label="Currency for this chart">
                 @foreach ($currencies as $code)
-                <a href="{{ route('dashboard', ['currency' => $code]) }}" class="fx-link" @if ($code === $trendCurrency) aria-current="true" @endif>{{ $code }}</a>
+                <a href="{{ route('dashboard', ['currency' => $code]) }}" class="fx-seg__opt" @if ($code === $trendCurrency) aria-current="true" @endif>{{ $code }}</a>
                 @endforeach
-            </span>
+            </div>
             @endif
-            <span class="fx-legend"><span><span class="fx-legend__key fx-legend__key--in"></span>Income</span><span><span class="fx-legend__key fx-legend__key--out"></span>Expenses</span></span>
+            <span class="fx-legend"><span><span class="fx-legend__key fx-legend__key--in"></span>Income</span><span><span class="fx-legend__key fx-legend__key--out"></span>Spending</span></span>
         </div>
     </x-slot>
     @if ($hasTrendData)
-    <svg class="fx-chart" viewBox="0 0 {{ $chartW }} {{ $chartH + 26 }}" role="img" aria-label="Income and expenses by month in {{ $trendCurrency }}">
-        @foreach ([0.25, 0.5, 0.75, 1] as $fraction)
-        <line class="fx-chart__grid" x1="0" y1="{{ $chartH - $chartH * $fraction }}" x2="{{ $chartW }}" y2="{{ $chartH - $chartH * $fraction }}" />
+    <svg class="fx-chart" viewBox="0 0 {{ $chartW }} {{ $top + $chartH + 26 }}" role="img" aria-label="Income and spending by month in {{ $trendCurrency }}">
+        @foreach ([0, 1, 2, 3, 4] as $quarter)
+        @php $gy = $top + $chartH - $chartH * $quarter / 4; @endphp
+        <line @class(['fx-chart__grid', 'fx-chart__base' => $quarter === 0]) x1="{{ $axisW }}" y1="{{ $gy }}" x2="{{ $chartW }}" y2="{{ $gy }}" />
+        <text class="fx-chart__tick" x="{{ $axisW - 8 }}" y="{{ $gy + 4 }}" text-anchor="end">{{ \App\Support\FigureWords::axis($step * $quarter) }}</text>
         @endforeach
-        <line class="fx-chart__base" x1="0" y1="{{ $chartH }}" x2="{{ $chartW }}" y2="{{ $chartH }}" />
-        <text class="fx-chart__tick" x="0" y="-4">{{ \App\Support\Money::format($trendPeak, $trendCurrency) }}</text>
         @foreach ($trendMonths as $i => $month)
         @php
-            $slotX = $i * $slot;
-            $incomeH = $trendPeak > 0 ? ($month['income_cents'] / $trendPeak) * $chartH : 0;
-            $expenseH = $trendPeak > 0 ? ($month['expense_cents'] / $trendPeak) * $chartH : 0;
+            $slotX = $axisW + $i * $slot;
+            $incomeH = $scaleMax > 0 ? ($month['income_cents'] / $scaleMax) * $chartH : 0;
+            $expenseH = $scaleMax > 0 ? ($month['expense_cents'] / $scaleMax) * $chartH : 0;
             $incomeX = $slotX + ($slot / 2) - $barW - ($barGap / 2);
             $expenseX = $slotX + ($slot / 2) + ($barGap / 2);
         @endphp
-        <rect class="fx-chart__bar--in" x="{{ round($incomeX, 1) }}" y="{{ round($chartH - $incomeH, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($incomeH, 1) }}"><title>{{ $month['label'] }} income: {{ \App\Support\Money::format($month['income_cents'], $trendCurrency) }}</title></rect>
-        <rect class="fx-chart__bar--out" x="{{ round($expenseX, 1) }}" y="{{ round($chartH - $expenseH, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($expenseH, 1) }}"><title>{{ $month['label'] }} expenses: {{ \App\Support\Money::format($month['expense_cents'], $trendCurrency) }}</title></rect>
-        <text class="fx-chart__tick" x="{{ round($slotX + $slot / 2, 1) }}" y="{{ $chartH + 18 }}" text-anchor="middle">{{ $month['label'] }}</text>
+        <rect class="fx-chart__bar--in" x="{{ round($incomeX, 1) }}" y="{{ round($top + $chartH - $incomeH, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($incomeH, 1) }}"><title>{{ $month['label'] }} income: {{ \App\Support\Money::format($month['income_cents'], $trendCurrency) }}</title></rect>
+        <rect class="fx-chart__bar--out" x="{{ round($expenseX, 1) }}" y="{{ round($top + $chartH - $expenseH, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($expenseH, 1) }}"><title>{{ $month['label'] }} spending: {{ \App\Support\Money::format($month['expense_cents'], $trendCurrency) }}</title></rect>
+        @if ($i === $lastIndex)
+        {{-- Direct labels on the newest month, the one the reader came to compare against. --}}
+        <text class="fx-chart__tick fx-chart__direct" x="{{ round($incomeX + $barW / 2, 1) }}" y="{{ round($top + $chartH - $incomeH - 4, 1) }}" text-anchor="middle">{{ \App\Support\FigureWords::axis($month['income_cents']) }}</text>
+        <text class="fx-chart__tick fx-chart__direct" x="{{ round($expenseX + $barW / 2, 1) }}" y="{{ round($top + $chartH - $expenseH - 4, 1) }}" text-anchor="middle">{{ \App\Support\FigureWords::axis($month['expense_cents']) }}</text>
+        @endif
+        <text class="fx-chart__tick" x="{{ round($slotX + $slot / 2, 1) }}" y="{{ $top + $chartH + 18 }}" text-anchor="middle">{{ $month['label'] }}</text>
         @endforeach
     </svg>
+    <p class="fx-hint">Figures on the left are in {{ $trendCurrency }} (k is thousands, m is millions). The newest month is labelled and still running; point at any bar for its exact amount.</p>
     @else
     <x-fx.empty title="No trend to draw yet.">Not enough transaction history yet to chart a trend. It appears once there is income or spending in more than one month.</x-fx.empty>
     @endif
 </x-fx.panel>
 @else
-<x-fx.panel title="Spending Trend">
+<x-fx.panel title="Spending trend">
     <x-fx.empty title="No trend to draw yet.">Not enough transaction history yet to chart a trend.</x-fx.empty>
 </x-fx.panel>
 @endif
 
 <div class="fx-grid fx-grid--split">
 
-    <x-fx.panel title="Recent Transactions" flush>
+    <x-fx.panel title="Recent transactions" flush>
         <x-slot name="head"><a href="{{ route('transactions.index') }}" class="fx-link fx-panel__meta">View all</a></x-slot>
         @if ($recentTransactions->count() > 0)
         <x-fx.table caption="The ten most recent transactions" class="fx-table--compact">
@@ -277,7 +316,7 @@
                 <tbody>
                     @foreach ($accounts as $account)
                     <tr>
-                        <th scope="row"><span class="fx-cell-main">{{ $account->name }}</span><div class="fx-cell-sub">{{ ucfirst($account->type) }}@if ($account->institution), {{ $account->institution }}@endif</div></th>
+                        <th scope="row"><span class="fx-cell-main">{{ $account->name }}</span><div class="fx-cell-sub">{{ \App\Support\FigureWords::accountType($account->type) }}@if ($account->institution), {{ $account->institution }}@endif</div></th>
                         <td class="is-num"><x-fx.money :cents="$account->balanceCents()" :currency="$account->currency" :trace="route('transactions.index', ['account_id' => $account->id])" trace-label="Show the entries in {{ $account->name }}" /></td>
                     </tr>
                     @endforeach

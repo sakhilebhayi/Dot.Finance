@@ -1,6 +1,6 @@
 <x-app-layout title="Edit transaction">
 
-<x-fx.page-head title="Edit Transaction" sub="Update this transaction's details." />
+<x-fx.page-head title="Edit transaction" sub="Update this transaction's details." />
 
 <x-fx.errors />
 
@@ -41,7 +41,7 @@
     </div>
 
     <div class="fx-formactions">
-        <x-fx.button variant="primary">Save Changes</x-fx.button>
+        <x-fx.button variant="primary">Save changes</x-fx.button>
         <x-fx.button :href="route('transactions.index')">Cancel</x-fx.button>
     </div>
 </form>

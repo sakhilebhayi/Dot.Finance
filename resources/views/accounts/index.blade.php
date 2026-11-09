@@ -8,7 +8,7 @@
 
     <x-fx.panel flush>
         @if ($accounts->count() > 0)
-        <x-fx.table caption="Accounts and their ledger balances">
+        <x-fx.table caption="Accounts and their ledger balances" class="fx-table--defs">
             <thead>
                 <tr>
                     <th scope="col">Name</th>
@@ -22,7 +22,7 @@
                 @foreach ($accounts as $account)
                 <tr>
                     <td data-label="Name" class="is-lead"><span class="fx-cell-main">{{ $account->name }}</span>@if ($account->institution)<div class="fx-cell-sub">{{ $account->institution }}</div>@endif</td>
-                    <td data-label="Type">{{ $account->type }}</td>
+                    <td data-label="Type">{{ \App\Support\FigureWords::accountType($account->type) }}</td>
                     <td data-label="Opening" class="is-num"><x-fx.money :cents="$account->opening_balance_cents" :currency="$account->currency" /><div class="fx-cell-sub">{{ $account->opening_balance_date ? 'from '.$account->opening_balance_date->format('j M Y') : 'no start date' }}</div></td>
                     <td data-label="Balance (ledger)" class="is-num"><x-fx.money :cents="$account->balanceCents()" :currency="$account->currency" :trace="route('transactions.index', ['account_id' => $account->id])" trace-label="Show the entries in {{ $account->name }}" /></td>
                     @if ($canAdd)
@@ -51,14 +51,14 @@
     </x-fx.panel>
 
     @can('create', \App\Models\Account::class)
-    <x-fx.panel title="Add Account">
+    <x-fx.panel title="Add account">
         <x-fx.errors />
         <form method="POST" action="{{ route('accounts.store') }}" class="fx-form">
             @csrf
             <x-fx.input name="name" id="accounts-index-name" label="Name" required maxlength="255" placeholder="e.g. Main Checking" />
             <x-fx.select name="type" id="accounts-index-type" label="Type" required>
                 @foreach (['checking', 'savings', 'credit', 'investment', 'cash'] as $type)
-                <option value="{{ $type }}" @selected(old('type') === $type)>{{ ucfirst($type) }}</option>
+                <option value="{{ $type }}" @selected(old('type') === $type)>{{ \App\Support\FigureWords::accountType($type) }}</option>
                 @endforeach
             </x-fx.select>
             <div class="fx-row fx-row--2">
@@ -67,7 +67,7 @@
             </div>
             <x-fx.input name="opening_balance_date" id="accounts-index-opening-balance-date" type="date" label="Opening balance date" :value="now()->toDateString()" hint="Only transactions on or after this date change the balance." />
             <x-fx.input name="institution" id="accounts-index-institution" label="Institution" optional maxlength="255" />
-            <div class="fx-formactions"><x-fx.button variant="primary" icon="plus">Add Account</x-fx.button></div>
+            <div class="fx-formactions"><x-fx.button variant="primary" icon="plus">Add account</x-fx.button></div>
         </form>
     </x-fx.panel>
     @endcan

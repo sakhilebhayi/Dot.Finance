@@ -170,6 +170,7 @@ class CashFlowStatement extends Report
         return new ReportResult($this->key(), $this->title(), $this->header($r, [
             'Accrual-based books: profit is the accrual profit for the period; the direct view is the actual movement through cash and bank accounts.',
             'Transfers between your own cash accounts are not cash flows. Foreign currency accounts are in the base currency at the rate posted.',
+            'Closing cash adds every bank and cash account in the base currency, foreign-currency accounts at the rate posted. The Command centre\'s "Cash available" keeps each currency apart, so the two agree exactly when no account is in a foreign currency.',
         ]), $columns, $rows, $checks, [
             'View: '.($view === 'direct' ? 'direct (from the bank movements)' : 'indirect (from net profit)').'. Both are always calculated and compared in the checks above.',
         ], $empty);

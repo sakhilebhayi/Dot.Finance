@@ -4,7 +4,7 @@
     $base = app(\App\Services\Purchases\PurchaseLedger::class)->baseCurrencyOrDefault($activeLedger);
 @endphp
 @if ($movers->isNotEmpty())
-<x-fx.panel title="Where spending moved" meta="Expense accounts in the books, this month against last" flush>
+<x-fx.panel title="Where spending moved" meta="Expense accounts in the books, this month so far against the same days of last month" flush>
     @include('purchases._movers', ['movers' => $movers, 'base' => $base])
 </x-fx.panel>
 @endif

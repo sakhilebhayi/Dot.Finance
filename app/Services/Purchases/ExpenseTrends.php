@@ -74,9 +74,72 @@ final class ExpenseTrends
         });
     }
 
+    /**
+     * This month so far against the SAME NUMBER OF DAYS of last month (R-44 polish, D-1706). Nine days of November against all of
+     * October always reads as a fall of 80% or more; the like-for-like days do not. On the last day of a month it is the whole month
+     * against the whole of last month (capped at last month's length, so the 31st compares with a 30-day month's 30 days).
+     *
+     * @return array{days: int, this_from: string, this_to: string, last_from: string, last_to: string, rows: list<array{account_id: int, code: string, name: string, this_cents: int, last_cents: int, change_cents: int, change_pct: ?int}>}
+     */
+    public function likeForLike(LedgerContext $context, ?CarbonImmutable $today = null): array
+    {
+        $today ??= CarbonImmutable::today();
+        $thisFrom = $today->startOfMonth();
+        $lastFrom = $thisFrom->subMonthNoOverflow();
+        $days = min($today->day, $lastFrom->daysInMonth);
+        $lastTo = $lastFrom->addDays($days - 1);
+
+        $rows = LedgerContext::run($context, function () use ($thisFrom, $today, $lastFrom, $lastTo) {
+            $closing = JournalEntry::query()->where('source_type', 'period_close')->pluck('id');
+            $excluded = $closing->merge(JournalEntry::query()->whereIn('reverses_entry_id', $closing)->pluck('id'));
+            $accounts = GlAccount::query()->where('class', 'expense')->get()->keyBy('id');
+
+            $sum = function (CarbonImmutable $from, CarbonImmutable $to) use ($accounts, $excluded): array {
+                $by = [];
+                $lines = JournalLine::query()->whereIn('gl_account_id', $accounts->keys())
+                    ->where('entry_date', '>=', $from->toDateString())->where('entry_date', '<=', $to->toDateString())
+                    ->when($excluded->isNotEmpty(), fn ($q) => $q->whereNotIn('journal_entry_id', $excluded))
+                    ->get(['gl_account_id', 'debit_cents', 'credit_cents']);
+                foreach ($lines as $line) {
+                    $by[$line->gl_account_id] = ($by[$line->gl_account_id] ?? 0) + ($line->debit_cents - $line->credit_cents);
+                }
+
+                return $by;
+            };
+
+            $now = $sum($thisFrom, $today);
+            $before = $sum($lastFrom, $lastTo);
+            $out = [];
+            foreach (array_unique(array_merge(array_keys($now), array_keys($before))) as $id) {
+                $a = $accounts[$id];
+                $this_ = $now[$id] ?? 0;
+                $last = $before[$id] ?? 0;
+                if ($this_ === 0 && $last === 0) {
+                    continue;
+                }
+                $change = $this_ - $last;
+                $out[] = [
+                    'account_id' => (int) $id, 'code' => $a->code, 'name' => $a->name, 'this_cents' => $this_, 'last_cents' => $last,
+                    'change_cents' => $change, 'change_pct' => $last > 0 ? intdiv($change * 100 + intdiv($last, 2) * ($change < 0 ? -1 : 1), $last) : null,
+                ];
+            }
+            usort($out, fn ($a, $b) => abs($b['change_cents']) <=> abs($a['change_cents']));
+
+            return $out;
+        });
+
+        return ['days' => $days, 'this_from' => $thisFrom->toDateString(), 'this_to' => $today->toDateString(), 'last_from' => $lastFrom->toDateString(), 'last_to' => $lastTo->toDateString(), 'rows' => $rows];
+    }
+
     /** The biggest month-on-month moves, for a short panel. @return Collection<int, array<string, mixed>> */
     public function movers(LedgerContext $context, int $limit = 5): Collection
     {
         return collect($this->monthly($context)['rows'])->filter(fn ($r) => $r['change_cents'] !== 0)->take($limit)->values();
+    }
+
+    /** The biggest like-for-like moves (see likeForLike), for the short panel. @return Collection<int, array<string, mixed>> */
+    public function sameDayMovers(LedgerContext $context, int $limit = 5, ?CarbonImmutable $today = null): Collection
+    {
+        return collect($this->likeForLike($context, $today)['rows'])->filter(fn ($r) => $r['change_cents'] !== 0)->take($limit)->values();
     }
 }

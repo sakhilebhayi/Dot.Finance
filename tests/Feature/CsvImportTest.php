@@ -76,7 +76,7 @@ class CsvImportTest extends TestCase
     {
         [$user] = $this->fixture();
 
-        $this->actingAs($user)->get(route('transactions.import.create'))->assertOk()->assertSee('Import Transactions');
+        $this->actingAs($user)->get(route('transactions.import.create'))->assertOk()->assertSee('Import transactions');
     }
 
     public function test_upload_stages_the_file_and_redirects_to_a_preview(): void

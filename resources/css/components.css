@@ -502,12 +502,20 @@
     display: inline-grid;
     place-items: center;
     flex: none;
-    width: 1.25rem;
-    height: 1.25rem;
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
     border-radius: var(--r-chip);
     color: var(--ink-3);
     text-decoration: none;
     transition: color 120ms var(--ease), background-color 120ms var(--ease);
+}
+
+/* The mark is small but the target is not: 24px box, 44px hit area (R-44 polish, D-1716). */
+.fx-trace::after {
+    content: '';
+    position: absolute;
+    inset: -0.625rem;
 }
 
 .fx-trace .fx-icon {
@@ -789,6 +797,27 @@
     }
 }
 
+/* A card that reads as a definition list (R-44 polish, D-1713): label column and value column sit at the same x on every card,
+   values left-aligned beside their label instead of pushed to the far edge. Opt in with class fx-table--defs. */
+@container fxt (max-width: 759.98px) {
+    .fx-table.fx-table--defs:not(.fx-table--keep) td:not(.is-lead):not(.is-actions) {
+        display: grid;
+        grid-template-columns: minmax(6.5rem, 9rem) minmax(0, 1fr);
+        justify-content: start;
+        align-items: baseline;
+        gap: var(--s-1) var(--s-4);
+        text-align: left;
+    }
+
+    .fx-table.fx-table--defs:not(.fx-table--keep) td.is-num {
+        text-align: left;
+    }
+
+    .fx-table.fx-table--defs:not(.fx-table--keep) td > .fx-cell-sub {
+        grid-column: 2;
+    }
+}
+
 @container fxt (max-width: 479.98px) {
     .fx-table--compact:not(.fx-table--keep) thead {
         position: absolute;
@@ -887,9 +916,10 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    flex: none;
+    flex: 0 1 auto;
+    max-width: 100%;
     min-height: 1.375rem;
-    padding: 0 0.5rem;
+    padding: 0.15rem 0.5rem;
     border: 1px solid var(--rule-strong);
     border-radius: var(--r-chip);
     background: var(--sunk);
@@ -897,7 +927,9 @@
     font-weight: 600;
     line-height: 1;
     color: var(--ink-2);
-    white-space: nowrap;
+    /* A long label wraps inside its card instead of running out of it (R-44 polish, D-1716). */
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .fx-pill .fx-icon {
@@ -986,6 +1018,12 @@
     gap: var(--s-5);
     overflow-x: auto;
     border-bottom: 1px solid var(--rule);
+    /* A strip that scrolls shows it: an edge shadow appears on the side that still has tabs hidden and vanishes at the end (D-1716). */
+    background:
+        linear-gradient(to right, var(--paper), var(--paper)) left center / 1.25rem 100% no-repeat local,
+        linear-gradient(to left, var(--paper), var(--paper)) right center / 1.25rem 100% no-repeat local,
+        linear-gradient(to right, var(--rule-strong), transparent) left center / 0.9rem 100% no-repeat scroll,
+        linear-gradient(to left, var(--rule-strong), transparent) right center / 0.9rem 100% no-repeat scroll;
 }
 
 .fx-tab {

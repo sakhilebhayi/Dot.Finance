@@ -107,6 +107,9 @@ class DemoSeed extends Command
 
     private function postVatLife(LedgerContext $ctx, CarbonImmutable $today): void
     {
+        // Sales and purchases are posted as settled through the bank (cash sales and cash purchases): this company has no customers or
+        // suppliers on file, so entries against the receivables and payables control accounts would stand there with no invoice or bill
+        // behind them and raise a false "does not agree with the books" alarm on an otherwise empty ledger (R-44 polish, D-1719).
         $book = app(TaxRuleBook::class)->forContext(null);
         $poster = app(JournalPoster::class);
         $code = fn (string $c, CarbonImmutable $on) => $book->taxCode('ZA', $c, $on)->id;
@@ -125,33 +128,33 @@ class DemoSeed extends Command
                 $net = intdiv($net + mt_rand(0, 900_00), 100) * 100;
                 $vat = intdiv($net * 15 + 50, 100);
                 $c = $code('ZA_VAT_STD', $d($day));
-                $post($d($day), 'invoice', 'Wholesale coffee invoice', [new PostingLine('ar', debitCents: $net + $vat), new PostingLine('sales', creditCents: $net, taxCodeId: $c), new PostingLine('vat_output', creditCents: $vat, taxCodeId: $c)]);
+                $post($d($day), 'invoice', 'Wholesale coffee invoice', [new PostingLine('bank', debitCents: $net + $vat), new PostingLine('sales', creditCents: $net, taxCodeId: $c), new PostingLine('vat_output', creditCents: $vat, taxCodeId: $c)]);
             }
             $z = $code('ZA_VAT_ZERO_EXPORT', $d(18));
-            $post($d(18), 'invoice', 'Export order, Namibia', [new PostingLine('ar', debitCents: 22_000_00), new PostingLine('sales', creditCents: 22_000_00, taxCodeId: $z)]);
+            $post($d(18), 'invoice', 'Export order, Namibia', [new PostingLine('bank', debitCents: 22_000_00), new PostingLine('sales', creditCents: 22_000_00, taxCodeId: $z)]);
 
             foreach ([['Rent', 18_000_00, 3], ['Software and subscriptions', 2_400_00, 9], ['Repairs and maintenance', 5_200_00, 16]] as [$acct, $net, $day]) {
                 $vat = intdiv($net * 15 + 50, 100);
                 $c = $code('ZA_VAT_STD', $d($day));
-                $post($d($day), 'bill', $acct.' bill', [new PostingLine($gl($acct), debitCents: $net, taxCodeId: $c), new PostingLine('vat_input', debitCents: $vat, taxCodeId: $c), new PostingLine('ap', creditCents: $net + $vat)]);
+                $post($d($day), 'bill', $acct.' bill', [new PostingLine($gl($acct), debitCents: $net, taxCodeId: $c), new PostingLine('vat_input', debitCents: $vat, taxCodeId: $c), new PostingLine('bank', creditCents: $net + $vat)]);
             }
             $e = $code('ZA_VAT_DENIED_ENTERTAINMENT', $d(20));
-            $post($d(20), 'bill', 'Staff year-end function (input VAT not claimable)', [new PostingLine($gl('Advertising and marketing'), debitCents: 3_450_00, taxCodeId: $e), new PostingLine('ap', creditCents: 3_450_00)]);
+            $post($d(20), 'bill', 'Staff year-end function (input VAT not claimable)', [new PostingLine($gl('Advertising and marketing'), debitCents: 3_450_00, taxCodeId: $e), new PostingLine('bank', creditCents: 3_450_00)]);
 
             if ($m === 4) {
                 $cap = $code('ZA_VAT_CAPITAL', $d(11));
-                $post($d(11), 'bill', 'Roaster purchase (capital)', [new PostingLine($gl('Equipment and vehicles (cost)'), debitCents: 95_000_00, taxCodeId: $cap), new PostingLine('vat_input', debitCents: 14_250_00, taxCodeId: $cap), new PostingLine('ap', creditCents: 109_250_00)]);
+                $post($d(11), 'bill', 'Roaster purchase (capital)', [new PostingLine($gl('Equipment and vehicles (cost)'), debitCents: 95_000_00, taxCodeId: $cap), new PostingLine('vat_input', debitCents: 14_250_00, taxCodeId: $cap), new PostingLine('bank', creditCents: 109_250_00)]);
             }
             if ($m === 2) {
                 $c = $code('ZA_VAT_STD', $d(25));
-                $post($d(25), 'credit_note', 'Credit note: damaged goods', [new PostingLine('sales', debitCents: 4_000_00, taxCodeId: $c), new PostingLine('vat_output', debitCents: 600_00, taxCodeId: $c), new PostingLine('ar', creditCents: 4_600_00)]);
+                $post($d(25), 'credit_note', 'Credit note: damaged goods', [new PostingLine('sales', debitCents: 4_000_00, taxCodeId: $c), new PostingLine('vat_output', debitCents: 600_00, taxCodeId: $c), new PostingLine('bank', creditCents: 4_600_00)]);
             }
         }
 
         // two deliberate problems in the latest completed VAT period, so the review queue has something real to show
         $on = $today->subDays(12);
         $c = $code('ZA_VAT_STD', $on);
-        $post($on, 'invoice', 'DEMO PROBLEM: standard-rated invoice posted without its VAT line', [new PostingLine('ar', debitCents: 12_000_00), new PostingLine('sales', creditCents: 12_000_00, taxCodeId: $c)]);
+        $post($on, 'invoice', 'DEMO PROBLEM: standard-rated invoice posted without its VAT line', [new PostingLine('bank', debitCents: 12_000_00), new PostingLine('sales', creditCents: 12_000_00, taxCodeId: $c)]);
         $post($on->addDay(), 'manual', 'DEMO PROBLEM: VAT output posted by hand with no tax code', [new PostingLine('vat_output', creditCents: 1_800_00), new PostingLine('suspense', debitCents: 1_800_00)]);
     }
 

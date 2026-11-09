@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Accounting\LedgerSetting;
 use App\Models\Budget;
 use App\Models\Insight;
 use App\Models\RecurringRule;
 use App\Models\Transaction;
+use App\Services\Accounting\GlSync;
 use App\Services\BudgetSpendCalculator;
 use App\Services\LedgerSummary;
 use App\Services\ReserveRunwayCalculator;
@@ -45,10 +47,13 @@ class DashboardController extends Controller
 
         // The trend chart is one currency at a time: default to the currency
         // the user holds the most accounts in, switchable with ?currency=.
-        $currencies = array_keys($position);
+        // Lead with the ledger's base currency (a small foreign account must never be the headline, D-1700), the rest alphabetically.
+        $base = LedgerSetting::query()->forContext($context)->value('base_currency');
+        $currencyOrder = LedgerSummary::currencyOrder($position, $base);
+        $currencies = $currencyOrder;
         $trendCurrency = $request->query('currency');
         if (! in_array($trendCurrency, $currencies, true)) {
-            $trendCurrency = collect($position)->sortByDesc('accounts')->keys()->first();
+            $trendCurrency = $currencyOrder[0] ?? null;
         }
         $spendingTrend = $trendCurrency ? (new SpendingTrendCalculator)->calculate($context, $trendCurrency) : null;
 
@@ -63,12 +68,14 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
+        $accountingOn = app(GlSync::class)->isEnabled($context);
+
         $needs = StateLine::for($context);
         $extraPanels = DashboardPanels::views();
 
         return view('dashboard', compact(
             'position', 'accounts', 'recentTransactions', 'budgets', 'summaryCount',
-            'cushions', 'spendingTrend', 'currencies', 'trendCurrency', 'upcoming', 'needs', 'extraPanels'
+            'cushions', 'spendingTrend', 'currencies', 'currencyOrder', 'trendCurrency', 'upcoming', 'needs', 'extraPanels', 'accountingOn'
         ));
     }
 }

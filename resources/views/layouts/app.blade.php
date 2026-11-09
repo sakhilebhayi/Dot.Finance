@@ -30,6 +30,20 @@
             <div class="fx-side__scroll">
                 <x-ledger-switcher />
 
+                @if (! empty($fxStart))
+                <section class="fx-start" aria-labelledby="fx-start-h">
+                    <h2 id="fx-start-h" class="fx-start__title">Start here</h2>
+                    <ol class="fx-start__list" role="list">
+                        @foreach ($fxStart as $step)
+                        <li @class(['is-done' => $step['done']])>
+                            @if ($step['done'])<x-fx.icon name="check" /><span>{{ $step['label'] }}<span class="sr-only"> (done)</span></span>
+                            @else<a href="{{ $step['url'] }}">{{ $step['label'] }}</a>@endif
+                        </li>
+                        @endforeach
+                    </ol>
+                </section>
+                @endif
+
                 <nav class="fx-nav" aria-label="Main">
                     @foreach ($fxNav as $group)
                     <details class="fx-nav__group" @if ($group['open']) open @endif>

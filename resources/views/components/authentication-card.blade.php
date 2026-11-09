@@ -4,6 +4,12 @@
         <div class="fx-auth__logo">{{ $logo }}</div>
         <div class="fx-auth__sheet">
             {{ $slot }}
+            {{-- The aside below is hidden on phones, so the promises are said once more under the form there (D-1712). --}}
+            <ul class="fx-auth__trust" role="list" aria-label="What Dot.Finance promises">
+                <li><x-fx.icon name="check" />Every figure traces back to its entries and is checked a second way.</li>
+                <li><x-fx.icon name="check" />Changes go to an audit log that cannot be edited.</li>
+                <li><x-fx.icon name="check" />No bank linking: nothing leaves your ledger.</li>
+            </ul>
         </div>
     </div>
     <aside class="fx-auth__aside" aria-label="About Dot.Finance">

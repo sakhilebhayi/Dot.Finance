@@ -1,4 +1,4 @@
-@php use App\Support\Money; $base = \App\Models\Accounting\LedgerSetting::query()->first()?->base_currency; $overdue = $age['d30'] + $age['d60'] + $age['d90'] + $age['d120'] + $age['d120p']; $canIssue = \App\Support\Ledger\LedgerAccess::allows(\App\Enums\Capability::IssueInvoice); @endphp
+@php use App\Support\Money; $base = \App\Models\Accounting\LedgerSetting::query()->first()?->base_currency ?? 'ZAR'; $overdue = $age['d30'] + $age['d60'] + $age['d90'] + $age['d120'] + $age['d120p']; $canIssue = \App\Support\Ledger\LedgerAccess::allows(\App\Enums\Capability::IssueInvoice); @endphp
 <x-app-layout :title="$party->name">
 <x-fx.page-head :title="$party->name" :sub="trim(($party->email ?: 'No e-mail').' · '.($party->payment_terms_days !== null ? $party->payment_terms_days.'-day terms' : 'No payment terms set').($party->tax_number ? ' · VAT '.$party->tax_number : ''))">
     <x-slot name="actions">
@@ -12,7 +12,7 @@
 <x-fx.flash /><x-fx.errors />
 
 <section class="sx-strip" aria-label="Where this customer stands">
-    <div class="sx-strip__item"><span class="sx-strip__label">{{ $balanceBase < 0 ? 'Credit with you' : 'Owes you' }}</span><x-fx.money :cents="abs($balanceBase)" :currency="$base" lead :trace="route('sales.receivables.index')" trace-label="Show receivables" /></div>
+    <div class="sx-strip__item"><span class="sx-strip__label">{{ \App\Support\FigureWords::owedBy((int) $balanceBase)['label'] }}</span><x-fx.owed :cents="$balanceBase" :currency="$base" :word="false" lead :trace="route('sales.receivables.index')" trace-label="Show receivables" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Of which overdue</span><x-fx.money :cents="$overdue" :currency="$base" :variance="$overdue > 0" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Invoiced in the last 12 months</span><x-fx.money :cents="$sinceYear" :currency="$base" /></div>
     <div class="sx-strip__item"><span class="sx-strip__label">Credit limit</span>@if ($party->credit_limit_cents)<x-fx.money :cents="$party->credit_limit_cents" :currency="$base" :variance="$balanceBase > $party->credit_limit_cents" />@else<span class="sx-dash">None set</span>@endif</div>

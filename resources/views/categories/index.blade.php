@@ -45,7 +45,7 @@
     </x-fx.panel>
 
     @if ($canAdd)
-    <x-fx.panel title="Add Category">
+    <x-fx.panel title="Add category">
         <x-fx.errors />
         <form method="POST" action="{{ route('categories.store') }}" class="fx-form">
             @csrf
@@ -55,7 +55,7 @@
                 <option value="income" @selected(old('type') === 'income')>Income</option>
             </x-fx.select>
             <x-fx.input name="color" id="categories-index-color" type="color" label="Colour" :value="'#4b5563'" />
-            <div class="fx-formactions"><x-fx.button variant="primary" icon="plus">Add Category</x-fx.button></div>
+            <div class="fx-formactions"><x-fx.button variant="primary" icon="plus">Add category</x-fx.button></div>
         </form>
     </x-fx.panel>
     @endif

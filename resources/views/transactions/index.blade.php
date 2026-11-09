@@ -9,7 +9,7 @@
         @if ($canRecord)
         <x-fx.button :href="route('transactions.import.create')" icon="upload">Import CSV</x-fx.button>
         <x-fx.button :href="route('transfers.create')" icon="arrow-left-right">Transfer</x-fx.button>
-        <x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add Transaction</x-fx.button>
+        <x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add transaction</x-fx.button>
         @endif
     </x-slot>
 </x-fx.page-head>
@@ -103,7 +103,7 @@
     </x-fx.empty>
     @else
     <x-fx.empty title="No transactions yet.">No transactions yet. Add your first transaction to get started, or import a bank statement.
-        <x-slot name="action">@if ($canRecord)<x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add Transaction</x-fx.button>@endif</x-slot>
+        <x-slot name="action">@if ($canRecord)<x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add transaction</x-fx.button>@endif</x-slot>
     </x-fx.empty>
     @endif
     @endif
