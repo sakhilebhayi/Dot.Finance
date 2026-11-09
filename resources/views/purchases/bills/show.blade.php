@@ -41,7 +41,7 @@
             <tr>
                 <td data-label="Description" class="is-lead"><span class="fx-cell-main">{{ $line->description }}</span><div class="fx-cell-sub">{{ $line->quantity() }} × <x-fx.money :cents="$line->unit_price_cents" :currency="$bill->currency" />@if ($line->discount_bp) less {{ rtrim(rtrim(number_format($line->discount_bp / 100, 2), '0'), '.') }}%@endif @if ($line->dimension) · {{ $line->dimension }}@endif</div></td>
                 <td data-label="Charged to">{{ $line->account?->code }} {{ $line->account?->name }}</td>
-                <td data-label="Tax">{{ $line->tax_code }} <span class="fx-cell-sub">{{ rtrim(rtrim(number_format($line->tax_rate_bp / 100, 2), '0'), '.') }}%</span></td>
+                <td data-label="Tax">{{ \App\Support\TaxWords::label($line->tax_code, (int) $line->tax_rate_bp) }}<details class="fx-cell-sub"><summary>Show working</summary>{{ $line->tax_code }}</details></td>
                 <td data-label="Net" class="is-num"><x-fx.money :cents="$line->net_cents" :currency="$bill->currency" /></td>
                 <td data-label="VAT" class="is-num"><x-fx.money :cents="$line->tax_cents" :currency="$bill->currency" />@if ($line->claim_reason && $line->tax_cents > 0)<div class="fx-cell-sub">not claimed</div>@endif</td>
                 <td data-label="Gross" class="is-num"><x-fx.money :cents="$line->gross_cents" :currency="$bill->currency" /></td>

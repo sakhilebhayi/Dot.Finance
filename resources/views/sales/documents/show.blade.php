@@ -57,7 +57,7 @@
             @foreach ($d->lines as $l)
                 <tr>
                     <td data-label="Description" class="is-lead"><span class="fx-cell-main">{{ $l->description }}</span>
-                        <div class="fx-cell-sub">{{ $l->quantity() }}{{ $l->unit ? ' '.$l->unit : '' }} at {{ Money::format((int) $l->unit_cents, $ccy) }}@if ($l->discount_bp || $l->discount_cents), discount {{ Money::format((int) $l->line_discount_cents, $ccy) }}@endif @if ($d->vat_registered && $l->tax_code) · {{ $l->rate_bp ? rtrim(rtrim(number_format($l->rate_bp / 100, 2, '.', ''), '0'), '.').'% VAT' : str_replace('_', ' ', strtolower(str_replace('ZA_VAT_', '', $l->tax_code))) }}@endif</div></td>
+                        <div class="fx-cell-sub">{{ $l->quantity() }}{{ $l->unit ? ' '.$l->unit : '' }} at {{ Money::format((int) $l->unit_cents, $ccy) }}@if ($l->discount_bp || $l->discount_cents), discount {{ Money::format((int) $l->line_discount_cents, $ccy) }}@endif @if ($d->vat_registered && $l->tax_code) · {{ \App\Support\TaxWords::label($l->tax_code, $l->rate_bp !== null ? (int) $l->rate_bp : null) }}@endif</div></td>
                     <td data-label="{{ $d->vat_registered ? 'Excl. VAT' : 'Amount' }}" class="is-num"><x-fx.money :cents="$l->net_cents" :currency="$ccy" /></td>
                     @if ($d->vat_registered)
                     <td data-label="VAT" class="is-num"><x-fx.money :cents="$l->tax_cents" :currency="$ccy" /></td>
@@ -73,7 +73,8 @@
                 <x-fx.statement-row label="Total" kind="total"><x-fx.money :cents="$d->total_cents" :currency="$ccy" :trace="$d->gl_entry_id ? route('accounting.journals.show', $d->gl_entry_id) : null" trace-label="Show the journal entry this was posted as" /></x-fx.statement-row>
                 @if ($d->isForeign() && $d->postsToBooks())<x-fx.statement-row label="In {{ $d->base_currency }} at {{ \App\Services\Shared\FxMath::formatRate((int) $d->fx_rate_e8) }} ({{ $d->fx_rate_source }}, {{ $d->fx_rate_as_of?->format('j M Y') }})"><x-fx.money :cents="$d->base_total_cents" :currency="$d->base_currency" /></x-fx.statement-row>@endif
             </x-fx.statement>
-            @if ($d->vat_registered)<p class="sx-hint">VAT {{ $d->tax_rounding_level === 'document' ? 'rounded on the whole document' : 'rounded line by line' }}. Rule versions {{ implode(', ', $d->tax_rule_versions ?? []) }}. Confidence: {{ $d->tax_confidence }}. Calculated.</p>@endif
+            @if ($d->vat_registered)<div class="sx-hint">VAT {{ $d->tax_rounding_level === 'document' ? 'rounded on the whole document' : 'rounded line by line' }}. {{ \App\Support\TaxWords::rulesSentence($d->tax_rule_versions) }} <x-fx.pill>Calculated</x-fx.pill>
+                <details class="fx-cell-sub"><summary>Show working</summary>Rule versions: {{ \App\Support\TaxWords::working($d->tax_rule_versions) ?: 'none recorded' }}. Confidence: {{ $d->tax_confidence }}.</details></div>@endif
         </div>
     </x-fx.panel>
 
