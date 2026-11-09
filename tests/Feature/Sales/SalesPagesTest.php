@@ -109,7 +109,8 @@ class SalesPagesTest extends TestCase
         $this->assertSame('ZAR 2,300.00', $json['lines'][0]['gross']);
         $this->assertTrue($json['checklist']['valid']);
 
-        $bad = $this->as()->postJson(route('sales.calculate'), $this->invoiceBody(['currency' => 'USD']))->assertStatus(422)->json();
+        $bad = $this->as()->postJson(route('sales.calculate'), $this->invoiceBody(['currency' => 'USD']))->assertOk()->json();
+        $this->assertFalse($bad['ok']);
         $this->assertStringContainsString('exchange rate', $bad['message']);
     }
 

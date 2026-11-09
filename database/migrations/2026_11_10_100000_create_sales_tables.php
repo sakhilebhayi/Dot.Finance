@@ -522,7 +522,7 @@ SQL);
             $table->dropColumn('settlement_ref');
         });
 
-        foreach (['sales_recurring_templates', 'sales_reminders', 'sales_share_links', 'sales_transaction_links', 'sales_document_events', 'sales_write_offs', 'sales_refunds', 'sales_applications', 'sales_document_lines', 'sales_documents', 'sales_party_prefs', 'sales_profiles'] as $table) {
+        foreach (['sales_reminders', 'sales_share_links', 'sales_transaction_links', 'sales_document_events', 'sales_write_offs', 'sales_refunds', 'sales_applications', 'sales_document_lines', 'sales_documents', 'sales_recurring_templates', 'sales_party_prefs', 'sales_profiles'] as $table) {
             $this->dropChecks($table);
             Schema::dropIfExists($table);
         }

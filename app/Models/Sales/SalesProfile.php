@@ -38,7 +38,9 @@ class SalesProfile extends Model
     {
         $a = $this->address ?? [];
 
-        return array_values(array_filter([$a['line1'] ?? null, $a['line2'] ?? null, trim(($a['suburb'] ?? '').' '.($a['city'] ?? '')), trim(($a['province'] ?? '').' '.($a['postal_code'] ?? '')), $a['country'] ?? null], fn ($l) => $l !== null && trim($l) !== ''));
+        $join = fn (array $parts) => implode(', ', array_filter(array_map(fn ($x) => trim((string) $x), $parts), fn ($x) => $x !== ''));
+
+        return array_values(array_filter([$a['line1'] ?? null, $a['line2'] ?? null, $join([$a['suburb'] ?? null, $a['city'] ?? null]), $join([$a['province'] ?? null, $a['postal_code'] ?? null]), $a['country'] ?? null], fn ($l) => $l !== null && trim((string) $l) !== ''));
     }
 
     public function hasAddress(): bool

@@ -5,6 +5,10 @@ use App\Console\Commands\GenerateRecurringTransactions;
 use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\PruneImports;
+use App\Console\Commands\Sales\CheckReceivables;
+use App\Console\Commands\Sales\ExpireQuotes;
+use App\Console\Commands\Sales\RunRecurring;
+use App\Console\Commands\Sales\SendReminders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -48,3 +52,12 @@ Schedule::command(Verify::class)
     ->dailyAt('02:40')
     ->withoutOverlapping()
     ->onOneServer();
+
+// --- sales ---
+// Payment reminders (each is sent once: the log's unique key makes every run safe), repeating invoices (one per template and
+// period), quotes past their date, and the proof that receivables still equal the books (a difference exits non-zero).
+Schedule::command(RunRecurring::class)->dailyAt('01:30')->withoutOverlapping()->onOneServer();
+Schedule::command(ExpireQuotes::class)->dailyAt('01:45')->withoutOverlapping()->onOneServer();
+Schedule::command(SendReminders::class)->dailyAt((string) config('sales.reminders.time', '07:30'))->withoutOverlapping()->onOneServer();
+Schedule::command(CheckReceivables::class)->dailyAt('02:50')->withoutOverlapping()->onOneServer();
+// --- end sales ---

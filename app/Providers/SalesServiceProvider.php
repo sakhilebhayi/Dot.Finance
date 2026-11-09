@@ -8,6 +8,8 @@ use App\Console\Commands\Sales\RunRecurring;
 use App\Console\Commands\Sales\SendReminders;
 use App\Models\Sales\SalesDocument;
 use App\Policies\Sales\SalesDocumentPolicy;
+use App\Services\Accounting\FxRateProvider;
+use App\Services\Accounting\FxServiceRateProvider;
 use App\Services\Sales\ApplicationEngine;
 use App\Services\Sales\CashSettlement;
 use App\Services\Sales\CreditNotes;
@@ -53,6 +55,11 @@ class SalesServiceProvider extends ServiceProvider
 
         // The VAT status comes from the Sales business profile until the Tax module binds its financial profile here.
         $this->app->bind(VatStatus::class, ProfileVatStatus::class);
+
+        // Foreign-currency cash rows can only be posted when the accounting layer can read rates; AppServiceProvider bound
+        // the same-currency-only default and left this to the shared-data module, which did not. Bound here (providers
+        // register after AppServiceProvider, so this wins). With no rate on record within a week a row is still deferred.
+        $this->app->singleton(FxRateProvider::class, FxServiceRateProvider::class);
 
         foreach ([
             SalesProfiles::class, DocumentComputer::class, DocumentDrafts::class, DocumentIssuer::class, DocumentLifecycle::class, SalesPosting::class,

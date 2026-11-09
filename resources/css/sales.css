@@ -26,7 +26,7 @@
 }
 
 /* ---- the invoice editor --------------------------------------------------------------------------------- */
-.sx-lines { display: grid; }
+.sx-lines { display: grid; container: sxl / inline-size; }
 .sx-line { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--rule); align-items: start; }
 .sx-line__desc { grid-column: 1 / -1; }
 .sx-line__tax { grid-column: 1 / -1; }
@@ -37,16 +37,21 @@
 .sx-line__more[open] summary { margin-bottom: var(--s-2); }
 .sx-line__notax { display: inline-flex; align-items: center; min-height: var(--control-h); color: var(--ink-3); }
 .sx-lines__foot { padding: var(--s-3) var(--s-5); }
-@media (min-width: 1100px) {
-    .sx-line { grid-template-columns: minmax(12rem, 1fr) 5rem 7.5rem 5rem 9.5rem 7.5rem 4.5rem; gap: var(--s-2) var(--s-3); padding: var(--s-3) var(--s-5); }
-    .sx-line__desc, .sx-line__tax { grid-column: auto; }
+@container sxl (min-width: 520px) {
+    .sx-line { grid-template-columns: 5rem 7rem 5rem minmax(9rem, 1fr); gap: var(--s-2) var(--s-3); padding: var(--s-3) var(--s-5); }
+    .sx-line__desc { grid-column: 1 / -1; }
+    .sx-line__tax { grid-column: auto; }
+    .sx-line__amount { grid-column: 1 / 4; text-align: left; }
+    .sx-line__actions { grid-column: 4; }
     .sx-line__more { grid-column: 1 / -1; }
-    .sx-line__amount { text-align: right; align-content: center; padding-top: 1.6rem; }
+}
+@container sxl (min-width: 800px) {
+    .sx-line { grid-template-columns: minmax(10rem, 1fr) 4.5rem 7rem 4.5rem 9rem 7rem 4rem; }
+    .sx-line__desc { grid-column: auto; }
+    .sx-line__amount { grid-column: auto; text-align: right; align-content: center; padding-top: 1.6rem; }
+    .sx-line__actions { grid-column: auto; }
     .sx-lines > .sx-line:not(:first-child) .sx-line__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .sx-lines > .sx-line:not(:first-child) .sx-line__amount { padding-top: 0.3rem; }
-}
-@media (min-width: 1100px) {
-    .sx-lines > .sx-line:first-child .sx-line__label { display: block; }
 }
 
 .sx-preview { display: grid; gap: var(--gap); align-content: start; min-width: 0; }
@@ -99,3 +104,17 @@ form[data-sx-editor] .sx-checklist .is-bad .sx-checklist__mark { color: var(--pe
 .sx-reconcile.is-ok > .fx-icon { color: var(--tick); }
 .sx-reconcile.is-bad { border-color: var(--pencil-line); background: var(--pencil-bg); }
 .sx-reconcile.is-bad > .fx-icon { color: var(--pencil); }
+
+.sx-reconcile__rows { max-width: 34rem; margin: 0 0 var(--s-2); }
+.sx-strip .fx-money.is-lead { font-size: 1.5rem; }
+@media (max-width: 560px) {
+    .sx-reconcile { grid-template-columns: 1.25rem minmax(0, 1fr); padding: var(--s-3); }
+    .sx-reconcile .fx-statement__row { flex-wrap: wrap; gap: 0 var(--s-3); }
+    .sx-reconcile .fx-statement__leader { display: none; }
+    .sx-reconcile .fx-statement__row dt { flex: 1 1 100%; }
+    .sx-reconcile .fx-statement__row dd { margin-left: 0; }
+}
+
+/* A panel holding a scrolling table must not widen the page on a phone: it shrinks, and the table scrolls inside it. */
+.fx-page > .fx-panel, .fx-page > .fx-grid > .fx-panel, .fx-page > .fx-grid > .fx-stack, .fx-page > .fx-grid > aside { min-width: 0; max-width: 100%; }
+.fx-panel__body--flush { min-width: 0; }

@@ -1,6 +1,6 @@
 @page { size: A4; margin: 14mm 14mm 16mm; }
 * { box-sizing: border-box; }
-body.sd { margin: 0; color: #14181f; background: #fff; font-family: {{ $pdf ? "'DejaVu Sans', sans-serif" : "system-ui, 'Segoe UI', Arial, sans-serif" }}; font-size: {{ $pdf ? '8.6pt' : '10pt' }}; line-height: 1.45; }
+body.sd { margin: 0; color: #14181f; background: #fff; font-family: {!! $pdf ? "'DejaVu Sans', sans-serif" : "system-ui, 'Segoe UI', Arial, sans-serif" !!}; font-size: {{ $pdf ? '8.6pt' : '10pt' }}; line-height: 1.45; }
 .sd table { width: 100%; border-collapse: collapse; }
 .sd td, .sd th { vertical-align: top; text-align: left; padding: 0; }
 .sd h1 { margin: 0; font-size: {{ $pdf ? '19pt' : '22pt' }}; line-height: 1.1; font-weight: 700; color: {{ $brand }}; letter-spacing: 0; }

@@ -22,18 +22,17 @@
 <div class="fx-stack">
     @if ($drafts->isNotEmpty())
     <x-fx.panel title="Drafts and waiting for approval" flush>
-        <x-fx.table caption="Documents not issued yet"><thead><tr><th scope="col">Document</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col" class="is-num">Total</th></tr></thead>
+        <x-fx.table caption="Documents not issued yet" class="fx-table--compact"><thead><tr><th scope="col">Document</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col" class="is-num">Total</th></tr></thead>
         <tbody>@foreach ($drafts as $d)<tr><td data-label="Document" class="is-lead"><a class="fx-link fx-cell-main" href="{{ route('sales.documents.show', $d) }}">{{ $d->title() }} draft</a></td><td data-label="Date">{{ $d->issue_date->format('j M Y') }}</td><td data-label="Status"><x-sales.status :document="$d" /></td><td data-label="Total" class="is-num"><x-fx.money :cents="$d->total_cents" :currency="$d->currency" /></td></tr>@endforeach</tbody></x-fx.table>
     </x-fx.panel>
     @endif
 
     <x-fx.panel title="Documents" flush>
     @if ($docs->isNotEmpty())
-        <x-fx.table caption="Documents issued to {{ $party->name }}">
-            <thead><tr><th scope="col">Number</th><th scope="col">Date</th><th scope="col">Due</th><th scope="col">Status</th><th scope="col" class="is-num">Total</th><th scope="col" class="is-num">Owing</th></tr></thead>
+        <x-fx.table caption="Documents issued to {{ $party->name }}" class="fx-table--compact">
+            <thead><tr><th scope="col">Document</th><th scope="col">Status</th><th scope="col" class="is-num">Total</th><th scope="col" class="is-num">Owing</th></tr></thead>
             <tbody>@foreach ($docs as $d)
-                <tr><td data-label="Number" class="is-lead"><a class="fx-link fx-cell-main" href="{{ route('sales.documents.show', $d) }}">{{ $d->number }}</a><div class="fx-cell-sub">{{ $d->title() }}</div></td>
-                <td data-label="Date">{{ $d->issue_date->format('j M Y') }}</td><td data-label="Due">{{ $d->due_date?->format('j M Y') ?? '–' }}</td>
+                <tr><td data-label="Document" class="is-lead"><a class="fx-link fx-cell-main" href="{{ route('sales.documents.show', $d) }}">{{ $d->number }}</a><div class="fx-cell-sub">{{ $d->title() }} · {{ $d->issue_date->format('j M Y') }}@if ($d->due_date), due {{ $d->due_date->format('j M Y') }}@endif</div></td>
                 <td data-label="Status"><x-sales.status :document="$d" /></td>
                 <td data-label="Total" class="is-num"><x-fx.money :cents="$d->isCredit() ? -$d->total_cents : $d->total_cents" :currency="$d->currency" /></td>
                 <td data-label="Owing" class="is-num">@isset($balances[$d->id])<x-fx.money :cents="$balances[$d->id]" :currency="$d->currency" :variance="$balances[$d->id] > 0 && $d->isOverdue()" />@else<span class="sx-dash">–</span>@endisset</td></tr>@endforeach</tbody>
@@ -43,7 +42,7 @@
 
     <x-fx.panel title="Payments received" flush>
     @if ($payments->isNotEmpty())
-        <x-fx.table caption="Recent payments from {{ $party->name }}"><thead><tr><th scope="col">Date</th><th scope="col">Reference</th><th scope="col">Status</th><th scope="col" class="is-num">Amount</th></tr></thead>
+        <x-fx.table caption="Recent payments from {{ $party->name }}" class="fx-table--compact"><thead><tr><th scope="col">Date</th><th scope="col">Reference</th><th scope="col">Status</th><th scope="col" class="is-num">Amount</th></tr></thead>
         <tbody>@foreach ($payments as $p)<tr><td data-label="Date" class="is-lead"><a class="fx-link fx-cell-main" href="{{ route('sales.payments.show', $p) }}">{{ $p->paid_on->format('j M Y') }}</a></td><td data-label="Reference">{{ $p->reference ?: '–' }}</td><td data-label="Status">{{ ucfirst($p->status) }}</td><td data-label="Amount" class="is-num"><x-fx.money :cents="$p->amount_cents" :currency="$p->currency" /></td></tr>@endforeach</tbody></x-fx.table>
     @else<x-fx.empty>No payments yet.</x-fx.empty>@endif
     </x-fx.panel>

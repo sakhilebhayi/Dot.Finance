@@ -8,13 +8,17 @@
 <section class="sx-reconcile {{ $reconcile['ok'] ? 'is-ok' : 'is-bad' }}" aria-label="Does it agree with the books?">
     <x-fx.icon :name="$reconcile['ok'] ? 'check' : 'circle-alert'" />
     <div>
-        @if ($reconcile['ok'])
-            <p><strong>Agrees with the books.</strong> Worked out from the invoices and payments: <x-fx.money :cents="$reconcile['documents_cents']" :currency="$base" />. The receivables account of the general ledger: <x-fx.money :cents="$reconcile['ledger_cents']" :currency="$base" ticked />. Difference nil.</p>
-        @else
-            <p><strong>Does not agree with the books.</strong> The invoices and payments say <x-fx.money :cents="$reconcile['documents_cents']" :currency="$base" />; the receivables account says <x-fx.money :cents="$reconcile['ledger_cents']" :currency="$base" />. The difference is <x-fx.money :cents="$reconcile['difference_cents']" :currency="$base" variance />, usually a journal typed straight to receivables.</p>
+        <p><strong>{{ $reconcile['ok'] ? 'Agrees with the books.' : 'Does not agree with the books.' }}</strong> Receivables worked out two ways:</p>
+        <x-fx.statement class="sx-reconcile__rows">
+            <x-fx.statement-row label="From the invoices, credits and payments"><x-fx.money :cents="$reconcile['documents_cents']" :currency="$base" /></x-fx.statement-row>
+            <x-fx.statement-row label="The receivables account of the general ledger"><x-fx.money :cents="$reconcile['ledger_cents']" :currency="$base" :ticked="$reconcile['ok']" /></x-fx.statement-row>
+            <x-fx.statement-row label="Difference" kind="subtotal"><x-fx.money :cents="$reconcile['difference_cents']" :currency="$base" :variance="! $reconcile['ok']" /></x-fx.statement-row>
+        </x-fx.statement>
+        @unless ($reconcile['ok'])
+            <p>The difference is usually a journal typed straight to receivables.</p>
             @if ($reconcile['unattributed_cents'])<p>{{ Money::format($reconcile['unattributed_cents'], $base) }} sits on receivables with no customer on it.</p>@endif
             <ul>@foreach ($reconcile['parties'] as $r)@if ($r['difference_cents'])<li><a class="fx-link" href="{{ route('sales.customers.show', $r['party_id']) }}">{{ $r['name'] }}</a>: books {{ Money::format($r['ledger_cents'], $base) }}, documents {{ Money::format($r['documents_cents'], $base) }}</li>@endif @endforeach</ul>
-        @endif
+        @endunless
         <a class="fx-link" href="{{ route('accounting.general-ledger') }}">General ledger</a>
     </div>
 </section>
@@ -27,13 +31,13 @@
 
 <x-fx.panel title="Ageing by customer" flush>
 @if (count($ageing['rows']))
-<x-fx.table scroll caption="Receivables ageing by customer, in {{ $base }}">
+<x-fx.table caption="Receivables ageing by customer, in {{ $base }}">
     <thead><tr><th scope="col">Customer</th>@foreach (ReceivablesLedger::BUCKETS as $label)<th scope="col" class="is-num">{{ $label }}</th>@endforeach<th scope="col" class="is-num">On account</th><th scope="col" class="is-num">Total</th></tr></thead>
     <tbody>@foreach ($ageing['rows'] as $row)
-        <tr><th scope="row"><a class="fx-link" href="{{ route('sales.customers.show', $row['party']) }}">{{ $row['party']?->name }}</a></th>
-        @foreach (array_keys(ReceivablesLedger::BUCKETS) as $key)<td class="is-num">{!! $row[$key] ? e(Money::format($row[$key])) : '<span class="sx-dash">–</span>' !!}</td>@endforeach
-        <td class="is-num">{!! $row['on_account'] ? e(Money::format($row['on_account'])) : '<span class="sx-dash">–</span>' !!}</td><td class="is-num"><strong>{{ Money::format($row['total']) }}</strong></td></tr>@endforeach</tbody>
-    <tfoot><tr><th scope="row">Total</th>@foreach (array_keys(ReceivablesLedger::BUCKETS) as $key)<td class="is-num">{{ Money::format($ageing['totals'][$key]) }}</td>@endforeach<td class="is-num">{{ Money::format($ageing['totals']['on_account']) }}</td><td class="is-num"><x-fx.money :cents="$ageing['totals']['total']" :currency="$base" :ticked="$reconcile['ok']" :trace="route('accounting.general-ledger')" trace-label="Show the receivables account in the general ledger" /></td></tr></tfoot>
+        <tr><td data-label="Customer" class="is-lead"><a class="fx-link fx-cell-main" href="{{ route('sales.customers.show', $row['party']) }}">{{ $row['party']?->name }}</a></td>
+        @foreach (ReceivablesLedger::BUCKETS as $key => $bucketLabel)<td data-label="{{ $bucketLabel }}" class="is-num">{!! $row[$key] ? e(Money::format($row[$key])) : '<span class="sx-dash">–</span>' !!}</td>@endforeach
+        <td data-label="On account" class="is-num">{!! $row['on_account'] ? e(Money::format($row['on_account'])) : '<span class="sx-dash">–</span>' !!}</td><td data-label="Total" class="is-num"><strong>{{ Money::format($row['total']) }}</strong></td></tr>@endforeach</tbody>
+    <tfoot><tr><th scope="row">Total</th>@foreach (ReceivablesLedger::BUCKETS as $key => $bucketLabel)<td data-label="{{ $bucketLabel }}" class="is-num">{{ Money::format($ageing['totals'][$key]) }}</td>@endforeach<td data-label="On account" class="is-num">{{ Money::format($ageing['totals']['on_account']) }}</td><td data-label="Total" class="is-num"><x-fx.money :cents="$ageing['totals']['total']" :currency="$base" :ticked="$reconcile['ok']" :trace="route('accounting.general-ledger')" trace-label="Show the receivables account in the general ledger" /></td></tr></tfoot>
 </x-fx.table>
 @else<x-fx.empty title="Nobody owes you anything.">When an invoice is issued it appears here, in the column for how late it is.</x-fx.empty>@endif
 </x-fx.panel>

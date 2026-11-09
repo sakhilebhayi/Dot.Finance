@@ -51,18 +51,18 @@
 <div class="fx-grid fx-grid--form">
 <div class="fx-stack">
     <x-fx.panel title="Lines" flush>
-        <x-fx.table caption="Lines on {{ $d->displayRef() }}">
-            <thead><tr><th scope="col">Description</th><th scope="col" class="is-num">Qty</th><th scope="col" class="is-num">Unit price</th>@if ($d->vat_registered)<th scope="col">VAT</th>@endif<th scope="col" class="is-num">Net</th>@if ($d->vat_registered)<th scope="col" class="is-num">VAT</th>@endif<th scope="col" class="is-num">Total</th></tr></thead>
+        <x-fx.table caption="Lines on {{ $d->displayRef() }}" class="fx-table--compact">
+            <thead><tr><th scope="col">Description</th><th scope="col" class="is-num">{{ $d->vat_registered ? 'Excl. VAT' : 'Amount' }}</th>@if ($d->vat_registered)<th scope="col" class="is-num">VAT</th><th scope="col" class="is-num">Total</th>@endif</tr></thead>
             <tbody>
             @foreach ($d->lines as $l)
                 <tr>
-                    <td data-label="Description" class="is-lead"><span class="fx-cell-main">{{ $l->description }}</span>@if ($l->line_discount_cents)<div class="fx-cell-sub">Discount {{ Money::format((int) $l->line_discount_cents, $ccy) }}</div>@endif</td>
-                    <td data-label="Qty" class="is-num">{{ $l->quantity() }}{{ $l->unit ? ' '.$l->unit : '' }}</td>
-                    <td data-label="Unit price" class="is-num"><x-fx.money :cents="$l->unit_cents" :currency="$ccy" /></td>
-                    @if ($d->vat_registered)<td data-label="VAT">{{ $l->tax_code ? ($l->rate_bp ? rtrim(rtrim(number_format($l->rate_bp / 100, 2, '.', ''), '0'), '.').'%' : str_replace('ZA_VAT_', '', $l->tax_code)) : '–' }}</td>@endif
-                    <td data-label="Net" class="is-num"><x-fx.money :cents="$l->net_cents" :currency="$ccy" /></td>
-                    @if ($d->vat_registered)<td data-label="VAT amount" class="is-num"><x-fx.money :cents="$l->tax_cents" :currency="$ccy" /></td>@endif
+                    <td data-label="Description" class="is-lead"><span class="fx-cell-main">{{ $l->description }}</span>
+                        <div class="fx-cell-sub">{{ $l->quantity() }}{{ $l->unit ? ' '.$l->unit : '' }} at {{ Money::format((int) $l->unit_cents, $ccy) }}@if ($l->discount_bp || $l->discount_cents), discount {{ Money::format((int) $l->line_discount_cents, $ccy) }}@endif @if ($d->vat_registered && $l->tax_code) · {{ $l->rate_bp ? rtrim(rtrim(number_format($l->rate_bp / 100, 2, '.', ''), '0'), '.').'% VAT' : str_replace('_', ' ', strtolower(str_replace('ZA_VAT_', '', $l->tax_code))) }}@endif</div></td>
+                    <td data-label="{{ $d->vat_registered ? 'Excl. VAT' : 'Amount' }}" class="is-num"><x-fx.money :cents="$l->net_cents" :currency="$ccy" /></td>
+                    @if ($d->vat_registered)
+                    <td data-label="VAT" class="is-num"><x-fx.money :cents="$l->tax_cents" :currency="$ccy" /></td>
                     <td data-label="Total" class="is-num"><x-fx.money :cents="$l->gross_cents" :currency="$ccy" /></td>
+                    @endif
                 </tr>
             @endforeach
             </tbody>
@@ -89,7 +89,7 @@
     @if ($d->isReceivable() && $sealed)
     <x-fx.panel title="Payments and credits applied" flush>
         @if ($applied->isNotEmpty())
-        <x-fx.table caption="What has been applied to {{ $d->number }}">
+        <x-fx.table caption="What has been applied to {{ $d->number }}" class="fx-table--compact">
             <thead><tr><th scope="col">Date</th><th scope="col">What</th><th scope="col" class="is-num">Amount</th><th scope="col">State</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
             <tbody>@foreach ($applied as $a)
                 <tr>
@@ -110,7 +110,7 @@
     @if ($d->isCredit() && $sealed)
     <x-fx.panel title="Where this credit went" flush>
         @if ($used->isNotEmpty())
-        <x-fx.table caption="Where credit note {{ $d->number }} was applied"><thead><tr><th scope="col">Date</th><th scope="col">Invoice</th><th scope="col" class="is-num">Amount</th><th scope="col">State</th></tr></thead>
+        <x-fx.table caption="Where credit note {{ $d->number }} was applied" class="fx-table--compact"><thead><tr><th scope="col">Date</th><th scope="col">Invoice</th><th scope="col" class="is-num">Amount</th><th scope="col">State</th></tr></thead>
         <tbody>@foreach ($used as $u)<tr><td data-label="Date">{{ $u->applied_on->format('j M Y') }}</td><td data-label="Invoice" class="is-lead"><a class="fx-link" href="{{ route('sales.documents.show', $u->target_document_id) }}">{{ $u->target?->number }}</a></td><td data-label="Amount" class="is-num"><x-fx.money :cents="$u->amount_cents" :currency="$ccy" /></td><td data-label="State">{{ $u->released_at ? 'Taken back' : 'Applied' }}</td></tr>@endforeach</tbody></x-fx.table>
         @else<x-fx.empty>Not applied to an invoice yet.</x-fx.empty>@endif
     </x-fx.panel>

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Account;
+use App\Models\Accounting\JournalEntry;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
@@ -32,7 +33,7 @@ use Illuminate\Support\Str;
  * from today). Running it again on an existing demo ledger stops unless --fresh is given, which clears the demo ledger's rows and rebuilds
  * them (the demo user and company stay: the append-only audit log points at them).
  */
-#[Signature('finance:demo-seed {--fresh : Remove the existing demo ledger first}')]
+#[Signature('finance:demo-seed {--fresh : Remove the existing demo ledger first} {--sales : Also add a sales history (customers, invoices, payments). Turns accounting on, so the ledger cannot be rebuilt in place afterwards}')]
 #[Description('Local only: create a fictional South African business ledger with twelve months of entries for looking at the screens')]
 class DemoSeed extends Command
 {
@@ -56,6 +57,17 @@ class DemoSeed extends Command
             $this->error('The demo ledger already exists. Run with --fresh to rebuild it.');
 
             return self::FAILURE;
+        }
+
+        // Books are append-only (a database trigger refuses to delete a journal row), so a demo company that has them cannot be
+        // wiped in place. Say so instead of failing halfway on a foreign key.
+        if ($existing && $this->option('fresh')) {
+            $demoCompany = Team::query()->where('user_id', $existing->id)->where('name', self::COMPANY)->first();
+            if ($demoCompany && JournalEntry::query()->forContext(LedgerContext::company($demoCompany))->exists()) {
+                $this->error('The demo company has books (accounting is on), and journal rows can never be deleted. To rebuild it, recreate the local database: php artisan migrate:fresh && php artisan finance:demo-seed --sales');
+
+                return self::FAILURE;
+            }
         }
 
         mt_srand(4401);
@@ -90,6 +102,9 @@ class DemoSeed extends Command
         });
 
         $this->info('Demo ledger created: '.self::COMPANY.' (company) and a small personal ledger.');
+        if ($this->option('sales')) {
+            $this->call('finance:demo-seed-sales');   // R-44 Sales: customers, invoices, payments (turns accounting on for the demo company)
+        }
         $this->line('Sign in locally as '.self::EMAIL.' (the password is the PASSWORD constant of this command), then choose the company in the ledger switcher.');
 
         return self::SUCCESS;

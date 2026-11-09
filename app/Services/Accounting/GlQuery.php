@@ -166,6 +166,11 @@ class GlQuery
             'transaction' => ['label' => 'Transaction #'.$entry->source_id, 'route' => 'transactions.edit', 'parameter' => $entry->source_id],
             'transfer' => ['label' => 'Transfer', 'route' => 'transactions.index', 'parameter' => null],
             'opening_balance' => ['label' => 'Opening balance of account #'.$entry->source_id, 'route' => 'accounts.edit', 'parameter' => $entry->source_id],
+            // R44 SALES: documents and money received, so "show the entries" can go back to what made them
+            'invoice', 'credit_note' => ['label' => ($entry->source_type === 'credit_note' ? 'Credit note ' : 'Invoice ').'#'.$entry->source_id, 'route' => 'sales.documents.show', 'parameter' => $entry->source_id],
+            'payment' => ctype_digit((string) $entry->source_id)
+                ? ['label' => 'Payment #'.$entry->source_id, 'route' => 'sales.payments.show', 'parameter' => $entry->source_id]
+                : ['label' => 'Exchange difference', 'route' => null, 'parameter' => null],
             'reversal' => ['label' => 'Reversal of entry #'.$entry->source_id, 'route' => 'accounting.journals.show', 'parameter' => $entry->source_id],
             'manual' => ['label' => 'Manual journal', 'route' => null, 'parameter' => null],
             'period_close' => ['label' => 'Year-end close', 'route' => 'accounting.periods.index', 'parameter' => null],

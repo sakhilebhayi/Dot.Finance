@@ -31,9 +31,10 @@ class CalculationController extends SalesController
 
             $preview = app(DocumentDrafts::class)->preview($this->ledger(), $header, $lines, $existing);
         } catch (ValidationException $e) {
-            return response()->json(['ok' => false, 'message' => collect($e->errors())->flatten()->first()], 422);
+            // an unfinished form is a normal state while someone types, not an error: 200 with the reason, so nothing is logged as a failed request
+            return response()->json(['ok' => false, 'message' => collect($e->errors())->flatten()->first()]);
         } catch (SalesViolation $e) {
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+            return response()->json(['ok' => false, 'message' => $e->getMessage()]);
         }
 
         $doc = $preview['document'];
