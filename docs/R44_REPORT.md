@@ -95,4 +95,13 @@ Installed and discovered: awesome-design-md, awwwards, canvas-ui, design-md, des
 - The security QA agent accidentally started a test run against another finished agent's throwaway database (`finance_gl_f1`); no impact found.
 
 ## 12. Deployment
-(see the end of this file after the deploy)
+
+Merged as PR #33 (squash `8d6a5ef`) and PR #34 (`75411d2`), deployed on 2026-11-09 to https://finance.infodot.co.za (workflow run 42614364070, all jobs green: CI gate tests, tests-postgres, signed-in-smoke, then the deploy).
+
+- **Why two PRs:** the first deploy run (42607113994) was skipped by its own test gate. In CI the PostgreSQL job had been cancelled by its old 20-minute limit while the suite passes locally in 13.5 minutes, so the CI timeouts were raised (PostgreSQL 60 min, SQLite 30 min; the suite grew from 564 to 2,463 tests). The re-run then had exactly one error in 2,463 tests: the backup-restore acceptance test hard-coded a local `/tmp` socket and the OS user, which does not exist on the CI runner. PR #34 makes it read the configured PostgreSQL connection (verified through a socket and a TCP host). The gate in the final deploy run passed in full.
+- **Migrations:** 23 applied on the host (accounting core, shared data, controls, bank, tax, purchases, sales, intelligence, integrations, reporting and planning, performance indexes, tax freeze hardening, trigger fix).
+- **Reference data:** `finance:seed-reference` ran after migrate: "TaxRulesSeeder: 104 created, 0 already present. Reference data is in place."
+- **Deploy smoke (in the workflow):** `/`, `/login`, `/up`, the built CSS and JS answered 200; no debug page on a POST to `/up`.
+- **Checked live afterwards (curl):** `/`, `/login`, `/up`, the legal pages and `/forgot-password` answer 200; `/dashboard`, `/transactions`, `/accounts`, `/sales/invoices`, `/tax`, `/reports`, `/controls`, `/accounting/trial-balance` and `/assistant` redirect a guest to `/login`; `/dev/*` and an unknown path answer 404; the response carries an enforced nonce CSP (script and style only 'self' + nonce, `unsafe-eval` kept for Livewire), HSTS, nosniff, `X-Frame-Options: DENY`, a referrer policy and a permissions policy; the built CSS, JS and the three self-hosted font files answer 200; no external style or font CDN is referenced (the only inline `<style>` is Livewire's own, nonce-carrying).
+- **Not checked live:** a signed-in session (no real InfoDot sign-in was performed), the scheduler's first run, the accounting enable wizard on a real ledger, `finance:check-balances` on the existing production data (it was not run before migrating: run it now and read its output), real e-mail and payment flows, and any page in a real browser on the live host.
+- **Accounting stays off for every existing ledger** until someone runs the wizard. The owner steps in section 10 and the blockers in section 9 apply as written.
