@@ -81,6 +81,6 @@ final class VatPeriods
 
         return $period['months'] === 1
             ? $end->format('F Y')
-            : $start->format('M Y').' to '.$end->format('M Y').' (category '.$category.')';
+            : $start->format('M Y').' to '.$end->format('M Y').' ('.TaxLabels::months($period['months']).' period)';
     }
 }

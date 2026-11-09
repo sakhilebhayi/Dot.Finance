@@ -259,7 +259,6 @@ class IncomeTaxTest extends TestCase
         $this->assertSame([['label' => 'Invoices issued', 'cents' => $this->r(1_330_000)]], $parts['income']);
         $this->assertSame([['label' => 'Bills and expense claims', 'cents' => $this->r(300_000)]], $parts['expense']);
         $this->assertSame($e->incomeCents, array_sum(array_column($parts['income'], 'cents')), 'the parts add up to the income line');
-        $this->assertTrue(collect($e->warnings)->contains(fn ($w) => str_contains($w, 'count an invoice or bill when it is issued')));
     }
 
     public function test_non_deductible_categories_are_flagged_for_review_from_the_research_prompts(): void

@@ -6,7 +6,7 @@
 <div class="fx-grid fx-grid--form r-stack">
     <x-fx.panel flush title="Limits in force">
         @if ($limits->isEmpty())
-        <x-fx.empty title="No spend limits.">No spend limits. Approvers can approve any amount their policy allows.</x-fx.empty>
+        <x-fx.empty title="No spend limits.">Approvers can approve any amount their policy allows.</x-fx.empty>
         @else
         <x-fx.table caption="Limits in force" class="fx-table--compact">
             <thead><tr><th scope="col">Applies to</th><th scope="col" class="is-num">Limit</th><th scope="col">Period</th>@if ($canManage)<th scope="col"><span class="sr-only">Action</span></th>@endif</tr></thead>

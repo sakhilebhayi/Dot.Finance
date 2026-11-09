@@ -74,7 +74,6 @@ final class IncomeTaxEstimator
             $expense = (int) $pl->where('class', 'expense')->sum('net_cents');
             $flagged = $this->flag($ctx, $pl->where('class', 'expense'), $end);
             $bySource = $this->lines->profitBySource($ctx, $start->toDateString(), $upTo->toDateString());
-            $warnings[] = 'These figures are read from the books (the posted journals), the same ones as the Profit and loss report. The books count an invoice or bill when it is issued, so they will not match the Transactions list, which only holds money that moved.';
         } else {
             $source = 'cash ledger';
             $warnings[] = 'Accounting is not switched on, so the profit is taken from the cash ledger (income less expenses recorded). Switch accounting on for a figure that ties to the books.';

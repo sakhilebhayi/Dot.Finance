@@ -132,6 +132,7 @@
         <form method="POST" action="{{ route('tax.income.provision') }}" class="fx-form fx-stack">@csrf
             <input type="hidden" name="year_end" value="{{ $yearEnd->toDateString() }}">
             <x-fx.select name="expense_account_id" label="Income tax expense account" hint="Choose an expense account. Create one in the chart if you have none.">
+                @unless ($defaultExpense)<option value="" selected>Choose an account</option>@endunless
                 @foreach ($expenseAccounts as $a)<option value="{{ $a->id }}" @selected($defaultExpense?->id === $a->id)>{{ $a->label() }}</option>@endforeach
             </x-fx.select>
             <x-fx.check name="confirm">I confirm this provision is an estimate and should be posted</x-fx.check>

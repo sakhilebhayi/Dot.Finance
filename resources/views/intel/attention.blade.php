@@ -1,7 +1,7 @@
 <x-app-layout title="What needs attention">
 
 <x-fx.page-head title="What needs attention">
-    <x-slot name="sub">Things in the books that look unusual, found by fixed statistical rules over your own entries. Each one shows the rows behind it. They are prompts to look, not accusations: if it is fine, dismiss it.</x-slot>
+    <x-slot name="sub">Things in the books that look unusual, found by fixed checks over your own entries. Each one shows the rows behind it. They are prompts to look, not accusations: if it is fine, dismiss it.</x-slot>
     @can('record-entries')
     <x-slot name="actions">
         <form method="POST" action="{{ route('intel.attention.scan') }}">

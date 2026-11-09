@@ -19,16 +19,16 @@ class TaxDeadline extends Model
     use HasLedgerContext;
 
     public const OBLIGATIONS = [
-        'vat201' => 'VAT201 return',
-        'emp201' => 'EMP201 monthly employer declaration',
+        'vat201' => 'VAT return (VAT201)',
+        'emp201' => 'Monthly employer tax return (EMP201)',
         'irp6_1' => 'Provisional tax, first payment (IRP6)',
         'irp6_2' => 'Provisional tax, second payment (IRP6)',
         'irp6_3' => 'Provisional tax, third (top-up) payment (IRP6)',
         'itr14' => 'Company income tax return (ITR14)',
         'itr12' => 'Personal income tax return (ITR12)',
-        'emp501_interim' => 'EMP501 interim reconciliation',
-        'emp501_annual' => 'EMP501 annual reconciliation',
-        'coida_roe' => 'COIDA return of earnings',
+        'emp501_interim' => 'Employer tax reconciliation, half-year (EMP501)',
+        'emp501_annual' => 'Employer tax reconciliation, full year (EMP501)',
+        'coida_roe' => 'Workers\' compensation return of earnings (COIDA)',
     ];
 
     /** Days before the due date at which a deadline is "due" (shown as needing attention). */
