@@ -1115,3 +1115,15 @@
     font-family: var(--font-display);
     font-stretch: 108%;
 }
+
+/* The pager's current page: the generic span rule in components.css out-ranks `.is-current`, which left the page number
+   ink on ink (contrast 1:1). Found by the contrast sweep on the general ledger. */
+.fx-pager span.fx-pager__page.is-current {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.fx-pager span.fx-pager__page.is-off,
+.fx-pager span.fx-pager__page.is-gap {
+    color: var(--ink-3);
+}
