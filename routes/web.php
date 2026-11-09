@@ -120,3 +120,7 @@ if (! Features::enabled(Features::registration())) {
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---
+
+// --- purchases ---
+require __DIR__.'/purchases.php';
+// --- end purchases ---

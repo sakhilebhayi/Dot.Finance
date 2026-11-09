@@ -37,6 +37,8 @@ class GlSweeper
             ->whereNull('t.deleted_at')->whereIn('t.type', ['income', 'expense'])->where('t.amount_cents', '>', 0)
             ->where(fn ($q) => $q->whereNull('a.opening_balance_date')->orWhereColumn('t.date', '>=', 'a.opening_balance_date'))
             ->whereNotExists($liveEntry('transaction', 'CAST(t.id AS VARCHAR(64))'))
+            // R-44: the bank leg of a document payment is journalled by the payment's own entry (SettlementTransactions)
+            ->whereNotExists(fn ($sub) => $owned($sub->selectRaw('1')->from('payments as p')->whereColumn('p.transaction_id', 't.id'), 'p'))
             ->pluck('t.id')->map(fn ($id) => (int) $id)->all();
 
         // Transactions that should not be posted (deleted, or before the opening date) but still have a live entry.

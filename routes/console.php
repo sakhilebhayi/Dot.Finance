@@ -48,3 +48,11 @@ Schedule::command(Verify::class)
     ->dailyAt('02:40')
     ->withoutOverlapping()
     ->onOneServer();
+
+// --- purchases ---
+// Make the draft bills that recurring-bill schedules have come due for (idempotent per schedule and period).
+Schedule::command(\App\Console\Commands\Purchases\GenerateRecurringBills::class)
+    ->dailyAt('03:10')
+    ->withoutOverlapping()
+    ->onOneServer();
+// --- end purchases ---
