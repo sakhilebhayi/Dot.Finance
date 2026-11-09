@@ -85,6 +85,7 @@ Nothing was deleted or weakened.
 ## 5. Owner and integrator steps
 
 1. `php artisan migrate` on production adds the triggers and constraints. Look for the log line `transactions_rule_date_unique not created`: if present, clean up the duplicates the reconciler lists (`recurring_duplicate`) and run `php artisan finance:ensure-recurring-index`.
+   Run `php artisan finance:check-balances` first: a row that still has no cents value (`unmigrated_legacy_row`) would break the new `amount_cents > 0` rule for any later update of that row (PostgreSQL checks an updated row even under a `NOT VALID` constraint). The migration validates each constraint only when no existing row breaks it, and says nothing if one does.
 2. Keep `CACHE_STORE=database` (the default) so `onOneServer` is real across hosts; the row lock and the unique index protect the data either way.
 3. Accounting is **off** for every ledger until someone runs the wizard (Accounting in the sidebar) or `php artisan finance:gl:backfill --ledger=company:ID --apply --enable` after a `--dry-run`. Nothing changes for a ledger that does not.
 4. Read the dry-run's exception list (rows before the opening date, zero amounts, legacy transfers, rows with no exchange rate): nothing is fixed automatically.

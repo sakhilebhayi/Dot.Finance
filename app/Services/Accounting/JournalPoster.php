@@ -3,7 +3,6 @@
 namespace App\Services\Accounting;
 
 use App\Models\Account;
-use App\Models\Accounting\AccountingPeriod;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
@@ -280,10 +279,5 @@ class JournalPoster
             $previous ?? '', $context->key(), $number, $request->entryDate->toDateString(), $request->sourceType, $request->sourceId,
             $request->sourceVersion, $currency, implode(',', $lines),
         ]));
-    }
-
-    public function period(JournalEntry $entry): AccountingPeriod
-    {
-        return $entry->period;
     }
 }

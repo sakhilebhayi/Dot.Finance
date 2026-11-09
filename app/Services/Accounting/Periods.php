@@ -243,10 +243,4 @@ class Periods
         return LedgerSetting::query()->forContext($context)->lockForUpdate()->first()
             ?? throw new AccountingNotReady('This ledger has no accounting settings yet.');
     }
-
-    /** The open period containing today (created on demand), for default displays. */
-    public function current(LedgerContext $context): ?AccountingPeriod
-    {
-        return AccountingPeriod::query()->forContext($context)->orderByDesc('start_date')->first();
-    }
 }

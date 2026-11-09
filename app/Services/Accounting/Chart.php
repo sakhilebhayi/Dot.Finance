@@ -5,7 +5,6 @@ namespace App\Services\Accounting;
 use App\Models\Account;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalLine;
-use App\Models\Accounting\LedgerSetting;
 use App\Models\Category;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\Exceptions\AccountingNotReady;
@@ -307,10 +306,5 @@ class Chart
         $this->flush();
 
         return $gl;
-    }
-
-    public function settingsFor(LedgerContext $context): ?LedgerSetting
-    {
-        return LedgerSetting::query()->forContext($context)->first();
     }
 }
