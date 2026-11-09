@@ -54,14 +54,23 @@ class AccountController extends Controller
             'institution' => ['nullable', 'string', 'max:255'],
         ]);
 
-        Account::create($this->ledger()->ownerAttributes() + [
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'currency' => $validated['currency'],
-            'institution' => $validated['institution'] ?? null,
-            'opening_balance_cents' => Money::parse((string) $validated['opening_balance']),
-            'opening_balance_date' => $validated['opening_balance_date'] ?? now()->toDateString(),
-        ]);
+        try {
+            DB::transaction(function () use ($validated) {
+                $account = Account::create($this->ledger()->ownerAttributes() + [
+                    'name' => $validated['name'],
+                    'type' => $validated['type'],
+                    'currency' => $validated['currency'],
+                    'institution' => $validated['institution'] ?? null,
+                    'opening_balance_cents' => Money::parse((string) $validated['opening_balance']),
+                    'opening_balance_date' => $validated['opening_balance_date'] ?? now()->toDateString(),
+                ]);
+
+                // With accounting on, a new account gets its GL account and its opening entry straight away.
+                app(GlSync::class)->account($account);
+            });
+        } catch (PeriodClosed $e) {
+            return back()->withErrors(['opening_balance_date' => $e->getMessage().' An account cannot open inside a closed period.'])->withInput();
+        }
 
         return redirect()->route('accounts.index')->with('status', 'Account added.');
     }

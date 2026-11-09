@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\DateOnly;
+use App\Models\Accounting\GlAccount;
 use App\Models\Concerns\HasLedgerContext;
 use App\Services\AccountBalances;
 use Database\Factories\AccountFactory;
@@ -50,6 +51,11 @@ class Account extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function glAccount(): BelongsTo
+    {
+        return $this->belongsTo(GlAccount::class, 'gl_account_id');
     }
 
     public function transactions(): HasMany

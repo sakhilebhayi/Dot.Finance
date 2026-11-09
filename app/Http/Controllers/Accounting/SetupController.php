@@ -136,9 +136,11 @@ class SetupController extends AccountingController
 
         app(GlSync::class)->flush();
 
-        return redirect()->route('accounting.setup.review')
-            ->with('status', $problems === [] ? 'Mapping saved.' : null)
-            ->withErrors($problems === [] ? [] : ['mapping' => implode(' ', $problems)]);
+        $redirect = redirect()->route('accounting.setup.review');
+
+        return $problems === []
+            ? $redirect->with('status', 'Mapping saved.')
+            : $redirect->withErrors(['mapping' => implode(' ', $problems)]);
     }
 
     public function dryRun(GlBackfill $backfill): RedirectResponse
