@@ -6,11 +6,13 @@ use App\Models\Accounting\JournalEntry;
 use App\Models\Purchases\Bill;
 use App\Models\Purchases\ExpenseClaim;
 use App\Models\Shared\Attachment;
+use App\Services\Purchases\ClaimWorkflow;
 use App\Services\Purchases\Extraction\ModelExtractor;
 use App\Services\Purchases\Extraction\PdfText;
 use App\Services\Purchases\Extraction\RuleBasedExtractor;
-use App\Services\Purchases\ClaimWorkflow;
+use App\Services\Purchases\PurchasesException;
 use App\Services\Purchases\ReceiptCapture;
+use App\Services\Shared\Attachments;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Shared\Exceptions\DuplicateAttachment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -163,7 +165,7 @@ class ReceiptCaptureTest extends TestCase
         $this->assertCount(2, $versions);
         $this->assertSame([1, 2], array_column($versions, 'n'));
         $this->assertSame($hash, $attachment->fresh()->sha256);
-        $this->assertTrue(app(\App\Services\Shared\Attachments::class)->verify($attachment->fresh()), 'the stored bytes still hash to the recorded value');
+        $this->assertTrue(app(Attachments::class)->verify($attachment->fresh()), 'the stored bytes still hash to the recorded value');
     }
 
     public function test_after_review_a_draft_bill_is_made_with_the_file_attached_and_the_history_kept(): void
@@ -196,7 +198,7 @@ class ReceiptCaptureTest extends TestCase
         $fields = ['party_id' => $this->supplier->id, 'bill_date' => '2026-11-05', 'document_type' => 'tax_invoice', 'total_cents' => 115_000, 'gl_account_id' => $this->gl('6190')->id, 'tax_code' => 'ZA_VAT_STD'];
         app(ReceiptCapture::class)->toBill($this->ctx, $this->owner, $attachment, $fields);
 
-        $this->expectException(\App\Services\Purchases\PurchasesException::class);
+        $this->expectException(PurchasesException::class);
         app(ReceiptCapture::class)->toBill($this->ctx, $this->owner, $attachment->fresh(), $fields);
     }
 
@@ -240,7 +242,7 @@ class ReceiptCaptureTest extends TestCase
             'lines' => [['spent_on' => '2026-11-04', 'merchant' => 'Shell', 'description' => 'Fuel', 'receipt_type' => 'none', 'gl_account_id' => $this->gl('6170')->id, 'tax_code' => 'ZA_VAT_ZERO', 'gross_cents' => 23_000]],
         ]);
         $line = LedgerContext::run($this->ctx, fn () => $claim->lines()->first());
-        app(\App\Services\Shared\Attachments::class)->attach($attachment, $line);
+        app(Attachments::class)->attach($attachment, $line);
 
         app(ClaimWorkflow::class)->saveDraft($this->ctx, $this->owner, [
             'title' => 'Trip (fixed)', 'claim_date' => '2026-11-04',
@@ -257,7 +259,7 @@ class ReceiptCaptureTest extends TestCase
         app(ReceiptCapture::class)->reject($this->owner, $attachment);
 
         $this->assertSame('rejected', $attachment->fresh()->extraction_status);
-        $this->assertTrue(app(\App\Services\Shared\Attachments::class)->verify($attachment->fresh()));
+        $this->assertTrue(app(Attachments::class)->verify($attachment->fresh()));
     }
 
     // ── the model-backed reader ─────────────────────────────────────────

@@ -13,6 +13,7 @@ use App\Services\Shared\FxService;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Shared\Exceptions\NoFxRate;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 /**
  * Small facts about the ledger Purchases needs everywhere: is accounting on, what is the base currency, how does an amount
@@ -117,7 +118,7 @@ class PurchaseLedger
      * The chart accounts a bill line may be charged to: active, postable expense accounts, and the asset accounts that hold purchases
      * (prepayments, inventory, fixed assets).
      *
-     * @return \Illuminate\Support\Collection<int, GlAccount>
+     * @return Collection<int, GlAccount>
      */
     public function chargeableAccounts(LedgerContext $context)
     {

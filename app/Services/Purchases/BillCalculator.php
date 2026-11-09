@@ -9,6 +9,7 @@ use App\Services\Shared\Tax\TaxLineInput;
 use App\Services\Shared\TaxCalculator;
 use App\Services\Shared\TaxRuleBook;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Money;
 use App\Support\Shared\Exceptions\NoValidTaxRule;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
@@ -147,7 +148,7 @@ final class BillCalculator
             [$num, $den] = $doc['claim_ratio'];
             $claimable = 0;
             foreach ($out as &$line) {
-                $line['claimable_tax_cents'] = $den > 0 ? \App\Support\Money::mulDivRound($line['tax_cents'], $num, $den) : 0;
+                $line['claimable_tax_cents'] = $den > 0 ? Money::mulDivRound($line['tax_cents'], $num, $den) : 0;
                 $line['claim_reason'] = $line['claimable_tax_cents'] < $line['tax_cents'] ? 'follows_bill' : null;
                 $claimable += $line['claimable_tax_cents'];
             }

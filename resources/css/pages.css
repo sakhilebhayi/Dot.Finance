@@ -870,3 +870,31 @@
 .fx-legal h1 {
     font-size: var(--fs-title);
 }
+
+/* ---- Purchases: the receipts inbox ---- */
+.fx-doc {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: var(--r-panel, 6px);
+}
+
+.fx-excerpt {
+    margin: 0;
+    padding: var(--s-3);
+    max-height: 22rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--sunk);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-control, 5px);
+    font-family: var(--font-figure, ui-monospace, monospace);
+    font-size: var(--fs-small);
+    color: var(--ink-2);
+}
+
+.fx-inline {
+    display: inline-block;
+}

@@ -3,10 +3,12 @@
 namespace Tests\Feature\Purchases;
 
 use App\Models\Accounting\JournalEntry;
+use App\Models\Accounting\LedgerSetting;
+use App\Models\FinanceAuditLog;
 use App\Models\Purchases\Bill;
 use App\Models\Purchases\PurchaseSetting;
-use App\Services\Accounting\GlVerifier;
 use App\Services\Accounting\Exceptions\PeriodClosed;
+use App\Services\Accounting\GlVerifier;
 use App\Services\Purchases\PurchasesException;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -203,7 +205,7 @@ class BillPostingTest extends TestCase
 
     public function test_a_posting_into_a_closed_period_is_refused_and_leaves_a_draft(): void
     {
-        LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\LedgerSetting::query()->update(['books_closed_through' => '2026-10-31']));
+        LedgerContext::run($this->ctx, fn () => LedgerSetting::query()->update(['books_closed_through' => '2026-10-31']));
         $draft = $this->draftBill(['bill_date' => '2026-10-15']);
 
         $this->expectException(PeriodClosed::class);
@@ -272,7 +274,7 @@ class BillPostingTest extends TestCase
     {
         $bill = $this->postedBill(['notes' => 'secret handshake notes']);
 
-        $rows = \App\Models\FinanceAuditLog::query()->forContext($this->ctx)->where('subject_type', 'bill')->where('subject_id', $bill->id)->get();
+        $rows = FinanceAuditLog::query()->forContext($this->ctx)->where('subject_type', 'bill')->where('subject_id', $bill->id)->get();
         $this->assertTrue($rows->contains(fn ($r) => $r->action === 'created'));
         $this->assertTrue($rows->contains(fn ($r) => ($r->changes['status']['after'] ?? null) === 'open'));
         $this->assertStringNotContainsString('secret handshake', json_encode($rows->pluck('changes')));

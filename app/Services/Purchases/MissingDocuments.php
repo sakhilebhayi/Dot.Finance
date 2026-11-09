@@ -3,7 +3,6 @@
 namespace App\Services\Purchases;
 
 use App\Models\Purchases\Bill;
-use App\Models\Purchases\ExpenseClaim;
 use App\Models\Purchases\ExpenseClaimLine;
 use App\Models\Purchases\PurchaseSetting;
 use App\Models\Shared\Attachment;
@@ -19,7 +18,7 @@ use Illuminate\Support\Collection;
  *
  *   bill          a supplier bill that is on its way into the books or in them (not a draft, not void) with no file attached
  *   expense_claim a receipt on a submitted claim with no file attached
- *   transaction   an expense in the cash ledger (not a payment of a bill, which the bill's own document supports) with no file attached;
+ *   transaction   an expense in the cash ledger (not a payment of a bill, which the bill's own document supports) with no file attached in the last 90 days;
  *                 only for a ledger that has accounting on
  *
  * ... when the amount is at or above the ledger's threshold (Purchases > Settings; by default the tax rule "no tax invoice is needed
@@ -36,6 +35,9 @@ final class MissingDocuments
 {
     private const TRANSACTION_LIMIT = 500;
 
+    /** Cash-ledger expenses are chased for this many days back; older ones are not nagged about (the books keep them regardless). */
+    private const TRANSACTION_DAYS = 90;
+
     public function __construct(private readonly PurchaseLedger $ledger) {}
 
     /** @return Collection<int, array<string, mixed>> */
@@ -49,7 +51,7 @@ final class MissingDocuments
 
             $billFiles = $withFile((new Bill)->getMorphClass());
             Bill::query()->with('party')->whereNotIn('status', ['draft', 'void'])->get()
-                ->each(function (Bill $bill) use ($context, $threshold, $billFiles, $items) {
+                ->each(function (Bill $bill) use ($threshold, $billFiles, $items) {
                     $base = $bill->baseTotalCents();
                     if ($base < $threshold || $billFiles->has($bill->id)) {
                         return;
@@ -81,7 +83,7 @@ final class MissingDocuments
             // Cash-ledger expenses are only listed for a ledger that keeps books (accounting on): a casual personal ledger is not nagged for receipts.
             $txFiles = $withFile((new Transaction)->getMorphClass());
             $candidates = $this->ledger->accountingEnabled($context)
-                ? Transaction::query()->counted()->where('type', 'expense')->whereNull('transfer_group')->where('amount_cents', '>=', $threshold)->orderByDesc('date')->limit(self::TRANSACTION_LIMIT)->get()
+                ? Transaction::query()->counted()->where('type', 'expense')->whereNull('transfer_group')->where('amount_cents', '>=', $threshold)->where('date', '>=', now()->subDays(self::TRANSACTION_DAYS)->toDateString())->orderByDesc('date')->limit(self::TRANSACTION_LIMIT)->get()
                 : collect();
             $settlement = array_flip(SettlementTransactions::among($context, $candidates->pluck('id')->map(fn ($id) => (int) $id)->all()));
 

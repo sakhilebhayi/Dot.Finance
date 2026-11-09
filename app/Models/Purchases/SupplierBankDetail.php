@@ -2,7 +2,6 @@
 
 namespace App\Models\Purchases;
 
-use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
 use App\Models\Shared\Party;
 use App\Models\User;

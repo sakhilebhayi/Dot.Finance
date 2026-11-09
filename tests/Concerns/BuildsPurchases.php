@@ -6,12 +6,15 @@ use App\Models\Account;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
 use App\Models\Accounting\JournalLine;
+use App\Models\Controls\ApprovalPolicy;
+use App\Models\Controls\LedgerMemberRole;
 use App\Models\Purchases\Bill;
 use App\Models\Purchases\PurchaseSetting;
 use App\Models\Shared\Party;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Accounting\ChartTemplates;
+use App\Services\Controls\ApprovalPolicies;
 use App\Services\Purchases\BillWorkflow;
 use App\Services\Shared\FxMath;
 use App\Services\Shared\FxService;
@@ -124,7 +127,7 @@ trait BuildsPurchases
         $user = $this->memberOf($this->company, $infodot);
 
         if (in_array($role, ['approver', 'accountant'], true)) {
-            \App\Models\Controls\LedgerMemberRole::create([
+            LedgerMemberRole::create([
                 'team_id' => $this->company->id, 'member_user_id' => $user->id, 'role' => $role, 'granted_by' => $this->owner->id, 'granted_at' => now(),
             ]);
         }
@@ -132,9 +135,9 @@ trait BuildsPurchases
         return $user->fresh();
     }
 
-    protected function policy(string $subject, int $thresholdCents = 100_000, int $steps = 1): \App\Models\Controls\ApprovalPolicy
+    protected function policy(string $subject, int $thresholdCents = 100_000, int $steps = 1): ApprovalPolicy
     {
-        return app(\App\Services\Controls\ApprovalPolicies::class)->create($this->owner, $this->ctx, [
+        return app(ApprovalPolicies::class)->create($this->owner, $this->ctx, [
             'subject_type' => $subject, 'name' => ucfirst($subject).' policy', 'threshold_cents' => $thresholdCents, 'currency' => 'ZAR', 'steps_required' => $steps,
         ]);
     }

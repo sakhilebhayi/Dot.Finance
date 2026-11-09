@@ -13,6 +13,8 @@ use App\Models\Shared\PaymentAllocation;
 use App\Models\User;
 use App\Services\Purchases\BillWorkflow;
 use App\Services\Purchases\PurchaseLedger;
+use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -140,7 +142,7 @@ class Bill extends Model implements Allocatable, Approvable
 
     public function isOverdue(?\DateTimeInterface $on = null): bool
     {
-        $on = $on ? \Carbon\CarbonImmutable::instance($on) : now()->toImmutable();
+        $on = $on ? CarbonImmutable::instance($on) : now()->toImmutable();
 
         return in_array($this->status, ['open', 'partially_paid'], true) && $this->due_date !== null && $this->due_date->toDateString() < $on->toDateString();
     }
@@ -219,6 +221,6 @@ class Bill extends Model implements Allocatable, Approvable
 
     public function auditLabel(): string
     {
-        return $this->kindLabel().' '.($this->number ?? '#'.$this->id).' '.\App\Support\Money::format((int) $this->total_cents, $this->currency);
+        return $this->kindLabel().' '.($this->number ?? '#'.$this->id).' '.Money::format((int) $this->total_cents, $this->currency);
     }
 }

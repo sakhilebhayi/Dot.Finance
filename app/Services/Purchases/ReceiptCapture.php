@@ -11,6 +11,8 @@ use App\Services\Purchases\Extraction\ExtractionResult;
 use App\Services\Purchases\Extraction\ExtractorManager;
 use App\Services\Shared\Attachments;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Shared\Exceptions\AttachmentRejected;
+use App\Support\Shared\Exceptions\DuplicateAttachment;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -36,8 +38,8 @@ final class ReceiptCapture
     /**
      * Store the file in the inbox and read it. A file already in this ledger (same content) is refused with DuplicateAttachment.
      *
-     * @throws \App\Support\Shared\Exceptions\DuplicateAttachment
-     * @throws \App\Support\Shared\Exceptions\AttachmentRejected
+     * @throws DuplicateAttachment
+     * @throws AttachmentRejected
      */
     public function capture(LedgerContext $context, User $by, UploadedFile $file): Attachment
     {

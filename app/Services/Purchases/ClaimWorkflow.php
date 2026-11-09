@@ -137,7 +137,7 @@ final class ClaimWorkflow
         return LedgerContext::run($context, function () use ($by, $claim, $context) {
             $this->ledger->requireAccounting($context);
 
-            $claim = DB::transaction(function () use ($by, $claim, $context) {
+            $claim = DB::transaction(function () use ($claim, $context) {
                 $locked = ExpenseClaim::query()->whereKey($claim->getKey())->lockForUpdate()->firstOrFail();
 
                 if (in_array($locked->status, ['awaiting_approval', 'approved', 'open', 'partially_paid', 'paid'], true)) {

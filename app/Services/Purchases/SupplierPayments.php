@@ -114,6 +114,11 @@ final class SupplierPayments
                 $documents[$i] = $doc;
             }
 
+            // The documents are locked now. A retry that was waiting for the lock finds the payment its twin made, and returns it.
+            if ($rows->isNotEmpty() && ($twin = Payment::query()->where('idempotency_key', $key)->first()) !== null && $twin->gl_entry_id !== null) {
+                return $twin;
+            }
+
             $allocations = [];
             foreach ($rows as $i => $row) {
                 $doc = $documents[$i];
@@ -152,6 +157,10 @@ final class SupplierPayments
                 'fx_rate_e8' => $rate, 'base_amount_cents' => $baseTotal, 'paid_on' => $paidOn->toDateString(), 'method' => $data['method'] ?? 'eft',
                 'reference' => $data['reference'] ?? null, 'idempotency_key' => $key, 'notes' => $data['notes'] ?? null,
             ], $by, $context);
+
+            if (! $payment->wasRecentlyCreated) {
+                return $payment; // a concurrent twin with the same key made it: that one posts it
+            }
 
             // what the payment is worth in base currency, split by the cumulative method so the pieces add up exactly
             $pieces = [];

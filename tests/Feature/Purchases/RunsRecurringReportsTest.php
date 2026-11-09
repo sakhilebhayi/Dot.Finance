@@ -2,11 +2,16 @@
 
 namespace Tests\Feature\Purchases;
 
+use App\Models\Accounting\LedgerSetting;
+use App\Models\FinanceAuditLog;
 use App\Models\Purchases\Bill;
 use App\Models\Purchases\PaymentRun;
+use App\Models\Purchases\PaymentRunItem;
 use App\Models\Purchases\RecurringBill;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
+use App\Models\Transaction;
+use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\Controls\ApprovalService;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\CategorySuggester;
@@ -15,6 +20,7 @@ use App\Services\Purchases\PaymentRunService;
 use App\Services\Purchases\PurchasesException;
 use App\Services\Purchases\RecurringBills;
 use App\Services\Purchases\SupplierBankDetails;
+use App\Services\Purchases\SupplierPayments;
 use App\Services\Purchases\SupplierStatement;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
@@ -103,7 +109,7 @@ class RunsRecurringReportsTest extends TestCase
         $this->assertSame(['paid', 'paid', 'paid'], [$a->fresh()->status, $b->fresh()->status, $c->fresh()->status]);
         $this->assertSame(2, Payment::query()->forContext($this->ctx)->count(), 'one payment per supplier');
         $this->assertTrue(app(ApLedger::class)->reconcile($this->ctx)['ok']);
-        $this->assertSame(0, \App\Models\Purchases\PaymentRunItem::query()->forContext($this->ctx)->whereNull('payment_id')->count());
+        $this->assertSame(0, PaymentRunItem::query()->forContext($this->ctx)->whereNull('payment_id')->count());
     }
 
     public function test_running_a_run_twice_pays_once(): void
@@ -135,17 +141,17 @@ class RunsRecurringReportsTest extends TestCase
     {
         $run = $this->newRun();
         // a closed period turns the second step into a refusal after the first supplier would have been paid
-        LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\LedgerSetting::query()->update(['books_closed_through' => '2026-11-30']));
+        LedgerContext::run($this->ctx, fn () => LedgerSetting::query()->update(['books_closed_through' => '2026-11-30']));
 
         try {
             $this->runs()->execute($this->owner, $run);
             $this->fail('closed period');
-        } catch (\App\Services\Accounting\Exceptions\PeriodClosed) {
+        } catch (PeriodClosed) {
         }
 
         $this->assertSame('draft', $run->fresh()->status);
         $this->assertSame(0, Payment::query()->forContext($this->ctx)->count());
-        $this->assertSame(0, \App\Models\Transaction::query()->forContext($this->ctx)->where('description', 'like', 'Payment to%')->count());
+        $this->assertSame(0, Transaction::query()->forContext($this->ctx)->where('description', 'like', 'Payment to%')->count());
     }
 
     public function test_a_supplier_with_a_bank_change_waiting_is_held_out_of_the_run(): void
@@ -205,7 +211,7 @@ class RunsRecurringReportsTest extends TestCase
         $bill = $this->postedBill();
 
         try {
-            app(\App\Services\Purchases\SupplierPayments::class)->pay($this->ctx, $this->owner, ['party_id' => $this->supplier->id, 'cash_account_id' => $this->bank->id, 'paid_on' => '2026-11-09', 'idempotency_key' => 'd', 'allocations' => [['type' => 'bill', 'id' => $bill->id, 'amount_cents' => 115_000]]]);
+            app(SupplierPayments::class)->pay($this->ctx, $this->owner, ['party_id' => $this->supplier->id, 'cash_account_id' => $this->bank->id, 'paid_on' => '2026-11-09', 'idempotency_key' => 'd', 'allocations' => [['type' => 'bill', 'id' => $bill->id, 'amount_cents' => 115_000]]]);
             $this->fail('needs approval');
         } catch (PurchasesException $e) {
             $this->assertSame('approval_required', $e->reason);
@@ -235,7 +241,7 @@ class RunsRecurringReportsTest extends TestCase
         $this->assertStringContainsString("'=cmd|calc", $file['csv'], 'a name that begins with = is neutralised with a leading quote');
         $this->assertStringNotContainsString("\n=cmd", $file['csv']);
         $this->assertNotNull($run->fresh()->csv_exported_at);
-        $audit = \App\Models\FinanceAuditLog::query()->forContext($this->ctx)->where('subject_type', 'payment_run')->where('action', 'exported')->first();
+        $audit = FinanceAuditLog::query()->forContext($this->ctx)->where('subject_type', 'payment_run')->where('action', 'exported')->first();
         $this->assertNotNull($audit, 'exporting a payment file is audited');
         $this->assertStringNotContainsString('62123456789', json_encode($audit->toArray()));
     }
@@ -352,7 +358,7 @@ class RunsRecurringReportsTest extends TestCase
     {
         $old = $this->postedBill(['supplier_reference' => 'S-1', 'bill_date' => '2026-08-15', 'lines' => [$this->line(['unit_price_cents' => 100_000])]]);
         $this->postedBill(['supplier_reference' => 'S-2', 'bill_date' => '2026-10-10', 'lines' => [$this->line(['unit_price_cents' => 200_000])]]);
-        app(\App\Services\Purchases\SupplierPayments::class)->pay($this->ctx, $this->owner, ['party_id' => $this->supplier->id, 'cash_account_id' => $this->bank->id, 'paid_on' => '2026-10-25', 'reference' => 'EFT-9', 'idempotency_key' => 's1', 'allocations' => [['type' => 'bill', 'id' => $old->id, 'amount_cents' => 115_000]]]);
+        app(SupplierPayments::class)->pay($this->ctx, $this->owner, ['party_id' => $this->supplier->id, 'cash_account_id' => $this->bank->id, 'paid_on' => '2026-10-25', 'reference' => 'EFT-9', 'idempotency_key' => 's1', 'allocations' => [['type' => 'bill', 'id' => $old->id, 'amount_cents' => 115_000]]]);
 
         $statement = app(SupplierStatement::class)->forSupplier($this->supplier, CarbonImmutable::parse('2026-10-01'), CarbonImmutable::parse('2026-11-09'));
         $zar = $statement['currencies']['ZAR'];

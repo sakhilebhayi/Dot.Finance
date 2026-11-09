@@ -8,6 +8,7 @@ use App\Models\Shared\Party;
 use App\Services\Purchases\PurchasesException;
 use App\Services\Purchases\SupplierBankDetails;
 use App\Support\Ledger\LedgerContext;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -218,7 +219,7 @@ class BankDetailsTest extends TestCase
         $theirs = $this->company($other, 'Theirs Ltd');
         $party = Party::factory()->forCompany($theirs)->supplier()->create();
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->request($this->owner, [], 'Reason given here', true, $party);
     }
 

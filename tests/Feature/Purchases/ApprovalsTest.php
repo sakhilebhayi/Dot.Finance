@@ -4,10 +4,13 @@ namespace Tests\Feature\Purchases;
 
 use App\Exceptions\Controls\ControlsViolation;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Accounting\LedgerSetting;
 use App\Models\Purchases\Bill;
 use App\Services\Controls\ApprovalService;
+use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\ClaimWorkflow;
 use App\Services\Purchases\PurchasesException;
+use App\Services\Purchases\SupplierPayments;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -145,7 +148,7 @@ class ApprovalsTest extends TestCase
         $approver = $this->member('approver');
         $bill = $this->workflow()->submit($bookkeeper, $this->draftBill(['bill_date' => '2026-10-15'], $bookkeeper));
 
-        LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\LedgerSetting::query()->update(['books_closed_through' => '2026-10-31']));
+        LedgerContext::run($this->ctx, fn () => LedgerSetting::query()->update(['books_closed_through' => '2026-10-31']));
         app(ApprovalService::class)->approve($approver, app(ApprovalService::class)->latestFor($bill));
 
         $bill = $bill->fresh();
@@ -153,7 +156,7 @@ class ApprovalsTest extends TestCase
         $this->assertStringContainsString('closed', $bill->post_error);
         $this->assertSame(0, $this->entries());
 
-        LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\LedgerSetting::query()->update(['books_closed_through' => null]));
+        LedgerContext::run($this->ctx, fn () => LedgerSetting::query()->update(['books_closed_through' => null]));
         $posted = $this->workflow()->post($approver, $bill);
 
         $this->assertSame('open', $posted->status);
@@ -200,7 +203,7 @@ class ApprovalsTest extends TestCase
         $this->assertSame(115_000, $this->apBalance());
         $this->assertSame(15_000, $claim->claimable_tax_cents);
 
-        $payment = app(\App\Services\Purchases\SupplierPayments::class)->pay($this->ctx, $this->owner, [
+        $payment = app(SupplierPayments::class)->pay($this->ctx, $this->owner, [
             'party_id' => $claim->party_id, 'cash_account_id' => $this->bank->id, 'paid_on' => '2026-11-09', 'idempotency_key' => 'claim-pay',
             'allocations' => [['type' => 'expense_claim', 'id' => $claim->id, 'amount_cents' => 115_000]],
         ]);
@@ -208,7 +211,7 @@ class ApprovalsTest extends TestCase
         $this->assertSame('paid', $claim->fresh()->status);
         $this->assertSame(0, $this->apBalance());
         $this->assertNotNull($payment->gl_entry_id);
-        $this->assertTrue(\App\Services\Purchases\ApLedger::class === \App\Services\Purchases\ApLedger::class && app(\App\Services\Purchases\ApLedger::class)->reconcile($this->ctx)['ok']);
+        $this->assertTrue(ApLedger::class === ApLedger::class && app(ApLedger::class)->reconcile($this->ctx)['ok']);
     }
 
     public function test_a_receipt_without_a_valid_invoice_gives_no_vat_on_a_claim(): void

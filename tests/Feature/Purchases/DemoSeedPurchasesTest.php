@@ -10,6 +10,7 @@ use App\Services\Accounting\GlVerifier;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\MissingDocuments;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Ledger\LedgerContextManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -45,7 +46,7 @@ class DemoSeedPurchasesTest extends TestCase
 
         // and it signs in and every page opens
         $user = User::query()->where('email', DemoSeed::EMAIL)->firstOrFail();
-        $this->actingAs($user)->withSession([\App\Support\Ledger\LedgerContextManager::SESSION_KEY => $company->id]);
+        $this->actingAs($user)->withSession([LedgerContextManager::SESSION_KEY => $company->id]);
         foreach (['purchases.index', 'purchases.bills.index', 'purchases.suppliers.index', 'purchases.claims.index', 'purchases.payments.index', 'purchases.runs.index', 'purchases.ap.index', 'purchases.receipts.index', 'purchases.documents.index', 'purchases.recurring.index', 'dashboard'] as $name) {
             $this->get(route($name))->assertOk();
         }

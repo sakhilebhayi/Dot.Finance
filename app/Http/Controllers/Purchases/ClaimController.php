@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Purchases;
 
 use App\Enums\Capability;
+use App\Models\Purchases\Bill;
 use App\Models\Purchases\ExpenseClaim;
 use App\Models\Purchases\ExpenseClaimLine;
-use App\Models\User;
 use App\Rules\MoneyAmount;
 use App\Services\Controls\ApprovalService;
 use App\Services\Purchases\BillStatus;
@@ -13,6 +13,8 @@ use App\Services\Purchases\ClaimWorkflow;
 use App\Services\Purchases\PurchaseLedger;
 use App\Services\Shared\Attachments;
 use App\Support\Money;
+use App\Support\Shared\Exceptions\AttachmentRejected;
+use App\Support\Shared\Exceptions\DuplicateAttachment;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +30,7 @@ class ClaimController extends PurchasesController
     {
         $this->authorize('viewAny', ExpenseClaim::class);
 
-        $status = $request->validate(['status' => ['nullable', Rule::in([...\App\Models\Purchases\Bill::STATUSES, 'unpaid'])]])['status'] ?? null;
+        $status = $request->validate(['status' => ['nullable', Rule::in([...Bill::STATUSES, 'unpaid'])]])['status'] ?? null;
         $claims = ExpenseClaim::query()->with('claimant')
             ->when($status, fn ($q) => $status === 'unpaid' ? $q->whereIn('status', ['open', 'partially_paid']) : $q->where('status', $status))
             ->orderByDesc('claim_date')->orderByDesc('id')->paginate(25)->withQueryString();
@@ -159,9 +161,9 @@ class ClaimController extends PurchasesController
 
         try {
             $attachments->store($request->file('file'), $line, $this->user($request), false, $this->ledger());
-        } catch (\App\Support\Shared\Exceptions\DuplicateAttachment $e) {
+        } catch (DuplicateAttachment $e) {
             return $this->duplicateFile($e);
-        } catch (\App\Support\Shared\Exceptions\AttachmentRejected $e) {
+        } catch (AttachmentRejected $e) {
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 

@@ -43,7 +43,7 @@ final class ApLedger
     {
         $asAt ??= CarbonImmutable::today();
 
-        return LedgerContext::run($context, function () use ($context, $asAt, $partyId) {
+        return LedgerContext::run($context, function () use ($asAt, $partyId) {
             $items = collect();
 
             $bills = Bill::query()->with('party')->whereIn('status', Bill::POSTED)->when($partyId, fn ($q) => $q->where('party_id', $partyId))->get();
@@ -84,7 +84,7 @@ final class ApLedger
 
             $settlement = app(Settlement::class);
             Payment::query()->with('party')->where('direction', 'out')->where('status', 'recorded')->when($partyId, fn ($q) => $q->where('party_id', $partyId))->get()
-                ->each(function (Payment $payment) use ($settlement, $items, $asAt) {
+                ->each(function (Payment $payment) use ($settlement, $items) {
                     $unapplied = $settlement->unappliedOf($payment);
                     if ($unapplied['cents'] > 0) {
                         $items->push([

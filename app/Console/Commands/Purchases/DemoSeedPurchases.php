@@ -24,6 +24,7 @@ use App\Services\Purchases\SupplierPayments;
 use App\Services\Shared\FxService;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
+use Database\Seeders\TaxRulesSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +69,7 @@ class DemoSeedPurchases extends Command
         }
 
         // the South African tax rules are data; the seeder is idempotent (production runs it as an owner step)
-        $this->callSilently('db:seed', ['--class' => \Database\Seeders\TaxRulesSeeder::class, '--force' => true]);
+        $this->callSilently('db:seed', ['--class' => TaxRulesSeeder::class, '--force' => true]);
 
         mt_srand(4402);
         DB::transaction(fn () => LedgerContext::run($ctx, fn () => $this->build($ctx, $user)));

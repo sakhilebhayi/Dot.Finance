@@ -9,9 +9,16 @@ use App\Models\Accounting\JournalEntry;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
+use App\Models\Purchases\Bill;
+use App\Models\Purchases\ExpenseClaim;
+use App\Models\Purchases\ExpenseClaimLine;
+use App\Models\Purchases\PaymentRun;
+use App\Models\Purchases\RecurringBill;
+use App\Models\Purchases\SupplierBankDetail;
 use App\Models\RecurringRule;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
+use App\Models\Shared\Payment;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Accounting\ChartTemplates;
@@ -131,13 +138,13 @@ class ContextIsolationRoutesTest extends TestCase
         // Purchases: one of each record the purchases routes bind, in this context.
         $ownerUser = $owner['user_id'] ?? $company->user_id;
         $supplier = Party::factory()->create($owner + ['type' => 'supplier', 'name' => "Sentinel supplier {$label}"]);
-        $bill = \App\Models\Purchases\Bill::create($owner + ['party_id' => $supplier->id, 'bill_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft', 'kind' => 'bill']);
-        $claim = \App\Models\Purchases\ExpenseClaim::create($owner + ['claimant_user_id' => $ownerUser, 'title' => "Sentinel claim {$label}", 'claim_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft']);
-        $claimLine = \App\Models\Purchases\ExpenseClaimLine::create($owner + ['expense_claim_id' => $claim->id, 'line_no' => 1, 'spent_on' => '2026-11-01', 'merchant' => 'Sentinel merchant', 'description' => 'x', 'gl_account_id' => $glAccount, 'tax_code' => 'ZA_VAT_ZERO']);
-        $run = \App\Models\Purchases\PaymentRun::create($owner + ['name' => "Sentinel run {$label}", 'due_by' => '2026-11-30', 'paid_on' => '2026-11-30', 'cash_account_id' => $account->id, 'currency' => 'ZAR', 'status' => 'draft', 'idempotency_key' => "sentinel-run-{$label}"]);
-        $recurring = \App\Models\Purchases\RecurringBill::create($owner + ['party_id' => $supplier->id, 'name' => "Sentinel schedule {$label}", 'frequency' => 'monthly', 'start_on' => '2026-11-01', 'next_run_on' => '2026-12-01', 'currency' => 'ZAR', 'template' => []]);
-        $detail = \App\Models\Purchases\SupplierBankDetail::create($owner + ['party_id' => $supplier->id, 'version' => 1, 'status' => 'pending', 'payload' => ['account_number' => '123456'], 'bank_name' => 'Bank', 'account_last4' => '3456', 'account_hash' => hash('sha256', $label), 'change_reason' => 'sentinel', 'requested_at' => now()]);
-        $payment = \App\Models\Shared\Payment::create($owner + ['direction' => 'out', 'party_id' => $supplier->id, 'cash_account_id' => $account->id, 'amount_cents' => 100, 'currency' => 'ZAR', 'paid_on' => '2026-11-01', 'method' => 'eft', 'idempotency_key' => "sentinel-pay-{$label}", 'status' => 'recorded']);
+        $bill = Bill::create($owner + ['party_id' => $supplier->id, 'bill_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft', 'kind' => 'bill']);
+        $claim = ExpenseClaim::create($owner + ['claimant_user_id' => $ownerUser, 'title' => "Sentinel claim {$label}", 'claim_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft']);
+        $claimLine = ExpenseClaimLine::create($owner + ['expense_claim_id' => $claim->id, 'line_no' => 1, 'spent_on' => '2026-11-01', 'merchant' => 'Sentinel merchant', 'description' => 'x', 'gl_account_id' => $glAccount, 'tax_code' => 'ZA_VAT_ZERO']);
+        $run = PaymentRun::create($owner + ['name' => "Sentinel run {$label}", 'due_by' => '2026-11-30', 'paid_on' => '2026-11-30', 'cash_account_id' => $account->id, 'currency' => 'ZAR', 'status' => 'draft', 'idempotency_key' => "sentinel-run-{$label}"]);
+        $recurring = RecurringBill::create($owner + ['party_id' => $supplier->id, 'name' => "Sentinel schedule {$label}", 'frequency' => 'monthly', 'start_on' => '2026-11-01', 'next_run_on' => '2026-12-01', 'currency' => 'ZAR', 'template' => []]);
+        $detail = SupplierBankDetail::create($owner + ['party_id' => $supplier->id, 'version' => 1, 'status' => 'pending', 'payload' => ['account_number' => '123456'], 'bank_name' => 'Bank', 'account_last4' => '3456', 'account_hash' => hash('sha256', $label), 'change_reason' => 'sentinel', 'requested_at' => now()]);
+        $payment = Payment::create($owner + ['direction' => 'out', 'party_id' => $supplier->id, 'cash_account_id' => $account->id, 'amount_cents' => 100, 'currency' => 'ZAR', 'paid_on' => '2026-11-01', 'method' => 'eft', 'idempotency_key' => "sentinel-pay-{$label}", 'status' => 'recorded']);
 
         return ['bill' => $bill->id, 'claim' => $claim->id, 'line' => $claimLine->id, 'run' => $run->id, 'recurring' => $recurring->id, 'detail' => $detail->id, 'payment' => $payment->id, 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
     }

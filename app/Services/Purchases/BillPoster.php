@@ -12,6 +12,7 @@ use App\Services\Accounting\PostingRequest;
 use App\Services\Shared\Numbering;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -104,7 +105,7 @@ final class BillPoster
     /**
      * The balanced entry for a bill, in base currency. Public so the posting can be inspected and tested without writing it.
      *
-     * @param  \Illuminate\Support\Collection<int, BillLine>  $lines
+     * @param  Collection<int, BillLine>  $lines
      */
     public function request(Bill $bill, $lines, string $baseCurrency, ?int $rateE8, ?User $by = null): PostingRequest
     {

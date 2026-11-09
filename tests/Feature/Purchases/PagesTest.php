@@ -7,6 +7,8 @@ use App\Models\Purchases\ExpenseClaim;
 use App\Models\Purchases\PaymentRun;
 use App\Models\Purchases\RecurringBill;
 use App\Models\Purchases\SupplierBankDetail;
+use App\Models\Shared\Attachment;
+use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
 use App\Services\Purchases\ClaimWorkflow;
 use App\Services\Purchases\PaymentRunService;
@@ -14,6 +16,7 @@ use App\Services\Purchases\ReceiptCapture;
 use App\Services\Purchases\SupplierBankDetails;
 use App\Services\Purchases\SupplierPayments;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Ledger\LedgerContextManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -39,7 +42,7 @@ class PagesTest extends TestCase
 
     private RecurringBill $schedule;
 
-    private \App\Models\Shared\Attachment $inbox;
+    private Attachment $inbox;
 
     protected function setUp(): void
     {
@@ -195,7 +198,7 @@ class PagesTest extends TestCase
         file_put_contents($path, MakesPdfs::text(MakesPdfs::invoiceLines('INV-WEB-9', '2 300.00', '300.00', '2 000.00')));
 
         $response = $this->post(route('purchases.receipts.store'), ['file' => new UploadedFile($path, 'web.pdf', null, null, true)]);
-        $attachment = \App\Models\Shared\Attachment::query()->forContext($this->ctx)->where('original_name', 'web.pdf')->firstOrFail();
+        $attachment = Attachment::query()->forContext($this->ctx)->where('original_name', 'web.pdf')->firstOrFail();
         $response->assertRedirect(route('purchases.receipts.show', $attachment));
         $this->get(route('purchases.receipts.show', $attachment))->assertOk()->assertSee('INV-WEB-9')->assertSee('2300.00', false);
 
@@ -262,8 +265,8 @@ class PagesTest extends TestCase
 
         $stranger = $this->user();
         // a session that claims a company the person is not in falls back to their own personal ledger: none of this company's bills
-        $this->actingAs($stranger)->withSession([\App\Support\Ledger\LedgerContextManager::SESSION_KEY => $this->company->id])->get(route('purchases.bills.index'))->assertOk()->assertDontSee($this->bill->number);
-        $this->actingAs($stranger)->withSession([\App\Support\Ledger\LedgerContextManager::SESSION_KEY => $this->company->id])->get(route('purchases.bills.show', $this->bill))->assertNotFound();
+        $this->actingAs($stranger)->withSession([LedgerContextManager::SESSION_KEY => $this->company->id])->get(route('purchases.bills.index'))->assertOk()->assertDontSee($this->bill->number);
+        $this->actingAs($stranger)->withSession([LedgerContextManager::SESSION_KEY => $this->company->id])->get(route('purchases.bills.show', $this->bill))->assertNotFound();
     }
 
     public function test_another_ledgers_ids_are_a_404_on_every_route_that_takes_one(): void
@@ -310,7 +313,7 @@ class PagesTest extends TestCase
 
     public function test_supplier_pages_refuse_a_customer_only_party(): void
     {
-        $customer = \App\Models\Shared\Party::factory()->forCompany($this->company)->create(['type' => 'customer']);
+        $customer = Party::factory()->forCompany($this->company)->create(['type' => 'customer']);
         $this->inCompany($this->owner, $this->company);
 
         $this->get(route('purchases.suppliers.show', $customer))->assertNotFound();

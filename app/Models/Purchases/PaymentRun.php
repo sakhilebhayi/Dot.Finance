@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\Concerns\HasLedgerContext;
 use App\Models\Controls\ApprovalRequest;
 use App\Services\Purchases\PaymentRunService;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -80,6 +81,6 @@ class PaymentRun extends Model implements Approvable
 
     public function auditLabel(): string
     {
-        return 'Payment run #'.$this->id.' '.\App\Support\Money::format((int) $this->total_cents, $this->currency);
+        return 'Payment run #'.$this->id.' '.Money::format((int) $this->total_cents, $this->currency);
     }
 }

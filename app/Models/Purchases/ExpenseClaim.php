@@ -11,6 +11,7 @@ use App\Models\Shared\Party;
 use App\Models\User;
 use App\Services\Purchases\ClaimWorkflow;
 use App\Services\Purchases\PurchaseLedger;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -133,6 +134,6 @@ class ExpenseClaim extends Model implements Allocatable, Approvable
 
     public function auditLabel(): string
     {
-        return 'Expense claim '.($this->number ?? '#'.$this->id).' '.\App\Support\Money::format((int) $this->total_cents, $this->currency);
+        return 'Expense claim '.($this->number ?? '#'.$this->id).' '.Money::format((int) $this->total_cents, $this->currency);
     }
 }

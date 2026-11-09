@@ -8,7 +8,6 @@ use App\Models\Purchases\Bill;
 use App\Models\Purchases\ExpenseClaim;
 use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
-use App\Models\Shared\PaymentAllocation;
 use App\Services\Purchases\BillStatus;
 use App\Services\Purchases\PaymentRunService;
 use App\Services\Purchases\PurchaseLedger;
@@ -16,6 +15,7 @@ use App\Services\Purchases\PurchasesException;
 use App\Services\Purchases\Settlement;
 use App\Services\Purchases\SupplierPayments;
 use App\Services\Shared\FxMath;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -82,7 +82,7 @@ class SupplierPaymentController extends PurchasesController
             if (! in_array($type, ['bill', 'expense_claim'], true) || ! ctype_digit((string) $id) || (trim((string) $amount) === '' && ! $take)) {
                 continue;
             }
-            $allocations[] = ['type' => $type, 'id' => (int) $id, 'take_discount' => $take] + (trim((string) $amount) !== '' ? ['amount_cents' => \App\Support\Money::parse($amount)] : []);
+            $allocations[] = ['type' => $type, 'id' => (int) $id, 'take_discount' => $take] + (trim((string) $amount) !== '' ? ['amount_cents' => Money::parse($amount)] : []);
         }
 
         $data = [
@@ -96,7 +96,7 @@ class SupplierPaymentController extends PurchasesController
             }
         }
         if (! empty($v['on_account']) && (float) $v['on_account'] > 0) {
-            $data['amount_cents'] = array_sum(array_map(fn ($a) => $a['amount_cents'] ?? 0, $allocations)) + \App\Support\Money::parse($v['on_account']);
+            $data['amount_cents'] = array_sum(array_map(fn ($a) => $a['amount_cents'] ?? 0, $allocations)) + Money::parse($v['on_account']);
         }
 
         if ($allocations === [] && empty($v['on_account'])) {
@@ -154,7 +154,7 @@ class SupplierPaymentController extends PurchasesController
         $bill = Bill::query()->where('kind', 'bill')->findOrFail($v['bill_id']);
 
         return $this->attempt(function () use ($request, $payment, $bill, $v) {
-            $this->payments->applyOnAccount($this->user($request), $payment, $bill, \App\Support\Money::parse($v['amount']));
+            $this->payments->applyOnAccount($this->user($request), $payment, $bill, Money::parse($v['amount']));
 
             return redirect()->route('purchases.payments.show', $payment)->with('status', 'Applied to '.$bill->displayNumber().'.');
         });
@@ -177,7 +177,7 @@ class SupplierPaymentController extends PurchasesController
             $until = CarbonImmutable::parse($doc->bill_date->toDateString())->addDays($doc->early_payment_days);
             $taken = Bill::query()->where('credit_for_bill_id', $doc->id)->where('credit_reason', 'Early-payment discount')->where('status', '!=', 'void')->exists();
             if (! $taken && $paidOn->lessThanOrEqualTo($until)) {
-                $discount = ['bp' => $doc->early_payment_discount_bp, 'until' => $until->toDateString(), 'approx_cents' => \App\Support\Money::mulDivRound($doc->total_cents, $doc->early_payment_discount_bp, 10_000)];
+                $discount = ['bp' => $doc->early_payment_discount_bp, 'until' => $until->toDateString(), 'approx_cents' => Money::mulDivRound($doc->total_cents, $doc->early_payment_discount_bp, 10_000)];
             }
         }
 

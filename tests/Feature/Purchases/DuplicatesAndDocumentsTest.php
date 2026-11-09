@@ -2,19 +2,19 @@
 
 namespace Tests\Feature\Purchases;
 
-use App\Models\Purchases\Bill;
 use App\Models\Purchases\PurchaseSetting;
 use App\Models\Shared\Party;
 use App\Models\Transaction;
 use App\Services\Purchases\ClaimWorkflow;
 use App\Services\Purchases\DuplicateSuspected;
 use App\Services\Purchases\MissingDocuments;
-use App\Services\Shared\Attachments;
 use App\Services\Purchases\SupplierPayments;
+use App\Services\Shared\Attachments;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\BuildsPurchases;
 use Tests\TestCase;
@@ -114,7 +114,7 @@ class DuplicatesAndDocumentsTest extends TestCase
 
     // ── missing documents ───────────────────────────────────────────────
 
-    private function missing(): \Illuminate\Support\Collection
+    private function missing(): Collection
     {
         return app(MissingDocuments::class)->forLedger($this->ctx);
     }

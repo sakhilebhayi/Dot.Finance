@@ -17,8 +17,10 @@
 <div class="fx-grid fx-grid--even">
 <x-fx.panel title="The document" meta="The original is kept exactly as uploaded.">
     @if (str_starts_with($attachment->mime, 'image/'))<img src="{{ $url }}" alt="Uploaded document {{ $attachment->original_name }}" class="fx-doc">
-    @elseif ($attachment->mime === 'application/pdf')<iframe src="{{ $url }}" title="Uploaded document {{ $attachment->original_name }}" class="fx-doc fx-doc--frame"></iframe>
-    @else<p>{{ $latest['text_excerpt'] ?? 'No preview for this kind of file.' }}</p>@endif
+    @else
+        <p><x-fx.button :href="$url" icon="external-link" target="_blank" rel="noopener">Open the original in a new tab</x-fx.button></p>
+        @if (! empty($latest['text_excerpt']))<p class="fx-hint">The text that was read from it:</p><pre class="fx-excerpt">{{ $latest['text_excerpt'] }}</pre>@else<p class="fx-hint">No text could be read from this file, so there is nothing to compare. Open it and type the document in.</p>@endif
+    @endif
     <x-slot name="foot"><a class="fx-link" href="{{ $download }}">Download the original</a> · {{ count($record['versions']) }} reading{{ count($record['versions']) === 1 ? '' : 's' }} kept</x-slot>
 </x-fx.panel>
 

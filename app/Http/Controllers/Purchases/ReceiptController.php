@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Purchases;
 
 use App\Enums\Capability;
+use App\Models\Purchases\Bill;
 use App\Models\Purchases\ExpenseClaim;
 use App\Models\Shared\Attachment;
+use App\Rules\MoneyAmount;
 use App\Services\Purchases\CategorySuggester;
 use App\Services\Purchases\Extraction\ExtractorManager;
-use App\Services\Purchases\Extraction\RuleBasedExtractor;
 use App\Services\Purchases\PurchaseLedger;
 use App\Services\Purchases\ReceiptCapture;
 use App\Services\Shared\Attachments;
@@ -68,7 +69,10 @@ class ReceiptController extends PurchasesController
             $guess = $suppliers->first(fn ($p) => $p->tax_number === $fields['supplier_vat_number']);
         }
         if ($guess === null && ! empty($fields['supplier_name'])) {
-            $guess = $suppliers->first(fn ($p) => mb_strtolower($p->name) === mb_strtolower($fields['supplier_name']));
+            // names are compared without punctuation and company suffixes: "Voltage Utilities (Pty) Ltd" is "Voltage Utilities"
+            $plain = fn (string $n) => trim(preg_replace('/\b(pty|ltd|limited|cc|inc|the)\b|[^a-z0-9 ]/', ' ', mb_strtolower($n)) ?? '');
+            $wanted = preg_replace('/\s+/', ' ', $plain($fields['supplier_name']));
+            $guess = $wanted === '' ? null : $suppliers->first(fn ($p) => preg_replace('/\s+/', ' ', $plain($p->name)) === $wanted);
         }
 
         return view('purchases.receipts.show', [
@@ -143,7 +147,7 @@ class ReceiptController extends PurchasesController
     {
         return [
             'reference' => ['nullable', 'string', 'max:60'], 'bill_date' => ['required', 'date_format:Y-m-d'], 'due_date' => ['nullable', 'date_format:Y-m-d'], 'currency' => ['nullable', 'string', 'size:3'],
-            'total' => ['required', new \App\Rules\MoneyAmount], 'tax' => ['nullable', new \App\Rules\MoneyAmount(allowZero: true)], 'document_type' => ['required', Rule::in(\App\Models\Purchases\Bill::DOCUMENT_TYPES)],
+            'total' => ['required', new MoneyAmount], 'tax' => ['nullable', new MoneyAmount(allowZero: true)], 'document_type' => ['required', Rule::in(Bill::DOCUMENT_TYPES)],
             'supplier_vat_number' => ['nullable', 'string', 'max:30', 'regex:/^[A-Za-z0-9 \-]*$/'], 'description' => ['nullable', 'string', 'max:255'], 'supplier_name' => ['nullable', 'string', 'max:120'],
         ];
     }

@@ -3,19 +3,29 @@
 namespace Tests\Feature\Purchases;
 
 use App\Models\Account;
+use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\JournalEntry;
+use App\Models\Accounting\JournalLine;
+use App\Models\Accounting\LedgerSetting;
 use App\Models\Purchases\Bill;
+use App\Models\Shared\Party;
 use App\Models\Shared\Payment;
+use App\Models\Shared\PaymentAllocation;
 use App\Models\Transaction;
+use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\Accounting\GlSweeper;
-use App\Services\Accounting\GlVerifier;
 use App\Services\Accounting\GlSync;
+use App\Services\Accounting\GlVerifier;
+use App\Services\Accounting\JournalPoster;
+use App\Services\Accounting\PostingLine;
+use App\Services\Accounting\PostingRequest;
 use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\PurchasesException;
 use App\Services\Purchases\Settlement;
 use App\Services\Purchases\SupplierPayments;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Shared\Exceptions\IdempotencyConflict;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\Concerns\BuildsPurchases;
@@ -60,9 +70,9 @@ class SupplierPaymentsTest extends TestCase
         $this->assertTrue($ap['ok'], 'the supplier ledger must equal the payable account: '.json_encode($ap));
     }
 
-    private function bankGl(Account $account): \App\Models\Accounting\GlAccount
+    private function bankGl(Account $account): GlAccount
     {
-        return LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\GlAccount::query()->findOrFail($account->fresh()->gl_account_id));
+        return LedgerContext::run($this->ctx, fn () => GlAccount::query()->findOrFail($account->fresh()->gl_account_id));
     }
 
     private function bankBalance(): int
@@ -156,7 +166,7 @@ class SupplierPaymentsTest extends TestCase
             $this->assertSame('bad_amount', $e->reason);
         }
 
-        $other = \App\Models\Shared\Party::factory()->forCompany($this->company)->supplier()->create();
+        $other = Party::factory()->forCompany($this->company)->supplier()->create();
         try {
             $this->pay(['party_id' => $other->id], [['type' => 'bill', 'id' => $bill->id, 'amount_cents' => 100]]);
             $this->fail('another supplier\'s bill must be refused');
@@ -262,13 +272,13 @@ class SupplierPaymentsTest extends TestCase
     public function test_a_payment_into_a_closed_period_changes_nothing(): void
     {
         $bill = $this->postedBill();
-        LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\LedgerSetting::query()->update(['books_closed_through' => '2026-11-30']));
+        LedgerContext::run($this->ctx, fn () => LedgerSetting::query()->update(['books_closed_through' => '2026-11-30']));
         $before = $this->bankBalance();
 
         try {
             $this->pay([], [['type' => 'bill', 'id' => $bill->id, 'amount_cents' => 115_000]]);
             $this->fail('closed period');
-        } catch (\App\Services\Accounting\Exceptions\PeriodClosed) {
+        } catch (PeriodClosed) {
         }
 
         $this->assertSame(0, Payment::query()->forContext($this->ctx)->count());
@@ -307,7 +317,7 @@ class SupplierPaymentsTest extends TestCase
         $this->assertSame(1_800_000, $lines['2000']['debit']);
         $this->assertSame(1_900_000, $lines[$this->bankGl($usdAccount)->code]['credit']);
         $this->assertSame(100_000, $lines['7900']['debit'], 'R1,000 realised exchange loss');
-        $this->assertSame(-100_000, \App\Models\Shared\PaymentAllocation::query()->forContext($this->ctx)->where('payment_id', $payment->id)->value('fx_diff_cents'));
+        $this->assertSame(-100_000, PaymentAllocation::query()->forContext($this->ctx)->where('payment_id', $payment->id)->value('fx_diff_cents'));
         $this->assertBooksTie();
     }
 
@@ -327,7 +337,7 @@ class SupplierPaymentsTest extends TestCase
 
         $this->assertSame('paid', $bill->fresh()->status);
         $this->assertSame(0, $this->apBalance());
-        $gain = (int) LedgerContext::run($this->ctx, fn () => \App\Models\Accounting\JournalLine::query()->where('gl_account_id', $this->gl('7900')->id)->selectRaw('SUM(credit_cents) - SUM(debit_cents) AS n')->value('n'));
+        $gain = (int) LedgerContext::run($this->ctx, fn () => JournalLine::query()->where('gl_account_id', $this->gl('7900')->id)->selectRaw('SUM(credit_cents) - SUM(debit_cents) AS n')->value('n'));
         $this->assertSame(1_900_019 - 1_800_018, $gain, 'carried at R19,000.19, paid R18,000.18');
         $this->assertBooksTie();
     }
@@ -362,7 +372,7 @@ class SupplierPaymentsTest extends TestCase
         $this->postedBill(['supplier_reference' => 'O45', 'bill_date' => '2026-08-01', 'due_date' => '2026-09-25', 'lines' => [$this->line(['unit_price_cents' => 30_000])]]);
         $this->postedBill(['supplier_reference' => 'O200', 'bill_date' => '2026-01-10', 'due_date' => '2026-02-01', 'lines' => [$this->line(['unit_price_cents' => 40_000])]]);
 
-        $ageing = app(ApLedger::class)->ageing($this->ctx, \Carbon\CarbonImmutable::parse('2026-11-09'));
+        $ageing = app(ApLedger::class)->ageing($this->ctx, CarbonImmutable::parse('2026-11-09'));
 
         $this->assertSame([
             'current' => 11_500, 'd1_30' => 23_000, 'd31_60' => 34_500, 'd61_90' => 0, 'd91_120' => 0, 'over_120' => 46_000,
@@ -380,9 +390,9 @@ class SupplierPaymentsTest extends TestCase
         $this->postedBill();
 
         LedgerContext::run($this->ctx, function () {
-            app(\App\Services\Accounting\JournalPoster::class)->post(new \App\Services\Accounting\PostingRequest(
-                \Carbon\CarbonImmutable::parse('2026-11-09'), 'manual', 'x1', 1, 'Adjust payables',
-                [new \App\Services\Accounting\PostingLine('ap', creditCents: 5_000), new \App\Services\Accounting\PostingLine($this->gl('6190')->id, debitCents: 5_000)],
+            app(JournalPoster::class)->post(new PostingRequest(
+                CarbonImmutable::parse('2026-11-09'), 'manual', 'x1', 1, 'Adjust payables',
+                [new PostingLine('ap', creditCents: 5_000), new PostingLine($this->gl('6190')->id, debitCents: 5_000)],
             ));
         });
 

@@ -5,6 +5,7 @@ use App\Console\Commands\GenerateRecurringTransactions;
 use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\PruneImports;
+use App\Console\Commands\Purchases\GenerateRecurringBills;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -51,7 +52,7 @@ Schedule::command(Verify::class)
 
 // --- purchases ---
 // Make the draft bills that recurring-bill schedules have come due for (idempotent per schedule and period).
-Schedule::command(\App\Console\Commands\Purchases\GenerateRecurringBills::class)
+Schedule::command(GenerateRecurringBills::class)
     ->dailyAt('03:10')
     ->withoutOverlapping()
     ->onOneServer();

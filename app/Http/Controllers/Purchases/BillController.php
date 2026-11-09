@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Purchases;
 
+use App\Enums\Capability;
 use App\Models\Purchases\Bill;
 use App\Models\Purchases\SupplierProfile;
 use App\Models\Shared\Party;
-use App\Rules\MoneyAmount;
 use App\Services\Controls\ApprovalService;
 use App\Services\Purchases\BillStatus;
 use App\Services\Purchases\BillWorkflow;
@@ -16,11 +16,14 @@ use App\Services\Purchases\PurchaseLedger;
 use App\Services\Purchases\Settlement;
 use App\Services\Shared\Attachments;
 use App\Services\Shared\FxMath;
-use App\Support\Ledger\LedgerContext;
+use App\Support\Money;
+use App\Support\Shared\Exceptions\AttachmentRejected;
+use App\Support\Shared\Exceptions\DuplicateAttachment;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
@@ -58,7 +61,7 @@ class BillController extends PurchasesController
             })
             ->orderByDesc('bill_date')->orderByDesc('id')->paginate(25)->withQueryString();
 
-        return view('purchases.bills.index', ['bills' => $bills, 'filters' => $v + ['status' => null, 'party_id' => null, 'q' => null, 'kind' => null], 'suppliers' => $this->suppliers(), 'canCreate' => $this->gate(\App\Enums\Capability::EnterBill)]);
+        return view('purchases.bills.index', ['bills' => $bills, 'filters' => $v + ['status' => null, 'party_id' => null, 'q' => null, 'kind' => null], 'suppliers' => $this->suppliers(), 'canCreate' => $this->gate(Capability::EnterBill)]);
     }
 
     public function create(Request $request): View
@@ -115,7 +118,7 @@ class BillController extends PurchasesController
         $this->authorize('update', $bill);
 
         return view('purchases.bills.form', $this->formData($bill->load('lines')) + ['lines' => $bill->lines->map(fn ($l) => [
-            'description' => $l->description, 'gl_account_id' => $l->gl_account_id, 'quantity' => $l->quantity(), 'unit_price' => \App\Support\Money::toDecimalString($l->unit_price_cents),
+            'description' => $l->description, 'gl_account_id' => $l->gl_account_id, 'quantity' => $l->quantity(), 'unit_price' => Money::toDecimalString($l->unit_price_cents),
             'discount' => $l->discount_bp > 0 ? rtrim(rtrim(number_format($l->discount_bp / 100, 2, '.', ''), '0'), '.') : '', 'tax_code' => $l->tax_code, 'dimension' => $l->dimension,
         ])->all()]);
     }
@@ -196,9 +199,9 @@ class BillController extends PurchasesController
 
         try {
             $attachments->store($request->file('file'), $bill, $this->user($request), false, $this->ledger());
-        } catch (\App\Support\Shared\Exceptions\DuplicateAttachment $e) {
+        } catch (DuplicateAttachment $e) {
             return $this->duplicateFile($e);
-        } catch (\App\Support\Shared\Exceptions\AttachmentRejected $e) {
+        } catch (AttachmentRejected $e) {
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 
@@ -212,7 +215,7 @@ class BillController extends PurchasesController
 
         $credit = new Bill(['kind' => 'credit_note', 'bill_date' => now()->toDateString(), 'currency' => $bill->currency, 'party_id' => $bill->party_id, 'credit_for_bill_id' => $bill->id, 'tax_inclusive' => $bill->tax_inclusive, 'document_type' => 'credit_note']);
         $lines = $bill->lines->map(fn ($l) => [
-            'description' => $l->description, 'gl_account_id' => $l->gl_account_id, 'quantity' => $l->quantity(), 'unit_price' => \App\Support\Money::toDecimalString($l->unit_price_cents),
+            'description' => $l->description, 'gl_account_id' => $l->gl_account_id, 'quantity' => $l->quantity(), 'unit_price' => Money::toDecimalString($l->unit_price_cents),
             'discount' => $l->discount_bp > 0 ? rtrim(rtrim(number_format($l->discount_bp / 100, 2, '.', ''), '0'), '.') : '', 'tax_code' => $l->tax_code, 'dimension' => $l->dimension,
         ])->all();
 
@@ -331,7 +334,7 @@ class BillController extends PurchasesController
 
         return [
             'bill' => $bill, 'suppliers' => $this->suppliers(), 'accounts' => $this->accounts(), 'taxCodes' => $this->taxCodes($on), 'currencies' => $this->currencies(),
-            'baseCurrency' => app(PurchaseLedger::class)->baseCurrencyOrDefault($ledger), 'token' => $bill->exists ? null : \Illuminate\Support\Str::uuid()->toString(),
+            'baseCurrency' => app(PurchaseLedger::class)->baseCurrencyOrDefault($ledger), 'token' => $bill->exists ? null : Str::uuid()->toString(),
             'suggestion' => $party ? app(CategorySuggester::class)->forSupplier($ledger, $party->id) : null,
             'profile' => $party ? SupplierProfile::query()->where('party_id', $party->id)->first() : null,
             'creditFor' => $bill->credit_for_bill_id ? Bill::query()->find($bill->credit_for_bill_id) : null,

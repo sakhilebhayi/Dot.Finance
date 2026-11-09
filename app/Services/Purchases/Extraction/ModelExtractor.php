@@ -124,7 +124,7 @@ final class ModelExtractor implements Extractor
             }
         }
 
-        if (isset($fields['subtotal_cents'], $fields['tax_cents'], $fields['total_cents']) && $fields['subtotal_cents'] + $fields['tax_cents'] !== $fields['total_cents']) {
+        if (isset($fields['subtotal_cents'], $fields['tax_cents'], $fields['total_cents']) && $fields['total_cents'] !== $fields['subtotal_cents'] + $fields['tax_cents']) {
             $warnings[] = 'The model\'s subtotal and VAT do not add up to its total. Check the three figures.';
         }
 

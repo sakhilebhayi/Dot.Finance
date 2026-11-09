@@ -21,7 +21,7 @@
         </div>
     </x-fx.panel>
     <x-fx.panel title="Receipts" flush>
-        <x-fx.table caption="Receipts on the claim" keep>
+        <x-fx.table caption="Receipts on the claim" scroll>
             <thead><tr><th scope="col">Date</th><th scope="col">Merchant</th><th scope="col">What for</th><th scope="col">Charge to</th><th scope="col">Receipt is</th><th scope="col">Merchant VAT no.</th><th scope="col">Tax code</th><th scope="col" class="is-num">Paid</th></tr></thead>
             <tbody>@foreach ($rows as $i => $r)<tr>
                 <td data-label="Date"><input class="fx-input" type="date" name="lines[{{ $i }}][spent_on]" value="{{ $r['spent_on'] ?? '' }}" aria-label="Receipt {{ $i + 1 }} date"></td>
