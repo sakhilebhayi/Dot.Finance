@@ -79,10 +79,10 @@ class BillPostingTest extends TestCase
     {
         $bill = $this->draftBill(['lines' => [$this->line(['quantity' => '2.5', 'unit_price_cents' => 12_345, 'discount_bp' => 1000])]]);
 
-        // 2.5 x 123.45 = 308.625, less 10% = 277.7625 -> 277.76 net (half away from zero); VAT 15% = 41.66
-        $this->assertSame(27_776, $bill->subtotal_cents);
-        $this->assertSame(4_166, $bill->tax_cents);
-        $this->assertSame(31_942, $bill->total_cents);
+        // 2.5 x 123.45 = 308.625 -> 308.63 (half away from zero), less 10% (30.863 -> 30.86) = 277.77 net; VAT 15% of 277.77 = 41.6655 -> 41.67
+        $this->assertSame(27_777, $bill->subtotal_cents);
+        $this->assertSame(4_167, $bill->tax_cents);
+        $this->assertSame(31_944, $bill->total_cents);
     }
 
     public function test_a_tax_inclusive_bill_splits_the_price_into_net_and_vat(): void
