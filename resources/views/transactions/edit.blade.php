@@ -22,6 +22,8 @@
     <form method="POST" action="{{ route('transactions.update', $transaction) }}" class="dot-card" style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem;">
         @csrf
         @method('PUT')
+        <input type="hidden" name="version" value="{{ $transaction->version }}">
+        @error('version')<p style="color:#f87171;font-size:0.875rem;">{{ $message }}</p>@enderror
 
         <div>
             <label for="transactions-edit-description" style="display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.35rem;">Description</label>

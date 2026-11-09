@@ -3,13 +3,19 @@
 namespace Tests\Feature\Company;
 
 use App\Models\Account;
+use App\Models\Accounting\AccountingPeriod;
+use App\Models\Accounting\GlAccount;
+use App\Models\Accounting\JournalEntry;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
 use App\Models\RecurringRule;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Accounting\ChartTemplates;
+use App\Services\Accounting\GlBackfill;
 use App\Services\TransferService;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Route as LaravelRoute;
@@ -37,10 +43,14 @@ class ContextIsolationRoutesTest extends TestCase
     use BuildsCompanyLedgers;
     use RefreshDatabase;
 
-    private const LEDGER_TABLES = ['accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights'];
+    private const LEDGER_TABLES = [
+        'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights',
+        // R-44 accounting tables
+        'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+    ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
 
     private User $me;
 
@@ -91,7 +101,21 @@ class ContextIsolationRoutesTest extends TestCase
             app(TransferService::class)->create($company->owner, $account, $other, 100, null, now(), "Sentinel transfer {$label}", null);
         }
 
-        return ['account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id];
+        // Accounting on for the context, so there are journal entries, a chart and a period to smuggle too.
+        $ledger = $company === null ? LedgerContext::personal((int) $owner['user_id']) : LedgerContext::company($company);
+        LedgerContext::run($ledger, function () use ($ledger, $company) {
+            $backfill = app(GlBackfill::class);
+            $backfill->prepare($ledger, 'ZAR', 1, $company === null ? ChartTemplates::PERSONAL : ChartTemplates::COMPANY);
+            $backfill->apply($ledger);
+            $backfill->enable($ledger);
+        });
+        [$journalEntry, $glAccount, $period] = LedgerContext::run($ledger, fn () => [
+            JournalEntry::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
+            GlAccount::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
+            AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
+        ]);
+
+        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id];
     }
 
     private function keyFor(array $owner): string
@@ -233,7 +257,8 @@ class ContextIsolationRoutesTest extends TestCase
 
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
-        $pages = ['dashboard', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create'];
+        $pages = ['dashboard', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create',
+            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],

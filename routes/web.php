@@ -93,6 +93,10 @@ Route::middleware([
 
     // Read-only on purpose: the audit log has no create, update or delete route.
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
+
+    // --- accounting ---
+    require __DIR__.'/accounting.php';
+    // --- end accounting ---
 });
 
 // Public sign-up is closed (accounts are created by InfoDot at first sign-in). Keep the named route so any link or

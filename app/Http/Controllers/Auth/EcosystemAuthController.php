@@ -136,6 +136,11 @@ class EcosystemAuthController extends Controller
     /** A token minted in a database we share (the original design): found, checked, spent. */
     private function userFromLocalToken(string $token): ?User
     {
+        // Sanctum looks the id part up as a bigint; a non-numeric id ('|', 'x|y') is a database error on PostgreSQL, not a miss.
+        if (str_contains($token, '|') && ! ctype_digit(strstr($token, '|', true))) {
+            return null;
+        }
+
         $accessToken = PersonalAccessToken::findToken($token);
 
         if (

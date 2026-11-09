@@ -41,11 +41,11 @@ class BudgetSpendCalculator
         foreach ($budgets->groupBy(fn (Budget $b) => $b->ledgerContext()->key()) as $group) {
             $context = $group->first()->ledgerContext();
 
-            $rows = Transaction::query()->forContext($context)
+            $rows = Transaction::query()->forContext($context)->counted()
                 ->where('type', 'expense')
                 ->whereIn('category_id', $group->pluck('category_id')->unique()->all())
-                ->whereDate('date', '>=', $min->toDateString())
-                ->whereDate('date', '<=', $max->toDateString())
+                ->where('date', '>=', $min->toDateString())
+                ->where('date', '<', $max->copy()->addDay()->startOfDay()->toDateString())
                 ->selectRaw('category_id, currency, date, SUM(amount_cents) AS spent')
                 ->groupBy('category_id', 'currency', 'date')
                 ->get();

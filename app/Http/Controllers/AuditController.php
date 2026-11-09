@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
  */
 class AuditController extends Controller
 {
-    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import'];
+    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import', 'gl_account', 'period'];
 
     public function index(Request $request)
     {

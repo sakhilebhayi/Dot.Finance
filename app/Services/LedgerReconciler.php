@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\Account;
+use App\Models\Accounting\LedgerSetting;
 use App\Models\Transaction;
+use App\Services\Accounting\GlQuery;
+use App\Services\Accounting\GlSweeper;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -117,7 +120,82 @@ class LedgerReconciler
             }
         }
 
-        return ['accounts' => $summary, 'findings' => array_merge($findings, $this->transferFindings($context), $this->crossContextFindings($context))];
+        return ['accounts' => $summary, 'findings' => array_merge(
+            $findings,
+            $this->transferFindings($context),
+            $this->crossContextFindings($context),
+            $this->preOpeningFindings($context),
+            $this->recurringDuplicateFindings($context),
+            $this->journalFindings($context),
+        )];
+    }
+
+    /**
+     * Rows dated before their account's opening date. They are kept, listed on the transactions page, and
+     * excluded from the balance AND from every report (decision D-100), so nothing disagrees; the finding
+     * tells the owner they exist so a statement imported from before the opening date is not a surprise.
+     *
+     * @return list<array{severity: string, code: string, message: string}>
+     */
+    private function preOpeningFindings(LedgerContext $context): array
+    {
+        $rows = DB::table('transactions as t')->join('accounts as a', 'a.id', '=', 't.account_id')
+            ->where(fn ($q) => $context->isCompany() ? $q->where('t.team_id', $context->teamId) : $q->where('t.user_id', $context->userId)->whereNull('t.team_id'))
+            ->whereNull('t.deleted_at')->whereNull('a.deleted_at')
+            ->whereNotNull('a.opening_balance_date')->whereColumn('t.date', '<', 'a.opening_balance_date')
+            ->groupBy('a.id', 'a.name')->selectRaw('a.name, COUNT(*) AS n')->get();
+
+        return $rows->map(fn ($r) => $this->finding('warning', 'pre_opening_transactions', sprintf(
+            'Account "%s" has %d transaction(s) dated before its opening date. They are kept as history but excluded from its balance and from every report.', $r->name, $r->n
+        )))->all();
+    }
+
+    /** @return list<array{severity: string, code: string, message: string}> */
+    private function recurringDuplicateFindings(LedgerContext $context): array
+    {
+        $rows = DB::table('transactions as t')
+            ->where(fn ($q) => $context->isCompany() ? $q->where('t.team_id', $context->teamId) : $q->where('t.user_id', $context->userId)->whereNull('t.team_id'))
+            ->whereNotNull('t.recurring_rule_id')->whereNull('t.deleted_at')
+            ->groupBy('t.recurring_rule_id', 't.date')->havingRaw('COUNT(*) > 1')
+            ->selectRaw('t.recurring_rule_id, t.date, COUNT(*) AS n')->limit(50)->get();
+
+        return $rows->map(fn ($r) => $this->finding('error', 'recurring_duplicate', sprintf(
+            'Recurring rule #%d produced %d entries for %s; delete the extra copies.', $r->recurring_rule_id, $r->n, substr((string) $r->date, 0, 10)
+        )))->all();
+    }
+
+    /**
+     * With accounting on: every cash account must tie out to its journal postings, and every cash-ledger row
+     * must be reflected in the journals. Both are findings the daily verify also raises.
+     *
+     * @return list<array{severity: string, code: string, message: string}>
+     */
+    private function journalFindings(LedgerContext $context): array
+    {
+        $settings = LedgerSetting::query()->forContext($context)->first();
+
+        if ($settings === null || ! $settings->isEnabled()) {
+            return [];
+        }
+
+        $findings = [];
+
+        foreach (app(GlQuery::class)->cashTieOut($context) as $row) {
+            if (! $row['ok']) {
+                $findings[] = $this->finding('error', 'gl_cash_tieout', sprintf(
+                    'Account "%s": the cash ledger says %s but the journals say %s (difference %s).',
+                    $row['name'], Money::format($row['cash_cents'], $row['currency']), Money::format($row['gl_cents'], $row['currency']), Money::format($row['difference_cents'], $row['currency'])
+                ));
+            }
+        }
+
+        $pending = app(GlSweeper::class)->pending($context);
+        $count = count($pending['transactions']) + count($pending['transfers']) + count($pending['openings']);
+        if ($count > 0) {
+            $findings[] = $this->finding('warning', 'gl_pending', "{$count} cash-ledger row(s) are not reflected in the journals yet (finance:gl:post-pending posts them).");
+        }
+
+        return $findings;
     }
 
     /**

@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Models\RecurringRule;
 use App\Models\Transaction;
+use App\Services\Accounting\GlSync;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Carbon;
+use App\Services\Accounting\Exceptions\PeriodClosed;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * The schedule behind recurring rules: when the next occurrence falls, what the
@@ -35,11 +38,23 @@ class TransactionRecurrenceService
                     ->whereNull('paused_at')
                     ->whereNull('ended_at')
                     ->whereNotNull('next_occurrence_date')
-                    ->whereDate('next_occurrence_date', '<=', now()->toDateString())
+                    ->where('next_occurrence_date', '<', now()->addDay()->toDateString())
                     ->whereHas('account', fn ($q) => $q->forContext($context)->whereNull('accounts.deleted_at'))
                     ->get();
 
-                return $rules->sum(fn (RecurringRule $rule) => $this->catchUp($rule));
+                return $rules->sum(function (RecurringRule $rule) {
+                    try {
+                        return $this->catchUp($rule);
+                    } catch (PeriodClosed $e) {
+                        // The books are closed through a date this rule still owes occurrences for. Nothing
+                        // was written for it (its transaction rolled back); it is retried on the next run
+                        // and stays visible as 'recurring_blocked' in the reconciler until the period is
+                        // reopened or the rule is moved forward.
+                        Log::warning("Recurring rule {$rule->id} skipped: ".$e->getMessage());
+
+                        return 0;
+                    }
+                });
             });
         }
 
@@ -57,24 +72,47 @@ class TransactionRecurrenceService
         $today = now()->startOfDay();
 
         DB::transaction(function () use ($rule, $today, &$created) {
+            // Re-read the rule under a row lock: a worker that loaded it a moment ago may be
+            // working from a stale next_occurrence_date, and a second runner would otherwise
+            // write the same dates again. The loser of the race waits here, then sees the date
+            // the winner advanced to and has nothing left to do.
+            $locked = RecurringRule::query()->forContext($rule->ledgerContext())->lockForUpdate()->find($rule->id);
+
+            if ($locked === null || $locked->paused_at !== null || $locked->ended_at !== null) {
+                return;
+            }
+
+            $rule->setRawAttributes($locked->getAttributes(), true);
+
             while ($rule->next_occurrence_date !== null && $rule->next_occurrence_date->lte($today)) {
                 if ($rule->end_date !== null && $rule->next_occurrence_date->gt($rule->end_date)) {
                     break;
                 }
 
-                Transaction::create($rule->ledgerOwner() + [
-                    'account_id' => $rule->account_id,
-                    'category_id' => $rule->category_id,
-                    'description' => $rule->description,
-                    'amount_cents' => $rule->amount_cents,
-                    'currency' => $rule->currency,
-                    'type' => $rule->type,
-                    'date' => $rule->next_occurrence_date,
-                    'notes' => $rule->notes,
-                    'recurring_rule_id' => $rule->id,
-                ]);
+                // Belt and braces next to the unique index (transactions_rule_date_unique): an
+                // occurrence that already exists for this date is never written again.
+                $exists = Transaction::query()->forContext($rule->ledgerContext())
+                    ->where('recurring_rule_id', $rule->id)
+                    ->where('date', $rule->next_occurrence_date->toDateString())
+                    ->exists();
 
-                $created++;
+                if (! $exists) {
+                    $transaction = Transaction::create($rule->ledgerOwner() + [
+                        'account_id' => $rule->account_id,
+                        'category_id' => $rule->category_id,
+                        'description' => $rule->description,
+                        'amount_cents' => $rule->amount_cents,
+                        'currency' => $rule->currency,
+                        'type' => $rule->type,
+                        'date' => $rule->next_occurrence_date,
+                        'notes' => $rule->notes,
+                        'recurring_rule_id' => $rule->id,
+                    ]);
+
+                    app(GlSync::class)->transaction($transaction);
+
+                    $created++;
+                }
 
                 $rule->next_occurrence_date = $this->nextAfter($rule->start_date, $rule->recurrence_type, $rule->recurrence_interval, $rule->next_occurrence_date);
             }

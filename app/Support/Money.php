@@ -105,6 +105,60 @@ final class Money
     }
 
     /**
+     * round($amount * $factor / $divisor), half away from zero, in integers only and without ever
+     * forming the full product (which could pass PHP_INT_MAX): an FX conversion is amount x rate_e8 / 10^8.
+     * The amount splits into whole multiples of the divisor and a remainder smaller than it, so the only
+     * product formed is (remainder x factor), which must fit in an int (it does for any rate below ~92).
+     * Beyond that it throws instead of wrapping.
+     */
+    public static function mulDivRound(int $amount, int $factor, int $divisor): int
+    {
+        if ($divisor <= 0 || $factor < 0) {
+            throw new InvalidArgumentException('mulDivRound needs a positive divisor and a non-negative factor.');
+        }
+
+        $sign = $amount < 0 ? -1 : 1;
+        $abs = abs($amount);
+        $whole = intdiv($abs, $divisor);
+        $rest = $abs % $divisor;
+
+        if ($factor > 0 && ($rest > intdiv(PHP_INT_MAX, $factor) || $whole > intdiv(PHP_INT_MAX, $factor))) {
+            throw new \OverflowException("Amount {$amount} x {$factor} / {$divisor} does not fit in an integer.");
+        }
+
+        $product = $rest * $factor;
+        $fraction = intdiv($product, $divisor);
+        $remainder = $product % $divisor;
+
+        if ($remainder * 2 >= $divisor) {
+            $fraction++;
+        }
+
+        return $sign * ($whole * $factor + $fraction);
+    }
+
+    /**
+     * round($numerator x 10^8 / $denominator): the scaled-integer rate that turns $denominator into
+     * $numerator (an FX rate with 8 decimal places), by two long-division steps so nothing overflows.
+     */
+    public static function ratioE8(int $numerator, int $denominator): int
+    {
+        if ($numerator < 0 || $denominator <= 0 || $numerator > 900_000_000_000_000) {
+            throw new InvalidArgumentException('ratioE8 needs a non-negative numerator (below 9 x 10^14) and a positive denominator.');
+        }
+
+        $step = $numerator * 10_000;
+        $high = intdiv($step, $denominator);
+        $carry = $step % $denominator;
+
+        $step = $carry * 10_000;
+        $low = intdiv($step, $denominator);
+        $carry = $step % $denominator;
+
+        return $high * 10_000 + $low + ($carry * 2 >= $denominator ? 1 : 0);
+    }
+
+    /**
      * Parse a bank-statement amount in the stated number format, into signed
      * cents, with no floats.
      *

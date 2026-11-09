@@ -9,6 +9,11 @@ use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Observers\FinanceAuditObserver;
+use App\Services\AccountBalances;
+use App\Services\Accounting\Chart;
+use App\Services\Accounting\FxRateProvider;
+use App\Services\Accounting\GlSync;
+use App\Services\Accounting\ImpliedFxRateProvider;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
@@ -26,6 +31,15 @@ class AppServiceProvider extends ServiceProvider
         // One manager per application: it holds the explicitly named contexts (console, queue)
         // for the duration of their callbacks.
         $this->app->singleton(LedgerContextManager::class);
+
+        // Derived balances are computed once per request (flushed on every write).
+        $this->app->scoped(AccountBalances::class);
+
+        // The accounting layer. The rate provider is an interface so the shared-data module can bind the
+        // fx_rates-backed one; the default knows only same-currency (and the rate implied by a transfer).
+        $this->app->singleton(FxRateProvider::class, ImpliedFxRateProvider::class);
+        $this->app->scoped(Chart::class);
+        $this->app->scoped(GlSync::class);
     }
 
     /**

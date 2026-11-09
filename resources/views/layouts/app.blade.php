@@ -256,6 +256,10 @@
                 <span class="material-symbols-rounded nav-icon">fact_check</span>
                 Reconciliation
             </a>
+            <a href="{{ route('accounting.trial-balance') }}" class="nav-item {{ request()->routeIs('accounting.*') ? 'active' : '' }}">
+                <span class="material-symbols-rounded nav-icon">account_balance</span>
+                Accounting
+            </a>
             <div class="sidebar-divider" style="margin:10px 0;"></div>
             <a href="{{ route('profile.show') }}" class="nav-item {{ request()->routeIs('profile.show') ? 'active' : '' }}">
                 <span class="material-symbols-rounded nav-icon">manage_accounts</span>

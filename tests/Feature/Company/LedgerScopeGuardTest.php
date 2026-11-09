@@ -36,7 +36,8 @@ class LedgerScopeGuardTest extends TestCase
             }
         }
 
-        $this->assertSame(7, $checked, 'accounts, categories, budgets, transactions, recurring_rules, finance_audit_log and ai_insights');
+        // 7 cash-ledger tables + the 6 accounting tables added by R-44 F1.
+        $this->assertSame(13, $checked, 'accounts, categories, budgets, transactions, recurring_rules, finance_audit_log, ai_insights, ledger_settings, gl_accounts, accounting_periods, journal_entries, journal_lines and gl_backfill_runs');
     }
 
     public function test_nothing_in_app_reaches_around_the_scope_with_a_global_scope_bypass(): void
@@ -65,6 +66,13 @@ class LedgerScopeGuardTest extends TestCase
             'Services/LegacyRecurrenceBackfill.php' => 'one-off legacy conversion run by a migration',
             'Services/LegacyMoneyBackfill.php' => 'one-off legacy conversion run by a migration',
             'Models/Builders/AppendOnlyBuilder.php' => 'a comment about why raw access cannot be guarded',
+            'Console/Commands/EnsureRecurringIndex.php' => 'one-off schema repair: looks for duplicate recurring rows across all ledgers',
+            'Services/Accounting/GlBackfill.php' => 'counts the journal rows of the one ledger it was handed, with an explicit owner condition',
+            'Services/Accounting/GlQuery.php' => 'set-based reporting over journal lines; every query carries an explicit owner condition (JournalIsolationTest proves it)',
+            'Services/Accounting/GlSweeper.php' => 'set-based search for unposted rows in the one ledger it was handed, with an explicit owner condition',
+            'Services/Accounting/GlVerifier.php' => 'integrity checks over the one ledger it was handed, with an explicit owner condition',
+            'Services/Accounting/JournalPoster.php' => 'bulk insert of journal lines and the single guarded reversal-link update (append-only rows have no model path for either)',
+            'Services/Accounting/Periods.php' => 'year-end aggregate over the one ledger it was handed, with an explicit owner condition',
         ];
 
         $found = [];

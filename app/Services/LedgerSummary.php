@@ -25,7 +25,7 @@ class LedgerSummary
     {
         $month ??= now();
 
-        $accounts = Account::query()->forContext($context)->withBalance()->get();
+        $accounts = app(AccountBalances::class)->forContext($context);
 
         $position = [];
         foreach ($accounts as $account) {
@@ -34,10 +34,10 @@ class LedgerSummary
             $position[$account->currency]['balance_cents'] += $account->balanceCents();
         }
 
-        $rows = Transaction::query()->forContext($context)
+        $rows = Transaction::query()->forContext($context)->counted()
             ->whereIn('type', ['income', 'expense'])
-            ->whereDate('date', '>=', $month->copy()->startOfMonth()->toDateString())
-            ->whereDate('date', '<=', $month->copy()->endOfMonth()->toDateString())
+            ->where('date', '>=', $month->copy()->startOfMonth()->toDateString())
+            ->where('date', '<', $month->copy()->startOfMonth()->addMonth()->toDateString())
             ->selectRaw('currency, type, SUM(amount_cents) AS total')
             ->groupBy('currency', 'type')
             ->get();
@@ -61,7 +61,7 @@ class LedgerSummary
     /** @return Collection<int, Account> accounts with their derived balance loaded */
     public function accounts(LedgerContext $context): Collection
     {
-        return Account::query()->forContext($context)->withBalance()->orderBy('name')->get();
+        return app(AccountBalances::class)->forContext($context);
     }
 
     private function blank(string $currency): array

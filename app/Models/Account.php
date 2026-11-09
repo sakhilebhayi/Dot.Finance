@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Casts\DateOnly;
 use App\Models\Concerns\HasLedgerContext;
+use App\Services\AccountBalances;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,6 +33,14 @@ class Account extends Model
         'opening_balance_cents' => 'integer',
         'opening_balance_date' => DateOnly::class,
     ];
+
+    protected static function booted(): void
+    {
+        $flush = static fn () => app(AccountBalances::class)->flush();
+        static::saved($flush);
+        static::deleted($flush);
+        static::restored($flush);
+    }
 
     public function user(): BelongsTo
     {
