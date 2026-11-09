@@ -61,7 +61,8 @@ class ExportService
             FinanceAudit::record($context->ownerAttributes(), 'exported', 'report_export', $export->id, $export->auditLabel(), ['report' => ['after' => $reportKey], 'format' => ['after' => $format]], 'queued', null, $by->id);
         }
 
-        if ($export->status === 'failed') {
+        // A worker that was killed mid-export leaves the row "running" for good; once its claim is stale the ask puts it back in the queue.
+        if ($export->status === 'failed' || $this->claimIsStale($export)) {
             $export->forceFill(['status' => 'queued', 'error' => null])->save();
         }
 
@@ -84,7 +85,7 @@ class ExportService
                     return [$row, false];
                 }
                 // Another worker took it a moment ago and has not finished: leave it to them (a crashed worker's claim goes stale).
-                if ($row->status === 'running' && $row->started_at !== null && $row->started_at->gt(now()->subMinutes(10))) {
+                if ($row->status === 'running' && ! $this->claimIsStale($row)) {
                     return [$row, false];
                 }
                 $row->forceFill(['status' => 'running', 'started_at' => now(), 'attempts' => $row->attempts + 1, 'error' => null])->save();
@@ -97,7 +98,8 @@ class ExportService
             }
 
             try {
-                $report = $this->runner->run($context, $row->report_key, $row->params);
+                // 'stream' is read by the reports that can produce their rows one at a time (the general ledger); the others drop it
+                $report = $this->runner->run($context, $row->report_key, $row->params + ['stream' => '1']);
                 $disk = Storage::disk(config('reporting.export_disk'));
                 $dir = 'report-exports/'.str_replace(':', '-', $context->key());
                 $path = $dir.'/'.$row->id.'-'.substr($row->idempotency_key, 0, 12).'.'.$row->format;
@@ -125,6 +127,36 @@ class ExportService
 
             return $row->refresh();
         });
+    }
+
+    /** A claim older than this (longer than the job's own 300 s timeout) belongs to a worker that is gone. */
+    public const STALE_CLAIM_MINUTES = 6;
+
+    private function claimIsStale(ReportExport $export): bool
+    {
+        return $export->status === 'running' && ($export->started_at === null || $export->started_at->lte(now()->subMinutes(self::STALE_CLAIM_MINUTES)));
+    }
+
+    /**
+     * Put exports whose worker died back in the queue (the scheduler calls this daily with the prune; asking for the export
+     * again does the same for that one). Returns how many were requeued.
+     */
+    public function requeueStale(): int
+    {
+        $n = 0;
+        foreach (LedgerContext::owningRowsIn('report_exports') as $context) {
+            LedgerContext::run($context, function () use (&$n, $context) {
+                foreach (ReportExport::query()->where('status', 'running')->get() as $export) {
+                    if ($this->claimIsStale($export)) {
+                        $export->forceFill(['status' => 'queued', 'error' => null])->save();
+                        GenerateReportExport::dispatch($export->id, $context->userId, $context->teamId);
+                        $n++;
+                    }
+                }
+            });
+        }
+
+        return $n;
     }
 
     /** Remove files and rows past their retention date. Returns how many exports were removed. */

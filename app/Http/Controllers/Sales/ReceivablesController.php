@@ -25,7 +25,7 @@ class ReceivablesController extends SalesController
 
         return view('sales.receivables.index', [
             'ageing' => $ledger->ageing($context, $basis, $asOf), 'reconcile' => $ledger->reconcile($context), 'credits' => $ledger->unappliedCredits($context),
-            'items' => $ledger->openItems($context), 'basis' => $basis, 'asOf' => $asOf, 'canExport' => Gate::allows('export-reports'),
+            'items' => $ledger->openItems($context, null, 15), 'itemCount' => $ledger->openCount($context), 'basis' => $basis, 'asOf' => $asOf, 'canExport' => Gate::allows('export-reports'),
         ]);
     }
 

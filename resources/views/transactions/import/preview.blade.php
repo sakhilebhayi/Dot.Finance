@@ -24,6 +24,13 @@
 </div>
 @endif
 
+@if ($p['too_large'])
+<div class="fx-alert" role="alert">
+    <x-fx.icon name="circle-alert" />
+    <p>This file has {{ number_format($counts['total']) }} rows; one import through this page is limited to {{ number_format($p['max_rows']) }}. Split the file (a month or a quarter at a time) and upload the parts, or ask whoever runs the server to import it with <code>finance:transactions:import</code>, which has no limit.</p>
+</div>
+@endif
+
 {{-- How to read this file --}}
 <form method="GET" action="{{ route('transactions.import.preview', ['token' => $p['token']]) }}" class="fx-panel fx-panel__body fx-form r-stack">
     <div class="fx-row fx-row--3">
@@ -111,8 +118,8 @@
         </x-fx.table>
     </x-fx.panel>
 
-    @if (count($rows) > $shownRows)
-    <p class="fx-hint">Showing the first {{ $shownRows }} of {{ count($rows) }} rows. The counts above cover the whole file, and every importable row is imported.</p>
+    @if ($counts['total'] > $shownRows)
+    <p class="fx-hint">Showing the first {{ $shownRows }} of {{ number_format($counts['total']) }} rows. The counts above cover the whole file, and every importable row is imported.</p>
     @endif
 
     <div class="fx-formactions">

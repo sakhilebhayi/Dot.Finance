@@ -47,13 +47,15 @@ final class ApLedger
         return LedgerContext::run($context, function () use ($asAt, $partyId) {
             $items = collect();
 
-            $bills = Bill::query()->with('party')->whereIn('status', Bill::POSTED)->when($partyId, fn ($q) => $q->where('party_id', $partyId))->get();
-            $claims = ExpenseClaim::query()->with('party')->whereIn('status', Bill::POSTED)->when($partyId, fn ($q) => $q->where('party_id', $partyId))->get();
+            // A paid bill owes nothing, so it is not loaded (a ledger keeps tens of thousands of them); if a "paid" bill were still
+            // owed in the books, reconcile() reports it as a difference between the books and this subledger.
+            $bills = Bill::query()->with('party')->whereIn('status', ['open', 'partially_paid'])->when($partyId, fn ($q) => $q->where('party_id', $partyId))->lazyById(1000); // 1,000 models at a time; only the finished item rows are kept
+            $claims = ExpenseClaim::query()->with('party')->whereIn('status', Bill::POSTED)->when($partyId, fn ($q) => $q->where('party_id', $partyId))->lazyById(1000);
 
             // live allocations of recorded payments, summed per document, in two queries
             $allocated = $this->allocationSums();
             $credits = Bill::query()->where('kind', 'credit_note')->whereNotNull('credit_for_bill_id')->whereIn('status', Bill::POSTED)
-                ->get(['credit_for_bill_id', 'total_cents', 'base_total_cents'])->groupBy('credit_for_bill_id');
+                ->toBase()->get(['credit_for_bill_id', 'total_cents', 'base_total_cents'])->groupBy('credit_for_bill_id');
 
             foreach ($bills as $bill) {
                 if ($bill->isCreditNote()) {
@@ -83,17 +85,23 @@ final class ApLedger
                 }
             }
 
-            $settlement = app(Settlement::class);
-            Payment::query()->with('party')->where('direction', 'out')->where('status', 'recorded')->when($partyId, fn ($q) => $q->where('party_id', $partyId))->get()
-                ->each(function (Payment $payment) use ($settlement, $items) {
-                    $unapplied = $settlement->unappliedOf($payment);
-                    if ($unapplied['cents'] > 0) {
-                        $items->push([
-                            'type' => 'on_account', 'id' => $payment->id, 'route' => null, 'number' => 'Payment '.($payment->reference ?? '#'.$payment->id), 'party_id' => $payment->party_id,
-                            'party' => $payment->party?->name ?? 'Unknown supplier', 'date' => $payment->paid_on->toDateString(), 'due_date' => null, 'currency' => $payment->currency,
-                            'total' => -$payment->amount_cents, 'open' => -$unapplied['cents'], 'open_base' => -$unapplied['base_cents'], 'days_overdue' => 0, 'bucket' => 'current',
-                        ]);
-                    }
+            // Money paid out and not fully applied. The remainder is worked out in the query (amount less live allocations), so only
+            // payments that have one are loaded, and each is valued without a query of its own.
+            $allocated = PaymentAllocation::query()->whereNull('released_at')->groupBy('payment_id')
+                ->selectRaw('payment_id, SUM(amount_cents) AS applied_cents, SUM(COALESCE(base_relief_cents, amount_cents) - fx_diff_cents) AS applied_base');
+            Payment::query()->with('party')->where('direction', 'out')->where('status', 'recorded')->when($partyId, fn ($q) => $q->where('party_id', $partyId))
+                ->leftJoinSub($allocated, 'al', 'al.payment_id', '=', 'payments.id')
+                ->whereRaw('payments.amount_cents - COALESCE(al.applied_cents, 0) > 0')
+                ->select('payments.*')->selectRaw('COALESCE(al.applied_cents, 0) AS applied_cents, COALESCE(al.applied_base, 0) AS applied_base')
+                ->get()
+                ->each(function (Payment $payment) use ($items) {
+                    $cents = (int) $payment->amount_cents - (int) $payment->applied_cents;
+                    $baseCents = max(0, (int) ($payment->base_amount_cents ?? $payment->amount_cents) - (int) $payment->applied_base);
+                    $items->push([
+                        'type' => 'on_account', 'id' => $payment->id, 'route' => null, 'number' => 'Payment '.($payment->reference ?? '#'.$payment->id), 'party_id' => $payment->party_id,
+                        'party' => $payment->party?->name ?? 'Unknown supplier', 'date' => $payment->paid_on->toDateString(), 'due_date' => null, 'currency' => $payment->currency,
+                        'total' => -$payment->amount_cents, 'open' => -$cents, 'open_base' => -$baseCents, 'days_overdue' => 0, 'bucket' => 'current',
+                    ]);
                 });
 
             return $items->sortBy([['party', 'asc'], ['due_date', 'asc']])->values();
@@ -105,18 +113,18 @@ final class ApLedger
      *
      * @return array{as_at: string, rows: list<array{party_id: ?int, party: string, buckets: array<string, int>, total: int}>, totals: array<string, int>, grand_total: int}
      */
-    public function ageing(LedgerContext $context, ?CarbonImmutable $asAt = null): array
+    public function ageing(LedgerContext $context, ?CarbonImmutable $asAt = null, ?Collection $items = null): array
     {
         $asAt ??= CarbonImmutable::today();
         $rows = [];
         $totals = array_fill_keys(self::BUCKETS, 0);
 
-        foreach ($this->openItems($context, $asAt)->groupBy('party_id') as $partyId => $items) {
+        foreach (($items ?? $this->openItems($context, $asAt))->groupBy('party_id') as $partyId => $partyItems) {
             $buckets = array_fill_keys(self::BUCKETS, 0);
-            foreach ($items as $item) {
+            foreach ($partyItems as $item) {
                 $buckets[$item['bucket']] += $item['open_base'];
             }
-            $rows[] = ['party_id' => $partyId === '' ? null : (int) $partyId, 'party' => (string) $items->first()['party'], 'buckets' => $buckets, 'total' => array_sum($buckets)];
+            $rows[] = ['party_id' => $partyId === '' ? null : (int) $partyId, 'party' => (string) $partyItems->first()['party'], 'buckets' => $buckets, 'total' => array_sum($buckets)];
             foreach ($buckets as $bucket => $amount) {
                 $totals[$bucket] += $amount;
             }
@@ -132,9 +140,9 @@ final class ApLedger
      *
      * @return array{ok: bool, books_cents: int, subledger_cents: int, difference_cents: int, suppliers: list<array{party_id: ?int, party: string, books_cents: int, subledger_cents: int, difference_cents: int, ok: bool}>, unassigned_books_cents: int, accounting_on: bool}
      */
-    public function reconcile(LedgerContext $context): array
+    public function reconcile(LedgerContext $context, ?Collection $items = null): array
     {
-        return LedgerContext::run($context, function () use ($context) {
+        return LedgerContext::run($context, function () use ($context, $items) {
             $ap = $this->apAccount($context);
             if ($ap === null) {
                 return ['ok' => true, 'books_cents' => 0, 'subledger_cents' => 0, 'difference_cents' => 0, 'suppliers' => [], 'unassigned_books_cents' => 0, 'accounting_on' => false, 'items' => [], 'items_cents' => 0, 'remainder_cents' => 0];
@@ -148,7 +156,7 @@ final class ApLedger
                 });
 
             $sub = [];
-            foreach ($this->openItems($context) as $item) {
+            foreach ($items ?? $this->openItems($context) as $item) {
                 $key = (int) ($item['party_id'] ?? 0);
                 $sub[$key] = ($sub[$key] ?? 0) + $item['open_base'];
             }
@@ -234,7 +242,7 @@ final class ApLedger
         PaymentAllocation::query()->whereNull('released_at')->whereIn('allocatable_type', ['bill', 'expense_claim'])
             ->whereHas('payment', fn ($q) => $q->where('status', 'recorded'))
             ->selectRaw('allocatable_type, allocatable_id, SUM(amount_cents) AS amount, SUM(COALESCE(base_relief_cents, amount_cents)) AS relief')
-            ->groupBy('allocatable_type', 'allocatable_id')->get()
+            ->groupBy('allocatable_type', 'allocatable_id')->toBase()->get() // plain rows: one per document, not a model each
             ->each(function ($row) use (&$out) {
                 $out[$row->allocatable_type][(int) $row->allocatable_id] = ['amount' => (int) $row->amount, 'relief' => (int) $row->relief];
             });

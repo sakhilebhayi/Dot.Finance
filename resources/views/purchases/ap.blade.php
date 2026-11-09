@@ -52,6 +52,7 @@
     <tr><td class="is-lead">All suppliers</td>@foreach (\App\Services\Purchases\ApLedger::BUCKETS as $b)<td class="is-num"><x-fx.money :cents="$ageing['totals'][$b]" :currency="$base" /></td>@endforeach<td class="is-num"><x-fx.money :cents="$ageing['grand_total']" :currency="$base" /></td></tr>
     </tbody>
 </x-fx.table>
+@if ($items->count() > 300)<p class="fx-hint">The first 300 of {{ number_format($items->count()) }} open items are listed. The ageing above counts all of them, and the CSV export has every one.</p>@endif
 @endif
 </x-fx.panel>
 
@@ -59,7 +60,7 @@
 @if ($items->isEmpty())<x-fx.empty title="No open items." />@else
 <x-fx.table caption="Every open item behind the ageing">
     <thead><tr><th scope="col">Supplier</th><th scope="col">Document</th><th scope="col">Due</th><th scope="col">Age</th><th scope="col" class="is-num">Owed</th><th scope="col" class="is-num">In {{ $base }}</th></tr></thead>
-    <tbody>@foreach ($items as $i)<tr>
+    <tbody>@foreach ($items->take(300) as $i)<tr>
         <td data-label="Supplier" class="is-lead">{{ $i['party'] }}</td>
         <td data-label="Document">@if ($i['route'])<a class="fx-link" href="{{ route($i['route'], $i['id']) }}">{{ $i['number'] }}</a>@else {{ $i['number'] }} @endif <div class="fx-cell-sub">{{ ['bill' => 'Bill', 'expense_claim' => 'Expense claim', 'credit_note' => 'Supplier credit', 'on_account' => 'Paid on account'][$i['type']] }}</div></td>
         <td data-label="Due">{{ $i['due_date'] ? \Carbon\Carbon::parse($i['due_date'])->format('j M Y') : '' }}</td>

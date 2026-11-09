@@ -19,6 +19,7 @@
         </td>
     </tr>@endforeach</tbody>
 </x-fx.table>
+@if ($total > $items->count())<p class="fx-hint">The newest {{ $items->count() }} of {{ number_format($total) }} records are listed. Attach documents to these and the older ones come into view.</p>@endif
 @endif
 </x-fx.panel>
 </x-app-layout>

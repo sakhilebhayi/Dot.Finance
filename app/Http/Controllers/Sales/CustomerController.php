@@ -32,17 +32,20 @@ class CustomerController extends SalesController
         $filters = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'owing' => ['nullable', 'boolean']]);
         $context = $this->ledger();
 
+        // the ageing is worked out once, in the database; the list is paginated (a ledger can have thousands of customers)
+        $ageing = $ledger->ageing($context);
+        $byParty = collect($ageing['rows'])->keyBy(fn ($r) => $r['party']?->id);
+
         $parties = Party::query()->customers()->active()
             ->when(trim((string) ($filters['q'] ?? '')) !== '', function ($q) use ($filters) {
                 $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($filters['q'])).'%';
                 $q->where(fn ($w) => $w->whereRaw("LOWER(name) LIKE LOWER(?) ESCAPE '\\'", [$like])->orWhereRaw("LOWER(email) LIKE LOWER(?) ESCAPE '\\'", [$like]));
-            })->orderBy('name')->get();
+            })
+            ->when(! empty($filters['owing']), fn ($q) => $q->whereIn('id', $byParty->filter(fn ($r) => $r['total'] !== 0)->keys()->all()))
+            ->orderBy('name')->paginate(50)->withQueryString();
+        $rows = $parties->getCollection()->map(fn (Party $p) => ['party' => $p, 'age' => $byParty->get($p->id)])->values();
 
-        $ageing = collect($ledger->ageing($context)['rows'])->keyBy(fn ($r) => $r['party']?->id);
-        $rows = $parties->map(fn (Party $p) => ['party' => $p, 'age' => $ageing->get($p->id)])
-            ->when(! empty($filters['owing']), fn ($c) => $c->filter(fn ($r) => $r['age'] && $r['age']['total'] !== 0))->values();
-
-        return view('sales.customers.index', ['rows' => $rows, 'filters' => $filters + ['q' => null, 'owing' => null], 'totals' => $ledger->ageing($context)['totals'], 'canCreate' => request()->user()->can('create', Party::class)]);
+        return view('sales.customers.index', ['rows' => $rows, 'parties' => $parties, 'filters' => $filters + ['q' => null, 'owing' => null], 'totals' => $ageing['totals'], 'canCreate' => request()->user()->can('create', Party::class)]);
     }
 
     public function show(Party $party, ReceivablesLedger $ledger, Reminders $reminders): View

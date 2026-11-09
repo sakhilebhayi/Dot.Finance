@@ -9,6 +9,7 @@ use App\Services\Reporting\Reconciliations;
 use App\Services\Reporting\ReportRequest;
 use App\Services\Reporting\ReportResult;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 /**
  * The general ledger: each account's lines in date order with a running balance (debit positive), from an opening
@@ -43,7 +44,7 @@ class GeneralLedgerReport extends Report
 
     public function optionKeys(): array
     {
-        return ['account', 'cap'];
+        return ['account', 'cap', 'stream'];
     }
 
     public function group(): string
@@ -80,6 +81,14 @@ class GeneralLedgerReport extends Report
             ->selectRaw('l.gl_account_id, COALESCE(SUM(l.debit_cents), 0) - COALESCE(SUM(l.credit_cents), 0) AS net')->pluck('net', 'gl_account_id');
 
         $capped = $r->option('cap') === '1';
+
+        // An export asks for the rows as a stream: a year of a busy account is hundreds of thousands of lines, and holding them
+        // (as query rows, then again as report rows) does not fit in the host's memory limit. Same rows, same order, one at a time;
+        // the links and drill-downs are for the page and are left out.
+        if ($r->option('stream') === '1' && ! $capped) {
+            return $this->streamed($r, $selected, $only, $opening, $from, $to);
+        }
+
         $lines = $this->query->ownedLines($r->context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
             ->whereBetween('l.entry_date', [$from, $to])->when($only !== null, fn ($q) => $q->where('l.gl_account_id', $only))
             ->orderBy('l.gl_account_id')->orderBy('l.entry_date')->orderBy('e.entry_number')->orderBy('l.line_no')
@@ -128,6 +137,71 @@ class GeneralLedgerReport extends Report
                 $truncated ? 'Showing the first '.number_format(self::PAGE_LINE_LIMIT).' lines. The balances after the last line shown are not the closing balance. Narrow the dates or choose an account, or export the whole ledger.' : null,
             ])),
             $rows === [] ? 'No lines in this period.' : null);
+    }
+
+    /**
+     * @param  Collection<int, GlAccount>  $selected
+     * @param  Collection<int|string, mixed>  $opening
+     */
+    private function streamed(ReportRequest $r, $selected, ?int $only, $opening, string $from, string $to): ReportResult
+    {
+        $stream = function () use ($r, $selected, $only, $opening, $from, $to) {
+            $shown = 0;
+            foreach ($selected as $a) {
+                $open = (int) ($opening[$a->id] ?? 0);
+                $lines = $this->query->ownedLines($r->context)->join('journal_entries as e', 'e.id', '=', 'l.journal_entry_id')
+                    ->whereBetween('l.entry_date', [$from, $to])->where('l.gl_account_id', $a->id)
+                    ->orderBy('l.entry_date')->orderBy('e.entry_number')->orderBy('l.line_no')
+                    ->select(['l.id', 'l.entry_date', 'l.debit_cents', 'l.credit_cents', 'l.description', 'e.entry_number', 'e.memo'])->cursor();
+
+                $running = $open;
+                $debits = 0;
+                $credits = 0;
+                $started = false;
+                $begin = function () use ($a, $open) {
+                    return [$this->section($this->accountLabel($a)), $this->row('line', 'Opening balance', ['balance' => $open], [], 1)];
+                };
+
+                foreach ($lines as $l) {
+                    if (! $started) {
+                        if (++$shown > self::PAGE_ACCOUNT_LIMIT) {
+                            return;
+                        }
+                        foreach ($begin() as $head) {
+                            yield $head;
+                        }
+                        $started = true;
+                    }
+                    $running += (int) $l->debit_cents - (int) $l->credit_cents;
+                    $debits += (int) $l->debit_cents;
+                    $credits += (int) $l->credit_cents;
+                    yield $this->row('line', trim(($l->description ?: $l->memo)), [
+                        'date' => substr((string) $l->entry_date, 0, 10), 'ref' => 'JE-'.str_pad((string) $l->entry_number, 6, '0', STR_PAD_LEFT),
+                        'debit' => (int) $l->debit_cents ?: null, 'credit' => (int) $l->credit_cents ?: null, 'balance' => $running,
+                    ], [], 1);
+                }
+
+                if (! $started) {
+                    if ($only === null && $open === 0) {
+                        continue;
+                    }
+                    if (++$shown > self::PAGE_ACCOUNT_LIMIT) {
+                        return;
+                    }
+                    foreach ($begin() as $head) {
+                        yield $head;
+                    }
+                }
+                yield $this->row('subtotal', 'Closing balance', ['debit' => $debits, 'credit' => $credits, 'balance' => $running], [], 0);
+            }
+        };
+
+        $result = new ReportResult($this->key(), $this->title(), $this->header($r, ['Balances are debit positive. Opening balance is everything posted before the start date.']),
+            [$this->col('label', 'Description', 'text'), $this->col('date', 'Date', 'date'), $this->col('ref', 'Entry', 'text'), $this->col('debit', 'Debit'), $this->col('credit', 'Credit'), $this->col('balance', 'Balance')],
+            [], [], [], null);
+        $result->rowStream = $stream;
+
+        return $result;
     }
 
     private function dayBefore(string $date): string

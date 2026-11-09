@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\ImportInterrupted;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
@@ -16,6 +17,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /**
@@ -41,7 +43,20 @@ class TransactionImporter
     /** How many parsed rows the preview page lists (counts always cover the whole file). */
     public const PREVIEW_ROWS = 300;
 
+    /** Rows written per database transaction. */
+    public const CHUNK_ROWS = 500;
+
+    /** The command line has no web time limit, so it lifts the row cap. */
+    private bool $unlimited = false;
+
     public function __construct(private readonly CsvTransactionParser $parser) {}
+
+    public function withoutRowLimit(): static
+    {
+        $this->unlimited = true;
+
+        return $this;
+    }
 
     // ── step 1 ────────────────────────────────────────────────────────────
 
@@ -123,36 +138,52 @@ class TransactionImporter
         $staged = $this->load($user, $context, $token) ?? throw new InvalidArgumentException('Unknown import.');
         $account = Account::query()->forContext($context)->findOrFail($staged['account_id']);
 
-        $file = $this->parser->read($staged['path']);
-
-        $detectedDate = ImportDates::detect(array_values(array_filter(array_column($file['rows'], 'raw_date'))));
-        $detectedAmount = Money::detectLocale(array_values(array_filter(array_column($file['rows'], 'raw_amount'))));
+        // Pass 1 reads only the raw dates and amounts (distinct values, to detect the formats); pass 2 interprets the rows one at a
+        // time. Neither holds the file: a 5 MB upload (about 90,000 rows) costs the same few megabytes as a 50-row one.
+        $file = $this->parser->stream($staged['path']);
+        $dates = [];
+        $amounts = [];
+        foreach ($file['rows'] as $raw) {
+            if ($raw['raw_date'] !== null) {
+                $dates[$raw['raw_date']] = true;
+            }
+            if ($raw['raw_amount'] !== null) {
+                $amounts[$raw['raw_amount']] = true;
+            }
+        }
+        $detectedDate = ImportDates::detect(array_map('strval', array_keys($dates)));
+        $detectedAmount = Money::detectLocale(array_map('strval', array_keys($amounts)));
+        unset($dates, $amounts);
 
         $dateFormat = in_array($dateFormat, ImportDates::FORMATS, true) ? $dateFormat : $detectedDate['format'];
         $amountLocale = in_array($amountLocale, ['en', 'eu'], true) ? $amountLocale : $detectedAmount['locale'];
-
-        $categories = Category::query()->forContext($context)->get()->keyBy(fn (Category $c) => mb_strtolower($c->name));
         $defaultCategory = $defaultCategoryId ? Category::query()->forContext($context)->find($defaultCategoryId) : null;
 
-        $rows = [];
-        foreach ($file['rows'] as $raw) {
-            $rows[] = $this->interpret($raw, $dateFormat, $amountLocale, $categories, $defaultCategory);
+        $file = $this->parser->stream($staged['path']);
+        $kept = [];
+        $counts = ['total' => 0, 'invalid' => 0, 'duplicates' => 0, 'importable' => 0];
+        foreach ($this->interpreted($file['rows'], $account, $context, $dateFormat, $amountLocale, $defaultCategory) as $row) {
+            $counts['total']++;
+            if ($row['error'] !== null) {
+                $counts['invalid']++;
+            } elseif ($row['duplicate']) {
+                $counts['duplicates']++;
+            } elseif ($row['date'] !== null && $row['cents'] !== null) {
+                $counts['importable']++;
+            }
+            if (count($kept) < self::PREVIEW_ROWS) {
+                $kept[] = $row;
+            }
         }
 
-        $this->markDuplicates($rows, $account);
-
         $columnsOk = $file['columns_found']['date'] && $file['columns_found']['description'] && $file['columns_found']['amount'];
-        $ready = $columnsOk && $dateFormat !== null && $amountLocale !== null;
-
-        $counts = [
-            'total' => count($rows),
-            'invalid' => count(array_filter($rows, fn ($r) => $r['error'] !== null)),
-            'duplicates' => count(array_filter($rows, fn ($r) => $r['error'] === null && $r['duplicate'])),
-            'importable' => count(array_filter($rows, fn ($r) => $r['error'] === null && ! $r['duplicate'] && $r['date'] !== null && $r['cents'] !== null)),
-        ];
+        $tooLarge = $counts['total'] > (int) config('ops.import_max_rows', 5000) && ! $this->unlimited;
+        $ready = $columnsOk && $dateFormat !== null && $amountLocale !== null && ! $tooLarge;
 
         return [
             'token' => $token,
+            'too_large' => $tooLarge,
+            'max_rows' => (int) config('ops.import_max_rows', 5000),
             'account' => $account,
             'filename' => $staged['filename'],
             'columns_found' => $file['columns_found'],
@@ -163,16 +194,59 @@ class TransactionImporter
             'amount_ambiguous' => $detectedAmount['ambiguous'],
             'amount_locale' => $amountLocale,
             'default_category_id' => $defaultCategory?->id,
-            'rows' => $rows,
+            // only the first PREVIEW_ROWS rows are kept for the page; the counts cover the whole file
+            'rows' => $kept,
             'counts' => $counts,
             'ready' => $ready,
         ];
     }
 
     /**
-     * @param  array{line: int, description: ?string, raw_date: ?string, raw_amount: ?string, category_name: ?string}  $raw
-     * @return array<string, mixed>
+     * Interpret the raw rows one by one and mark the ones already imported, 500 rows at a time (one lookup per 500, not per row).
+     *
+     * @param  iterable<int, array<string, mixed>>  $raws
+     * @return \Generator<int, array<string, mixed>>
      */
+    private function interpreted(iterable $raws, Account $account, LedgerContext $context, ?string $dateFormat, ?string $amountLocale, ?Category $defaultCategory): \Generator
+    {
+        $categories = Category::query()->forContext($context)->get()->keyBy(fn (Category $c) => mb_strtolower($c->name));
+        $seen = [];
+        $chunk = [];
+
+        $release = function () use (&$chunk, $account): array {
+            $fingerprints = array_values(array_filter(array_column($chunk, 'fingerprint')));
+            $existing = [];
+            if ($fingerprints !== []) {
+                foreach (Transaction::query()->forContext($account->ledgerContext())->whereIn('import_fingerprint', $fingerprints)->pluck('import_fingerprint') as $found) {
+                    $existing[$found] = true;
+                }
+            }
+            foreach ($chunk as &$row) {
+                $row['duplicate'] = $row['fingerprint'] !== null && isset($existing[$row['fingerprint']]);
+            }
+            unset($row);
+            $done = $chunk;
+            $chunk = [];
+
+            return $done;
+        };
+
+        foreach ($raws as $raw) {
+            $row = $this->interpret($raw, $dateFormat, $amountLocale, $categories, $defaultCategory);
+            if ($row['error'] === null && $row['date'] !== null && $row['cents'] !== null) {
+                // the n-th identical row in a file gets its own fingerprint, so two real purchases of the same amount on one day both import
+                $key = md5($row['date'].'|'.$row['cents'].'|'.ImportFingerprint::normalise((string) $row['description']), true);
+                $seen[$key] = ($seen[$key] ?? 0) + 1;
+                $row['fingerprint'] = ImportFingerprint::make($account->id, $row['date'], $row['cents'], (string) $row['description'], $seen[$key]);
+            }
+            $chunk[] = $row;
+            if (count($chunk) >= 500) {
+                yield from $release();
+            }
+        }
+        yield from $release();
+    }
+
     private function interpret(array $raw, ?string $dateFormat, ?string $amountLocale, $categories, ?Category $defaultCategory): array
     {
         $row = $raw + [
@@ -241,46 +315,6 @@ class TransactionImporter
         }
     }
 
-    /**
-     * Fingerprint every readable row (counting identical rows in file order) and
-     * flag the ones the ledger already holds. One query for the whole file.
-     */
-    private function markDuplicates(array &$rows, Account $account): void
-    {
-        $seen = [];
-
-        foreach ($rows as &$row) {
-            if ($row['error'] !== null || $row['date'] === null || $row['cents'] === null) {
-                continue;
-            }
-
-            $signed = $row['cents'];
-            $key = $row['date'].'|'.$signed.'|'.ImportFingerprint::normalise((string) $row['description']);
-            $seen[$key] = ($seen[$key] ?? 0) + 1;
-
-            $row['fingerprint'] = ImportFingerprint::make($account->id, $row['date'], $signed, (string) $row['description'], $seen[$key]);
-        }
-        unset($row);
-
-        $fingerprints = array_values(array_filter(array_column($rows, 'fingerprint')));
-
-        if ($fingerprints === []) {
-            return;
-        }
-
-        $existing = [];
-        foreach (array_chunk($fingerprints, 500) as $chunk) {
-            foreach (Transaction::query()->forContext($account->ledgerContext())->whereIn('import_fingerprint', $chunk)->pluck('import_fingerprint') as $found) {
-                $existing[$found] = true;
-            }
-        }
-
-        foreach ($rows as &$row) {
-            $row['duplicate'] = $row['fingerprint'] !== null && isset($existing[$row['fingerprint']]);
-        }
-        unset($row);
-    }
-
     // ── step 3 ────────────────────────────────────────────────────────────
 
     /**
@@ -289,62 +323,40 @@ class TransactionImporter
      */
     public function commit(User $user, LedgerContext $context, string $token, string $dateFormat, string $amountLocale, ?int $defaultCategoryId, array $skipLines): array
     {
-        $preview = $this->analyse($user, $context, $token, $dateFormat, $amountLocale, $defaultCategoryId);
-        $account = $preview['account'];
+        $staged = $this->load($user, $context, $token) ?? throw new InvalidArgumentException('Unknown import.');
+        $account = Account::query()->forContext($context)->findOrFail($staged['account_id']);
+        $defaultCategory = $defaultCategoryId ? Category::query()->forContext($context)->find($defaultCategoryId) : null;
+        // The page refuses a file over the row limit, but the form can be posted without the page: the limit is enforced here too.
+        if (! $this->unlimited) {
+            $limit = (int) config('ops.import_max_rows', 5000);
+            $n = 0;
+            foreach ($this->parser->stream($staged['path'])['rows'] as $ignored) {
+                if (++$n > $limit) {
+                    throw ValidationException::withMessages(['token' => 'This file has more than '.number_format($limit).' rows, which is the most one import through the page may hold. Split it, or ask whoever runs the server to import it from the command line.']);
+                }
+            }
+        }
+        $rows = $this->parser->stream($staged['path'])['rows'];
+
         $batch = (string) Str::uuid();
         $skip = array_flip($skipLines);
-
         $result = ['imported' => 0, 'skipped_duplicates' => 0, 'skipped_invalid' => 0, 'skipped_by_user' => 0];
+        $total = 0;
         $income = 0;
         $expense = 0;
+        $pending = [];
 
-        DB::transaction(function () use ($preview, $account, $batch, $skip, $dateFormat, $amountLocale, &$result, &$income, &$expense) {
-            FinanceAudit::withoutRowLogging(function () use ($preview, $account, $batch, $skip, &$result, &$income, &$expense) {
-                foreach ($preview['rows'] as $row) {
-                    if ($row['error'] !== null || $row['date'] === null || $row['cents'] === null) {
-                        $result['skipped_invalid']++;
-
-                        continue;
-                    }
-
-                    if ($row['duplicate']) {
-                        $result['skipped_duplicates']++;
-
-                        continue;
-                    }
-
-                    if (isset($skip[$row['line']])) {
-                        $result['skipped_by_user']++;
-
-                        continue;
-                    }
-
-                    $created = Transaction::create($account->ledgerOwner() + [
-                        'account_id' => $account->id,
-                        'category_id' => $row['category_id'],
-                        'description' => $row['description'],
-                        'amount_cents' => abs($row['cents']),
-                        'currency' => $account->currency,
-                        'type' => $row['type'],
-                        'date' => $row['date'],
-                        'import_fingerprint' => $row['fingerprint'],
-                        'import_batch_id' => $batch,
-                    ]);
-
-                    // With accounting on, each imported row is journalled inside this same transaction.
-                    app(GlSync::class)->transaction($created);
-
-                    $result['imported']++;
-                    $row['type'] === 'income' ? $income += $row['cents'] : $expense += abs($row['cents']);
-                }
-            });
-
-            FinanceAudit::record($account->ledgerOwner(), 'imported', 'import', null, $preview['filename'], [
-                'file' => $preview['filename'],
+        // Rows are read from the file one at a time and written CHUNK_ROWS at a time, each chunk in its own database transaction:
+        // memory does not grow with the file (one transaction holding tens of thousands of nested postings did not fit in
+        // 128 MB), and a failure part way leaves whole chunks saved, never half a chunk. A file of up to CHUNK_ROWS rows is
+        // still all or nothing, with its audit record in the same transaction.
+        $audit = function () use ($account, $staged, $dateFormat, $amountLocale, $batch, &$result, &$total, &$income, &$expense) {
+            FinanceAudit::record($account->ledgerOwner(), 'imported', 'import', null, $staged['filename'], [
+                'file' => $staged['filename'],
                 'account_id' => $account->id,
                 'date_format' => $dateFormat,
                 'amount_locale' => $amountLocale,
-                'rows_total' => $preview['counts']['total'],
+                'rows_total' => $total,
                 'imported' => $result['imported'],
                 'skipped_duplicates' => $result['skipped_duplicates'],
                 'skipped_invalid' => $result['skipped_invalid'],
@@ -353,7 +365,66 @@ class TransactionImporter
                 'expense_cents' => $expense,
                 'currency' => $account->currency,
             ], 'import:'.$batch, $account->currency);
-        });
+        };
+
+        $write = function (array $rows, bool $last) use ($account, $batch, $audit, &$result, &$income, &$expense) {
+            DB::transaction(function () use ($rows, $last, $account, $batch, $audit, &$result, &$income, &$expense) {
+                FinanceAudit::withoutRowLogging(function () use ($rows, $account, $batch, &$result, &$income, &$expense) {
+                    foreach ($rows as $row) {
+                        $created = Transaction::create($account->ledgerOwner() + [
+                            'account_id' => $account->id,
+                            'category_id' => $row['category_id'],
+                            'description' => $row['description'],
+                            'amount_cents' => abs($row['cents']),
+                            'currency' => $account->currency,
+                            'type' => $row['type'],
+                            'date' => $row['date'],
+                            'import_fingerprint' => $row['fingerprint'],
+                            'import_batch_id' => $batch,
+                        ]);
+                        // With accounting on, each imported row is journalled inside this same transaction.
+                        app(GlSync::class)->transaction($created);
+                        $row['type'] === 'income' ? $income += $row['cents'] : $expense += abs($row['cents']);
+                    }
+                });
+                $result['imported'] += count($rows);
+                if ($last) {
+                    $audit();
+                }
+            });
+        };
+
+        $saved = 0;
+        try {
+            foreach ($this->interpreted($rows, $account, $context, $dateFormat, $amountLocale, $defaultCategory) as $row) {
+                $total++;
+                if ($row['error'] !== null || $row['date'] === null || $row['cents'] === null) {
+                    $result['skipped_invalid']++;
+
+                    continue;
+                }
+                if ($row['duplicate']) {
+                    $result['skipped_duplicates']++;
+
+                    continue;
+                }
+                if (isset($skip[$row['line']])) {
+                    $result['skipped_by_user']++;
+
+                    continue;
+                }
+                $pending[] = $row;
+                if (count($pending) >= self::CHUNK_ROWS) {
+                    $write($pending, false);
+                    $saved = $result['imported'];
+                    $pending = [];
+                }
+            }
+            $write($pending, true);
+        } catch (\Throwable $e) {
+            // a chunk that threw was rolled back whole; the counters above only moved for chunks that committed
+            throw $saved > 0 ? new ImportInterrupted($saved, $e) : $e;
+        }
 
         $this->discard($user, $token);
 

@@ -9,6 +9,7 @@ use App\Models\Reporting\ReportExport;
 use App\Models\Reporting\ReportPreset;
 use App\Services\Reporting\ReportPeriod;
 use App\Services\Reporting\ReportRegistry;
+use App\Services\Reporting\ReportResult;
 use App\Services\Reporting\ReportRunner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +64,10 @@ class ReportController extends ReportingController
             return redirect()->route('reports.'.$report)->withErrors(['period' => $e->getMessage()]);
         }
 
+        if (! $request->boolean('print') && $report !== 'general-ledger') { // the general ledger has its own cap
+            $this->capRowsOnScreen($result);
+        }
+
         return view($request->boolean('print') ? 'reports.print' : 'reports.show', [
             'result' => $result,
             'definition' => $definition,
@@ -76,5 +81,24 @@ class ReportController extends ReportingController
             'periodPresets' => ReportPeriod::PRESETS,
             'comparisons' => ReportPeriod::COMPARISONS,
         ]);
+    }
+
+    /** A report with thousands of rows (ageing for a big customer list) is shown in part on screen; the export and the print view carry every row. */
+    private const SCREEN_ROW_LIMIT = 1000;
+
+    private function capRowsOnScreen(ReportResult $result): void
+    {
+        $total = count($result->rows);
+        if ($total <= self::SCREEN_ROW_LIMIT) {
+            return;
+        }
+
+        // the closing total rows are kept so the page still ends on its figures
+        $tail = [];
+        for ($i = $total - 1; $i >= 0 && ($result->rows[$i]['type'] ?? null) === 'total'; $i--) {
+            array_unshift($tail, $result->rows[$i]);
+        }
+        $result->rows = array_merge(array_slice($result->rows, 0, self::SCREEN_ROW_LIMIT), $tail);
+        $result->notes[] = 'The screen shows the first '.number_format(self::SCREEN_ROW_LIMIT).' of '.number_format($total).' rows. The totals are for all of them. Export the report for every row.';
     }
 }

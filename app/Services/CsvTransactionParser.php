@@ -22,60 +22,85 @@ class CsvTransactionParser
     ];
 
     /**
-     * @return array{columns_found: array<string, bool>, rows: list<array{line: int, description: ?string, raw_date: ?string, raw_amount: ?string, category_name: ?string}>}
+     * Open the file and read its header; the rows come from a generator, one record at a time, so a file of any size
+     * costs the same memory. The text is converted from Windows-1252 as it is read when it is not valid UTF-8.
+     *
+     * @return array{columns_found: array<string, bool>, rows: \Generator<int, array<string, mixed>>}
+     */
+    public function stream(string $path): array
+    {
+        $none = ['columns_found' => ['date' => false, 'description' => false, 'amount' => false, 'category' => false], 'rows' => (fn () => yield from [])()];
+        $handle = @fopen($path, 'r');
+        if ($handle === false) {
+            return $none;
+        }
+
+        $bom = fread($handle, 3);
+        $start = $bom === "\xEF\xBB\xBF" ? 3 : 0;
+
+        // Valid UTF-8 from end to end? Checked a line at a time, so nothing is held.
+        fseek($handle, $start);
+        $utf8 = true;
+        while (($line = fgets($handle)) !== false) {
+            if (! mb_check_encoding($line, 'UTF-8')) {
+                $utf8 = false;
+                break;
+            }
+        }
+        fseek($handle, $start);
+        if (! $utf8 && ! @stream_filter_append($handle, 'convert.iconv.Windows-1252/UTF-8', STREAM_FILTER_READ)) {
+            // no iconv: convert the whole (small, in practice) file in memory
+            $contents = mb_convert_encoding((string) stream_get_contents($handle), 'UTF-8', 'Windows-1252');
+            fclose($handle);
+            $handle = fopen('php://temp', 'r+');
+            fwrite($handle, $contents);
+            rewind($handle);
+        }
+
+        $first = fgets($handle);
+        if ($first === false || trim($first) === '') {
+            fclose($handle);
+
+            return $none;
+        }
+        $delimiter = $this->delimiter(rtrim($first, "\r\n"));
+        $header = str_getcsv(rtrim($first, "\r\n"), $delimiter, '"', '');
+        $columns = $this->mapColumns($header);
+
+        $rows = (function () use ($handle, $delimiter, $columns) {
+            $line = 1;
+            try {
+                while (($record = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
+                    $line++;
+                    if (count($record) === 1 && trim((string) $record[0]) === '') {
+                        continue; // blank line
+                    }
+                    yield [
+                        'line' => $line,
+                        'description' => $this->cell($record, $columns['description']),
+                        'raw_date' => $this->cell($record, $columns['date']),
+                        'raw_amount' => $this->cell($record, $columns['amount']),
+                        'category_name' => $this->cell($record, $columns['category']),
+                    ];
+                }
+            } finally {
+                fclose($handle);
+            }
+        })();
+
+        return ['columns_found' => array_map(fn ($index) => $index !== null, $columns), 'rows' => $rows];
+    }
+
+    /**
+     * The whole file as an array. Fine for a few hundred rows; the importer uses stream().
+     *
+     * @return array{columns_found: array<string, bool>, rows: list<array<string, mixed>>}
      */
     public function read(string $path): array
     {
-        $contents = (string) @file_get_contents($path);
+        $file = $this->stream($path);
 
-        if (str_starts_with($contents, "\xEF\xBB\xBF")) {
-            $contents = substr($contents, 3);
-        }
-
-        if (! mb_check_encoding($contents, 'UTF-8')) {
-            $contents = mb_convert_encoding($contents, 'UTF-8', 'Windows-1252');
-        }
-
-        $handle = fopen('php://temp', 'r+');
-        fwrite($handle, $contents);
-        rewind($handle);
-
-        $delimiter = $this->delimiter(strtok($contents, "\n") ?: '');
-        $header = fgetcsv($handle, 0, $delimiter, '"', '');
-
-        if ($header === false || $header === [null]) {
-            fclose($handle);
-
-            return ['columns_found' => ['date' => false, 'description' => false, 'amount' => false, 'category' => false], 'rows' => []];
-        }
-
-        $columns = $this->mapColumns($header);
-
-        $rows = [];
-        $line = 1;
-
-        while (($record = fgetcsv($handle, 0, $delimiter, '"', '')) !== false) {
-            $line++;
-
-            if (count($record) === 1 && trim((string) $record[0]) === '') {
-                continue; // blank line
-            }
-
-            $rows[] = [
-                'line' => $line,
-                'description' => $this->cell($record, $columns['description']),
-                'raw_date' => $this->cell($record, $columns['date']),
-                'raw_amount' => $this->cell($record, $columns['amount']),
-                'category_name' => $this->cell($record, $columns['category']),
-            ];
-        }
-
-        fclose($handle);
-
-        return [
-            'columns_found' => array_map(fn ($index) => $index !== null, $columns),
-            'rows' => $rows,
-        ];
+        return ['columns_found' => $file['columns_found'], 'rows' => iterator_to_array($file['rows'], false)];
     }
 
     private function delimiter(string $headerLine): string

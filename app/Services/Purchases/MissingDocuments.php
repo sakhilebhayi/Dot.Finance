@@ -11,6 +11,7 @@ use App\Services\Accounting\SettlementTransactions;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Spending with no document behind it. The tax authority wants a supporting document for what you claim, and the books are
@@ -40,20 +41,29 @@ final class MissingDocuments
 
     public function __construct(private readonly PurchaseLedger $ledger) {}
 
-    /** @return Collection<int, array<string, mixed>> */
-    public function forLedger(LedgerContext $context): Collection
+    /**
+     * The items, newest first. With a $limit only that many are built (each type is limited in the query, then the newest
+     * $limit overall are kept), so a page that shows six does not read a ledger's worth.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function forLedger(LedgerContext $context, ?int $limit = null): Collection
     {
-        return LedgerContext::run($context, function () use ($context) {
+        return LedgerContext::run($context, function () use ($context, $limit) {
             $threshold = PurchaseSetting::forLedger($context)->missingDocumentThresholdCents();
             $items = collect();
 
             $withFile = fn (string $type) => Attachment::query()->where('attachable_type', $type)->whereNull('archived_at')->pluck('attachable_id')->map(fn ($id) => (int) $id)->flip();
+            $noFile = fn (string $type, string $table) => fn ($q) => $q->select(DB::raw('1'))->from('attachments')
+                ->where('attachments.attachable_type', $type)->whereNull('attachments.archived_at')->whereColumn('attachments.attachable_id', $table.'.id')
+                ->where(fn ($w) => $context->isCompany() ? $w->where('attachments.team_id', $context->teamId) : $w->where('attachments.user_id', $context->userId)->whereNull('attachments.team_id'));
 
-            $billFiles = $withFile((new Bill)->getMorphClass());
-            Bill::query()->with('party')->whereNotIn('status', ['draft', 'void'])->get()
-                ->each(function (Bill $bill) use ($threshold, $billFiles, $items) {
+            // the threshold and the missing file are decided in the query, so only the bills that belong in the list are read
+            Bill::query()->with('party')->whereNotIn('status', ['draft', 'void'])->whereRaw('COALESCE(base_total_cents, total_cents) >= ?', [$threshold])
+                ->whereNotExists($noFile((new Bill)->getMorphClass(), 'bills'))->orderByDesc('bill_date')->orderByDesc('id')->when($limit, fn ($q) => $q->limit($limit))->get()
+                ->each(function (Bill $bill) use ($threshold, $items) {
                     $base = $bill->baseTotalCents();
-                    if ($base < $threshold || $billFiles->has($bill->id)) {
+                    if ($base < $threshold) {
                         return;
                     }
                     $items->push([
@@ -65,12 +75,9 @@ final class MissingDocuments
                     ]);
                 });
 
-            $lineFiles = $withFile((new ExpenseClaimLine)->getMorphClass());
-            ExpenseClaimLine::query()->with('claim')->whereHas('claim', fn ($q) => $q->whereNotIn('status', ['draft', 'void']))->get()
-                ->each(function (ExpenseClaimLine $line) use ($threshold, $lineFiles, $items) {
-                    if ($line->gross_cents < $threshold || $lineFiles->has($line->id)) {
-                        return;
-                    }
+            ExpenseClaimLine::query()->with('claim')->where('gross_cents', '>=', $threshold)->whereHas('claim', fn ($q) => $q->whereNotIn('status', ['draft', 'void']))
+                ->whereNotExists($noFile((new ExpenseClaimLine)->getMorphClass(), 'expense_claim_lines'))->orderByDesc('spent_on')->orderByDesc('id')->when($limit, fn ($q) => $q->limit($limit))->get()
+                ->each(function (ExpenseClaimLine $line) use ($threshold, $items) {
                     $items->push([
                         'type' => 'expense_claim', 'id' => $line->id, 'label' => 'Receipt from '.$line->merchant.' on claim '.$line->claim->displayNumber(),
                         'date' => $line->spent_on->toDateString(), 'amount_cents' => $line->gross_cents, 'currency' => $line->claim->currency, 'base_cents' => $line->gross_cents,
@@ -100,13 +107,44 @@ final class MissingDocuments
                 ]);
             }
 
-            return $items->sortByDesc('date')->values();
+            $sorted = $items->sortByDesc('date')->values();
+
+            return $limit !== null ? $sorted->take($limit)->values() : $sorted;
         });
     }
 
+    /**
+     * How many items forLedger() would list, counted in the database (the state line asks on every page, so it must not load
+     * the ledger's bills). Same rules as forLedger(); one difference: a bill with no stored base amount (posted before the
+     * column was filled) is compared by its own-currency total, where forLedger() converts it.
+     */
     public function countForLedger(LedgerContext $context): int
     {
-        return $this->forLedger($context)->count();
+        return LedgerContext::run($context, function () use ($context) {
+            $threshold = PurchaseSetting::forLedger($context)->missingDocumentThresholdCents();
+            $hasFile = fn (string $type, string $table) => fn ($q) => $q->select(DB::raw('1'))->from('attachments')
+                ->where('attachments.attachable_type', $type)->whereNull('attachments.archived_at')->whereColumn('attachments.attachable_id', $table.'.id')
+                ->where(fn ($w) => $context->isCompany() ? $w->where('attachments.team_id', $context->teamId) : $w->where('attachments.user_id', $context->userId)->whereNull('attachments.team_id'));
+
+            $bills = Bill::query()->whereNotIn('status', ['draft', 'void'])->whereRaw('COALESCE(base_total_cents, total_cents) >= ?', [$threshold])
+                ->whereNotExists($hasFile((new Bill)->getMorphClass(), 'bills'))->count();
+
+            $lines = ExpenseClaimLine::query()->where('gross_cents', '>=', $threshold)
+                ->whereHas('claim', fn ($q) => $q->whereNotIn('status', ['draft', 'void']))
+                ->whereNotExists($hasFile((new ExpenseClaimLine)->getMorphClass(), 'expense_claim_lines'))->count();
+
+            $transactions = 0;
+            if ($this->ledger->accountingEnabled($context)) {
+                $ids = Transaction::query()->counted()->where('type', 'expense')->whereNull('transfer_group')->where('amount_cents', '>=', $threshold)
+                    ->where('date', '>=', now()->subDays(self::TRANSACTION_DAYS)->toDateString())->orderByDesc('date')->limit(self::TRANSACTION_LIMIT)->pluck('id')->map(fn ($id) => (int) $id)->all();
+                if ($ids !== []) {
+                    $withFile = Attachment::query()->where('attachable_type', (new Transaction)->getMorphClass())->whereNull('archived_at')->whereIn('attachable_id', $ids)->pluck('attachable_id')->map(fn ($id) => (int) $id)->all();
+                    $transactions = count(array_diff($ids, $withFile, SettlementTransactions::among($context, $ids)));
+                }
+            }
+
+            return $bills + $lines + $transactions;
+        });
     }
 
     /** The cutoff date helper for callers that only want recent items. */

@@ -39,7 +39,7 @@ final class ReportCsv
         $put([]);
 
         $put(array_map(fn ($c) => $c['label'], $report->columns));
-        foreach ($report->rows as $row) {
+        foreach ($report->eachRow() as $row) {
             if ($row['type'] === 'section') {
                 $put([$row['label']]);
 

@@ -22,7 +22,8 @@ class DocumentController extends PurchasesController
         Gate::authorize(Capability::ViewFinance->value);
 
         return view('purchases.documents.index', [
-            'items' => $missing->forLedger($this->ledger()), 'threshold' => PurchaseSetting::forLedger($this->ledger())->missingDocumentThresholdCents(), 'canAttach' => $this->gate(Capability::RecordEntries),
+            // the newest 300; the count is the whole list (worked out in the database)
+            'items' => $missing->forLedger($this->ledger(), 300), 'total' => $missing->countForLedger($this->ledger()), 'threshold' => PurchaseSetting::forLedger($this->ledger())->missingDocumentThresholdCents(), 'canAttach' => $this->gate(Capability::RecordEntries),
         ]);
     }
 
