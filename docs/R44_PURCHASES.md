@@ -31,10 +31,9 @@ Out of scope, said plainly: purchase orders (D-618), employee self-service claim
 
 | Run | Result |
 |---|---|
-| Baseline in the trunk before this module | see the Wave 1 notes (the trunk suite, 1,184 tests with the shared changes) |
 | Purchases tests alone, SQLite | 134 tests (BillPosting 21, SupplierPayments 20, Approvals 12, BankDetails 15, ReceiptCapture 19, DuplicatesAndDocuments 11, RunsRecurringReports 18, Pages 14, DemoSeed 2, Concurrency 2) |
-| Full suite, SQLite in memory | FULL_SQLITE |
-| Purchases tests, PostgreSQL 16 (throwaway DB, clean env, `phpunit.pgsql.xml`) | 132 passed (the 2 concurrency tests skip there by design), plus the 2 concurrency tests with `PURCHASES_PG_CONCURRENCY=1`: 2 passed |
+| Full suite, SQLite in memory | **1,303 tests, 1,293 passed, 10 skipped, 0 failed**, 270,676 assertions (the 10 skips are the 7 pre-existing, 3 PostgreSQL-only) |
+| Purchases + accounting dual-write/sweeper + isolation harness, PostgreSQL 16 (throwaway DB, clean env, `phpunit.pgsql.xml`) | 174 tests, 0 failures, 2 skipped (the concurrency tests, by design); with `PURCHASES_PG_CONCURRENCY=1` the 2 concurrency tests pass on PostgreSQL. The whole suite was NOT run on PostgreSQL |
 | `route:cache` / `route:clear` | caches and clears (71 purchases routes) |
 | Pint | clean on touched files |
 
