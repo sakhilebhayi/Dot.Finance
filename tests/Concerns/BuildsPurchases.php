@@ -116,4 +116,26 @@ trait BuildsPurchases
     {
         return (int) LedgerContext::run($this->ctx, fn () => JournalLine::query()->where('gl_account_id', $this->gl('ap')->id)->selectRaw('SUM(credit_cents) - SUM(debit_cents) AS n')->value('n'));
     }
+
+    /** A member of the company at a finance role: bookkeeper (InfoDot editor), approver (InfoDot viewer + local grant), viewer, accountant, manager. */
+    protected function member(string $role): User
+    {
+        $infodot = ['bookkeeper' => 'editor', 'accountant' => 'editor', 'approver' => 'viewer', 'viewer' => 'viewer', 'manager' => 'admin'][$role];
+        $user = $this->memberOf($this->company, $infodot);
+
+        if (in_array($role, ['approver', 'accountant'], true)) {
+            \App\Models\Controls\LedgerMemberRole::create([
+                'team_id' => $this->company->id, 'member_user_id' => $user->id, 'role' => $role, 'granted_by' => $this->owner->id, 'granted_at' => now(),
+            ]);
+        }
+
+        return $user->fresh();
+    }
+
+    protected function policy(string $subject, int $thresholdCents = 100_000, int $steps = 1): \App\Models\Controls\ApprovalPolicy
+    {
+        return app(\App\Services\Controls\ApprovalPolicies::class)->create($this->owner, $this->ctx, [
+            'subject_type' => $subject, 'name' => ucfirst($subject).' policy', 'threshold_cents' => $thresholdCents, 'currency' => 'ZAR', 'steps_required' => $steps,
+        ]);
+    }
 }

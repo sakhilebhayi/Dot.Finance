@@ -91,10 +91,8 @@ final class RuleBasedExtractor implements Extractor
             $set('currency', 'ZAR', 'low');
         }
 
-        // amounts
-        $total = $this->labelledAmount($text, '(?:total\s+(?:due|amount|payable|incl(?:uding|usive|\.)?\s*(?:of\s+)?vat)|amount\s+due|balance\s+due|invoice\s+total|grand\s+total|total(?!\s*(?:excl|ex\.|before|vat)))');
-        $tax = $this->labelledAmount($text, '(?:vat(?:\s*(?:@|at)?\s*15(?:[.,]0+)?\s*%)?(?:\s+amount)?|tax(?:\s+amount)?|total\s+vat)');
-        $subtotal = $this->labelledAmount($text, '(?:sub\s*-?\s*total|total\s+(?:excl(?:uding|usive|\.)?\s*(?:of\s+)?vat)|net\s+amount|amount\s+excl(?:uding|usive|\.)?\s*vat)');
+        // amounts, one labelled line at a time
+        [$total, $tax, $subtotal] = $this->amounts($lines);
 
         if ($total !== null) {
             $set('total_cents', $total, 'medium');
@@ -159,14 +157,14 @@ final class RuleBasedExtractor implements Extractor
         $raw = trim($raw);
 
         try {
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
-                return CarbonImmutable::createFromFormat('!Y-m-d', $raw)->toDateString();
+            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $m) === 1) {
+                return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $raw : null;
             }
             if (preg_match('/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/', $raw, $m) === 1) {
                 $year = (int) $m[3] < 100 ? 2000 + (int) $m[3] : (int) $m[3];
 
                 // South African documents are day first
-                return CarbonImmutable::createFromFormat('!Y-n-j', "{$year}-".(int) $m[2].'-'.(int) $m[1])->toDateString();
+                return checkdate((int) $m[2], (int) $m[1], $year) ? sprintf('%04d-%02d-%02d', $year, (int) $m[2], (int) $m[1]) : null;
             }
 
             return CarbonImmutable::parse($raw)->toDateString();
@@ -175,15 +173,47 @@ final class RuleBasedExtractor implements Extractor
         }
     }
 
-    private function labelledAmount(string $text, string $label): ?int
+    /**
+     * The document total, the VAT and the subtotal, each from the LAST line that carries the label (a document total comes after its
+     * line items). A line is read by its label, not by a pattern across lines, so "Total (incl. VAT)" is a total and not a VAT line.
+     *
+     * @param  list<string>  $lines
+     * @return array{0: ?int, 1: ?int, 2: ?int}
+     */
+    private function amounts(array $lines): array
     {
-        // the LAST labelled amount wins for totals (a document total comes after its line items)
-        if (preg_match_all('/(?:'.$label.')\s*(?:\(?[^\n\d]{0,25}\)?)?\s*[:\-]?\s*(?:R|ZAR|USD|EUR|GBP)?\s*(-?\d[\d ,.]*\d)/i', $text, $all) < 1) {
+        $total = $tax = $subtotal = null;
+
+        foreach ($lines as $line) {
+            $amount = $this->lastAmount($line);
+            if ($amount === null) {
+                continue;
+            }
+
+            if (preg_match('/sub\s*-?\s*total|total\s+(?:excl|ex\b|before)|net\s+amount|(?:amount|value)\s+excl|excl(?:uding|usive|\.)?\s*vat/i', $line) === 1) {
+                $subtotal = $amount;
+            } elseif (preg_match('/^\s*(?:total\s+)?(?:vat|tax)\b(?!\s*(?:reg|no\b|number|#|nr))/i', $line) === 1) {
+                $tax = $amount;
+            } elseif (preg_match('/\b(?:total|amount\s+due|balance\s+due|grand\s+total)\b/i', $line) === 1) {
+                $total = $amount;
+            }
+        }
+
+        return [$total, $tax, $subtotal];
+    }
+
+    /** The last number on a line that reads as an amount of money (so "VAT 15% R 150.00" gives 150.00 and not 15). */
+    private function lastAmount(string $line): ?int
+    {
+        // drop percentages first: "15%" is a rate, not money
+        $line = preg_replace('/\d+(?:[.,]\d+)?\s*%/', ' ', $line) ?? $line;
+
+        if (preg_match_all('/-?\d[\d ,.]*\d|-?\d/', $line, $m) < 1) {
             return null;
         }
 
-        for ($i = count($all[1]) - 1; $i >= 0; $i--) {
-            $cents = self::parseAmount($all[1][$i]);
+        for ($i = count($m[0]) - 1; $i >= 0; $i--) {
+            $cents = self::parseAmount($m[0][$i]);
             if ($cents !== null) {
                 return $cents;
             }
