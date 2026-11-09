@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Bank\ReconciliationRefused;
 use App\Models\Account;
 use App\Models\Transaction;
 use App\Rules\MoneyAmount;
@@ -206,6 +207,8 @@ class AccountController extends Controller
             });
         } catch (PeriodClosed $e) {
             return back()->withErrors(['confirm' => $e->getMessage().' Entries in a closed period cannot be reversed, so the account cannot be deleted now.']);
+        } catch (ReconciliationRefused $e) {
+            return back()->withErrors(['confirm' => 'This account has entries matched to a bank statement, so it cannot be deleted. '.$e->getMessage()]);
         }
 
         return redirect()->route('accounts.index')->with('status', 'Account deleted'.($count > 0 ? " along with {$count} transaction".($count === 1 ? '' : 's') : '').'. The audit log keeps a record.');

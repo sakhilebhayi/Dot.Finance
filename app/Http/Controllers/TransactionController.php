@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\Bank\ReconciliationRefused;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\RecurringRule;
@@ -192,6 +193,8 @@ class TransactionController extends Controller
             });
         } catch (PeriodClosed $e) {
             return back()->withErrors(['date' => $e->getMessage().' This entry sits in a closed period, so it cannot be changed. Record an adjustment in an open period instead.'])->withInput();
+        } catch (ReconciliationRefused $e) {
+            return back()->withErrors(['transaction' => $e->getMessage()])->withInput();
         }
 
         return redirect()->route('transactions.index')->with('status', 'Transaction updated.');
@@ -217,6 +220,8 @@ class TransactionController extends Controller
             });
         } catch (PeriodClosed $e) {
             return back()->withErrors(['transaction' => $e->getMessage().' It sits in a closed period, so it cannot be deleted. Record an adjustment in an open period instead.']);
+        } catch (ReconciliationRefused $e) {
+            return back()->withErrors(['transaction' => $e->getMessage()]);
         }
 
         return redirect()->route('transactions.index')->with('status', $isTransfer ? 'Transfer deleted (both legs).' : 'Transaction deleted.');
