@@ -38,6 +38,8 @@ class DrillDown
         $base = $this->base($context, $f, $account, $cashBasis);
         $naturalSql = match ($mode) {
             'credit' => '(l.credit_cents - l.debit_cents)',
+            'debits' => 'l.debit_cents',
+            'credits' => 'l.credit_cents',
             'line' => "(CASE WHEN g.class IN ('income','liability','equity') THEN l.credit_cents - l.debit_cents ELSE l.debit_cents - l.credit_cents END)",
             default => '(l.debit_cents - l.credit_cents)',
         };
@@ -98,7 +100,7 @@ class DrillDown
 
     private function signMode(array $f, ?GlAccount $account): string
     {
-        if (in_array($f['sign'] ?? null, ['credit', 'debit'], true)) {
+        if (in_array($f['sign'] ?? null, ['credit', 'debit', 'debits', 'credits'], true)) {
             return $f['sign'];
         }
 
@@ -223,6 +225,8 @@ class DrillDown
     {
         return match ($mode) {
             'credit' => -$net,
+            'debits' => max(0, $net),
+            'credits' => max(0, -$net),
             'line' => in_array($class, ['income', 'liability', 'equity'], true) ? -$net : $net,
             default => $net,
         };

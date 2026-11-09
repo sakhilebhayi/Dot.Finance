@@ -8,6 +8,7 @@ use App\Services\Reporting\Books;
 use App\Services\Reporting\Reconciliations;
 use App\Services\Reporting\ReportRequest;
 use App\Services\Reporting\ReportResult;
+use Carbon\CarbonImmutable;
 
 /**
  * The general ledger: each account's lines in date order with a running balance (debit positive), from an opening
@@ -107,8 +108,8 @@ class GeneralLedgerReport extends Report
                 ], [], 1, route('accounting.journals.show', $l->entry_id));
             }
             $rows[] = $this->row('subtotal', 'Closing balance', ['debit' => $debits, 'credit' => $credits, 'balance' => $running], [
-                'debit' => $this->drill($from, $to, ['account' => $a->id, 'sign' => 'debit']),
-                'credit' => $this->drill($from, $to, ['account' => $a->id, 'sign' => 'credit']),
+                'debit' => $this->drill($from, $to, ['account' => $a->id, 'sign' => 'debits']),
+                'credit' => $this->drill($from, $to, ['account' => $a->id, 'sign' => 'credits']),
                 'balance' => $this->drill('', $to, ['account' => $a->id, 'sign' => 'debit']),
             ], 0);
         }
@@ -121,6 +122,6 @@ class GeneralLedgerReport extends Report
 
     private function dayBefore(string $date): string
     {
-        return \Carbon\CarbonImmutable::parse($date)->subDay()->toDateString();
+        return CarbonImmutable::parse($date)->subDay()->toDateString();
     }
 }

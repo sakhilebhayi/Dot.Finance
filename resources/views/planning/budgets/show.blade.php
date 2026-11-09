@@ -36,7 +36,9 @@
 @endif
 
 @if ($grid === [])
-<x-fx.empty title="No amounts yet.">@if ($canManage && $budget->isEditable())<x-slot name="action"><x-fx.button :href="route('planning.budgets.edit', $budget)" variant="primary">Add amounts</x-fx.button></x-slot>@endif Add what you intend to earn and spend, month by month.</x-fx.empty>
+<x-fx.empty title="No amounts yet.">Add what you intend to earn and spend, month by month.
+    <x-slot name="action">@if ($canManage && $budget->isEditable())<x-fx.button :href="route('planning.budgets.edit', $budget)" variant="primary">Add amounts</x-fx.button>@endif</x-slot>
+</x-fx.empty>
 @else
 <x-fx.panel flush>
 <x-fx.table caption="The plan by account and month" scroll class="rp-table">

@@ -171,10 +171,12 @@ final class Assumptions
         if (! is_string($v) || preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) !== 1) {
             throw new InvalidArgumentException($message);
         }
-        try {
-            return CarbonImmutable::createFromFormat('!Y-m-d', $v)->toDateString();
-        } catch (\Throwable) {
+        $date = CarbonImmutable::createFromFormat('!Y-m-d', $v);
+        // 2026-02-30 parses as 2 March; a date that does not survive the round trip is not a date.
+        if ($date === false || $date->format('Y-m-d') !== $v) {
             throw new InvalidArgumentException($message);
         }
+
+        return $date->toDateString();
     }
 }

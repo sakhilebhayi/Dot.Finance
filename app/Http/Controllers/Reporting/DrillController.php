@@ -32,7 +32,7 @@ class DrillController extends ReportingController
             'noclose_from' => ['nullable', 'date_format:Y-m-d'],
             'cash_entries' => ['nullable', 'in:0,1'],
             'bs_group' => ['nullable', 'in:current,noncurrent'],
-            'sign' => ['nullable', 'in:credit,debit'],
+            'sign' => ['nullable', 'in:credit,debit,debits,credits'],
             'figure' => ['nullable', 'integer'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);

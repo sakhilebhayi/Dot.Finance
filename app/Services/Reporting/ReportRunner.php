@@ -36,7 +36,8 @@ class ReportRunner
 
     public function build(string $key, ReportRequest $request): ReportResult
     {
-        return $this->registry->get($key)->build($request);
+        // Reports read through models and the ledger scope; naming the ledger makes them correct from a console or a queue too.
+        return LedgerContext::run($request->context, fn () => $this->registry->get($key)->build($request));
     }
 
     public function settings(LedgerContext $context): ?LedgerSetting

@@ -7,6 +7,7 @@ use App\Contracts\Approvable;
 use App\Models\Concerns\HasLedgerContext;
 use App\Models\Controls\ApprovalRequest;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -53,6 +54,12 @@ class PlanBudget extends Model implements Approvable
         return $this->hasMany(PlanBudgetLine::class);
     }
 
+    /** The plan's cells, read for this plan's own ledger whether or not a ledger is active (a console job or a test has none). */
+    public function cells(): Builder
+    {
+        return PlanBudgetLine::query()->forContext($this->ledgerContext())->where('plan_budget_lines.plan_budget_id', $this->id);
+    }
+
     public function basedOn(): BelongsTo
     {
         return $this->belongsTo(self::class, 'based_on_id');
@@ -83,8 +90,8 @@ class PlanBudget extends Model implements Approvable
     /** The spending the plan commits to: the sum of its expense cells (revenue targets are not spend). */
     public function approvalAmountCents(): int
     {
-        return (int) $this->lines()->join('gl_accounts as g', 'g.id', '=', 'plan_budget_lines.gl_account_id')
-            ->where('g.class', 'expense')->sum('plan_budget_lines.amount_cents');
+        return (int) PlanBudgetLine::query()->forContext($this->ledgerContext())->where('plan_budget_lines.plan_budget_id', $this->id)
+            ->join('gl_accounts as g', 'g.id', '=', 'plan_budget_lines.gl_account_id')->where('g.class', 'expense')->sum('plan_budget_lines.amount_cents');
     }
 
     public function approvalCurrency(): ?string

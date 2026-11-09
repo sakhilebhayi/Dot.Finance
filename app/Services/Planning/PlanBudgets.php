@@ -125,7 +125,7 @@ class PlanBudgets
         if (! $budget->isEditable()) {
             throw new InvalidArgumentException('Only a draft or rejected plan can be submitted.');
         }
-        if (! $budget->lines()->exists()) {
+        if (! $budget->cells()->exists()) {
             throw new InvalidArgumentException('Add at least one amount before submitting.');
         }
 
@@ -153,7 +153,7 @@ class PlanBudgets
                 'name' => $from->name, 'starts_on' => $from->starts_on->toDateString(), 'ends_on' => $from->ends_on->toDateString(), 'currency' => $from->currency, 'fiscal_year' => $from->fiscal_year,
             ], $from->kind, $from);
 
-            foreach ($from->lines()->get() as $line) {
+            foreach ($from->cells()->get() as $line) {
                 PlanBudgetLine::create($context->ownerAttributes() + ['plan_budget_id' => $copy->id, 'gl_account_id' => $line->gl_account_id, 'dimension' => $line->dimension, 'month' => $line->month->toDateString(), 'amount_cents' => $line->amount_cents]);
             }
 
@@ -179,12 +179,12 @@ class PlanBudgets
 
         $context = $base->ledgerContext();
         $months = $this->months($base);
-        $closed = array_values(array_filter($months, fn ($m) => CarbonImmutable::parse($m)->endOfMonth()->lte($asOf)));
+        $closed = array_values(array_filter($months, fn ($m) => CarbonImmutable::parse($m)->endOfMonth()->toDateString() <= $asOf->toDateString()));
         $future = array_values(array_diff($months, $closed));
 
         $accounts = GlAccount::query()->forContext($context)->whereIn('class', ['income', 'expense'])->get()->keyBy('id');
         $budgetCells = [];
-        foreach ($base->lines()->get() as $line) {
+        foreach ($base->cells()->get() as $line) {
             $budgetCells[$line->gl_account_id.'|'.($line->dimension ?? '')][$line->month->toDateString()] = $line->amount_cents;
         }
 
@@ -238,7 +238,7 @@ class PlanBudgets
     /** Total of a plan's cells per class. @return array{income: int, expense: int} */
     public function totals(PlanBudget $budget): array
     {
-        $rows = $budget->lines()->join('gl_accounts as g', 'g.id', '=', 'plan_budget_lines.gl_account_id')->groupBy('g.class')
+        $rows = $budget->cells()->join('gl_accounts as g', 'g.id', '=', 'plan_budget_lines.gl_account_id')->groupBy('g.class')
             ->selectRaw('g.class, SUM(plan_budget_lines.amount_cents) AS total')->pluck('total', 'class');
 
         return ['income' => (int) ($rows['income'] ?? 0), 'expense' => (int) ($rows['expense'] ?? 0)];

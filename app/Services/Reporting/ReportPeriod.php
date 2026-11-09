@@ -194,10 +194,12 @@ final class ReportPeriod
             throw new InvalidArgumentException("'{$date}' is not a date (Y-m-d).");
         }
 
-        try {
-            return CarbonImmutable::createFromFormat('!Y-m-d', $date) ?: throw new InvalidArgumentException("'{$date}' is not a date.");
-        } catch (\Throwable) {
+        $parsed = CarbonImmutable::createFromFormat('!Y-m-d', $date);
+        // 2026-02-30 parses as 2 March; a date that does not survive the round trip is not a date.
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
             throw new InvalidArgumentException("'{$date}' is not a date.");
         }
+
+        return $parsed;
     }
 }

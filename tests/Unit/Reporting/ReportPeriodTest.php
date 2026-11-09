@@ -38,7 +38,7 @@ class ReportPeriodTest extends TestCase
         $this->assertSame('custom', $period->preset);
         $this->assertSame('2026-03-15', $period->to);
 
-        foreach ([['from' => '2026-03-01', 'to' => '2026-02-01'], ['from' => 'nope', 'to' => '2026-02-01'], ['from' => '2026-02-30', 'to' => '2026-03-01'], ['from' => '2000-01-01', 'to' => '2026-03-01']] as $bad) {
+        foreach ([['from' => '2026-03-01', 'to' => '2026-02-01'], ['from' => 'nope', 'to' => '2026-02-01'], ['from' => '2026-02-30', 'to' => '2026-04-01'], ['from' => '2000-01-01', 'to' => '2026-03-01']] as $bad) {
             try {
                 ReportPeriod::resolve($bad, 1, $this->today());
                 $this->fail('expected a refusal for '.json_encode($bad));

@@ -70,7 +70,7 @@ class PlanBudgetController extends PlanningController
     public function show(PlanBudget $planBudget, PlanBudgets $plans, ApprovalService $approvals): View
     {
         $access = $this->access();
-        $lines = $planBudget->lines()->with('glAccount')->get();
+        $lines = $planBudget->cells()->with('glAccount')->get();
         $names = Dimension::query()->pluck('name', 'ref');
         $months = $plans->months($planBudget);
 
@@ -96,7 +96,7 @@ class PlanBudgetController extends PlanningController
         abort_unless($planBudget->isEditable(), 409, 'Only a draft or rejected plan can be edited. Make a new version.');
 
         $existing = [];
-        foreach ($planBudget->lines()->get() as $line) {
+        foreach ($planBudget->cells()->get() as $line) {
             $key = $line->gl_account_id.'|'.($line->dimension ?? '');
             $existing[$key]['account_id'] = $line->gl_account_id;
             $existing[$key]['dimension'] = $line->dimension;

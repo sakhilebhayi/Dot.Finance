@@ -64,7 +64,7 @@ class BudgetVsActual extends Report
 
         $months = collect($r->period->months())->pluck('key')->flip();
         $planned = [];
-        foreach ($budget->lines()->get() as $line) {
+        foreach ($budget->cells()->get() as $line) {
             if (! $months->has($line->month->format('Y-m'))) {
                 continue;
             }
