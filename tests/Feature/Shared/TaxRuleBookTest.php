@@ -7,8 +7,10 @@ use App\Models\Shared\TaxRate;
 use App\Models\Shared\TaxRule;
 use App\Services\Shared\TaxRuleBook;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Ledger\LedgerContextViolation;
 use App\Support\Shared\Exceptions\NoValidTaxRule;
 use App\Support\Shared\Exceptions\VersionedRowViolation;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsCompanyLedgers;
 use Tests\Concerns\BuildsSharedFixtures;
@@ -289,7 +291,7 @@ class TaxRuleBookTest extends TestCase
         $a = $this->rule(['rule_key' => 'sample.rate', 'value' => 1500, 'valid_from' => '2024-01-01', 'valid_to' => '2024-12-31']);
         $this->rule(['rule_key' => 'sample.rate', 'value' => 1600, 'valid_from' => '2025-01-01']);
 
-        $this->assertTrue($a->fresh()->coversDate(\Carbon\CarbonImmutable::parse('2024-12-31')));
+        $this->assertTrue($a->fresh()->coversDate(CarbonImmutable::parse('2024-12-31')));
         $this->expectException(VersionedRowViolation::class);
         $a->update(['valid_to' => '2025-06-30']);
     }
@@ -312,12 +314,12 @@ class TaxRuleBookTest extends TestCase
         try {
             $this->rule(['rule_key' => 'sample.rate', 'value' => 1500, 'user_id' => $alice->id, 'team_id' => 1]);
             $this->fail('two owners must be refused');
-        } catch (\App\Support\Ledger\LedgerContextViolation) {
+        } catch (LedgerContextViolation) {
             $this->assertTrue(true);
         }
 
         $rule = $this->rule(['rule_key' => 'sample.rate2', 'value' => 1500, 'user_id' => $alice->id]);
-        $this->expectException(\App\Support\Ledger\LedgerContextViolation::class);
+        $this->expectException(LedgerContextViolation::class);
         $rule->update(['user_id' => $bob->id]);
     }
 

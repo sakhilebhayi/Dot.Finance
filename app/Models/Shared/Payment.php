@@ -6,6 +6,7 @@ use App\Casts\DateOnly;
 use App\Models\Account;
 use App\Models\Concerns\HasLedgerContext;
 use App\Models\Transaction;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -86,6 +87,7 @@ class Payment extends Model
     /** What is not yet applied to anything: amount minus its live allocations. */
     public function unallocatedCents(): int
     {
-        return (int) $this->amount_cents - (int) $this->allocations()->whereNull('released_at')->sum('amount_cents');
+        // read inside this payment's own ledger, so the answer does not depend on who is asking or from where
+        return (int) $this->amount_cents - (int) LedgerContext::run($this->ledgerContext(), fn () => $this->allocations()->whereNull('released_at')->sum('amount_cents'));
     }
 }

@@ -12,8 +12,6 @@ use App\Policies\Shared\PartyPolicy;
 use App\Policies\Shared\PaymentPolicy;
 use App\Services\Shared\Attachments;
 use App\Services\Shared\FxService;
-use App\Services\Shared\Rates\EcbRateProvider;
-use App\Services\Shared\Rates\RateProvider;
 use App\Services\Shared\TaxRuleBook;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -31,7 +29,6 @@ class SharedDataServiceProvider extends ServiceProvider
         $this->app->scoped(TaxRuleBook::class);
         $this->app->scoped(FxService::class);
         $this->app->singleton(Attachments::class);
-        $this->app->bind(RateProvider::class, fn () => new EcbRateProvider);
     }
 
     public function boot(): void

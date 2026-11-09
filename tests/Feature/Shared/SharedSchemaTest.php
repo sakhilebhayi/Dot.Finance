@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Shared;
 
+use App\Models\Account;
 use App\Models\Shared\Currency;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -282,6 +283,6 @@ class SharedSchemaTest extends TestCase
 
     private function accountFor(int $userId): int
     {
-        return \App\Models\Account::factory()->create(['user_id' => $userId, 'currency' => 'ZAR'])->id;
+        return Account::factory()->create(['user_id' => $userId, 'currency' => 'ZAR'])->id;
     }
 }

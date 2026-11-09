@@ -10,6 +10,7 @@ use App\Services\Shared\TaxRuleBook;
 use App\Support\Shared\Exceptions\NoValidTaxRule;
 use Database\Seeders\TaxRulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\BuildsSharedFixtures;
 use Tests\TestCase;
 
@@ -179,7 +180,7 @@ class TaxRulesSeederTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('bandTables')]
+    #[DataProvider('bandTables')]
     public function test_every_bands_table_is_continuous_and_each_base_is_the_tax_on_the_band_below(string $key, string $on, string $qualifier): void
     {
         $this->seedZa();

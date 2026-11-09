@@ -79,6 +79,8 @@ final class EcbRateProvider implements RateProvider
         $wanted = array_flip(array_map('strtoupper', $quotes));
         $rates = [];
 
+        $days[0]->registerXPathNamespace('e', self::NAMESPACE);
+
         foreach ($days[0]->xpath('e:Cube[@currency]') ?: [] as $cube) {
             $currency = strtoupper((string) $cube['currency']);
             if (! isset($wanted[$currency])) {

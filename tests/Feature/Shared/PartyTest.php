@@ -6,6 +6,8 @@ use App\Models\FinanceAuditLog;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
 use App\Models\User;
+use App\Services\Shared\Attachments;
+use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -291,7 +293,7 @@ class PartyTest extends TestCase
             $this->post(route('parties.attachments.store', $party), ['file' => $this->pdf()])->assertForbidden();
         }
 
-        $this->assertSame(1, Party::query()->forContext(\App\Support\Ledger\LedgerContext::company($company))->count());
+        $this->assertSame(1, Party::query()->forContext(LedgerContext::company($company))->count());
         $this->assertSame(0, Attachment::query()->count());
     }
 
@@ -326,8 +328,8 @@ class PartyTest extends TestCase
         $url = [];
         $attachmentIds = [];
         foreach ($foreign as $label => $party) {
-            $attachment = app(\App\Services\Shared\Attachments::class)->store($this->pdf($label), $party, null, context: $party->ledgerContext());
-            $url[$label] = app(\App\Services\Shared\Attachments::class)->url($attachment);
+            $attachment = app(Attachments::class)->store($this->pdf($label), $party, null, context: $party->ledgerContext());
+            $url[$label] = app(Attachments::class)->url($attachment);
             $attachmentIds[$label] = $attachment->id;
         }
 
@@ -377,7 +379,7 @@ class PartyTest extends TestCase
         $this->get(route('parties.show', $party))->assertNotFound();
         $this->get(route('parties.index'))->assertDontSee('Their customer');
         $this->post(route('parties.store'), $this->valid(['name' => 'Smuggled']));
-        $this->assertSame(0, Party::query()->forContext(\App\Support\Ledger\LedgerContext::company($theirCompany))->where('name', 'Smuggled')->count());
+        $this->assertSame(0, Party::query()->forContext(LedgerContext::company($theirCompany))->where('name', 'Smuggled')->count());
     }
 
     // ── audit ─────────────────────────────────────────────────────────
