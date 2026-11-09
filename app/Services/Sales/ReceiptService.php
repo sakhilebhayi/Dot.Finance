@@ -383,7 +383,7 @@ final class ReceiptService
                 throw new SalesViolation('An invoice in the allocation is not one of '.$party->name.'\'s open invoices.', 'allocation');
             }
             if ($document->currency !== $currency) {
-                throw new SalesViolation("{$document->reference()} is in {$document->currency} and the money is in {$currency}. Allocation across currencies is not supported: receive the payment into an account in {$document->currency}.", 'allocation');
+                throw new SalesViolation("{$document->displayRef()} is in {$document->currency} and the money is in {$currency}. Allocation across currencies is not supported: receive the payment into an account in {$document->currency}.", 'allocation');
             }
             $total += $cents;
             $out[] = ['document_id' => $id, 'amount_cents' => $cents];

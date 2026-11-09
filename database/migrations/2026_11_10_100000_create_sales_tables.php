@@ -356,6 +356,21 @@ return new class extends Migration
 
     private function trailAndLinks(): void
     {
+        // An income transaction recorded the ordinary way (a cash sale) tied to the customer it came from, and to the
+        // invoice it relates to when there is one. A label, not a posting: the transaction posts itself as always.
+        Schema::create('sales_transaction_links', function (Blueprint $table) {
+            $table->id();
+            $this->owner($table);
+            $table->foreignId('transaction_id')->unique()->constrained('transactions');
+            $table->foreignId('party_id')->constrained('parties');
+            $table->foreignId('document_id')->nullable()->constrained('sales_documents');
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+
+            $table->index('party_id');
+        });
+        TableChecks::ownerRule('sales_transaction_links');
+
         Schema::create('sales_document_events', function (Blueprint $table) {
             $table->id();
             $this->owner($table);
@@ -507,7 +522,7 @@ SQL);
             $table->dropColumn('settlement_ref');
         });
 
-        foreach (['sales_recurring_templates', 'sales_reminders', 'sales_share_links', 'sales_document_events', 'sales_write_offs', 'sales_refunds', 'sales_applications', 'sales_document_lines', 'sales_documents', 'sales_party_prefs', 'sales_profiles'] as $table) {
+        foreach (['sales_recurring_templates', 'sales_reminders', 'sales_share_links', 'sales_transaction_links', 'sales_document_events', 'sales_write_offs', 'sales_refunds', 'sales_applications', 'sales_document_lines', 'sales_documents', 'sales_party_prefs', 'sales_profiles'] as $table) {
             $this->dropChecks($table);
             Schema::dropIfExists($table);
         }
@@ -524,6 +539,7 @@ SQL);
             'sales_refunds' => ['owner_rule', 'source_values', 'status_values', 'amount_positive', 'source_shape'],
             'sales_write_offs' => ['owner_rule', 'status_values', 'amount_positive', 'reason_required'],
             'sales_document_events' => ['owner_rule'],
+            'sales_transaction_links' => ['owner_rule'],
             'sales_share_links' => ['owner_rule', 'kind_values', 'kind_shape'],
             'sales_reminders' => ['owner_rule', 'stage_values'],
             'sales_recurring_templates' => ['owner_rule', 'frequency_values', 'mode_values', 'status_values', 'every_positive'],

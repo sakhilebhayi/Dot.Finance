@@ -117,6 +117,10 @@ if (! Features::enabled(Features::registration())) {
     Route::redirect('/register', '/login')->name('register');
 }
 
+// --- sales ---
+require __DIR__.'/sales.php';
+// --- end sales ---
+
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---

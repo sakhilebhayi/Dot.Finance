@@ -61,7 +61,7 @@ trait BuildsSales
     }
 
     /** @return array<string, mixed> */
-    protected function line(string $description = 'Consulting', string $quantity = '1', int $unit = 100_000, string $code = 'ZA_VAT_STD', array $more = []): array
+    protected function line(string $description = 'Consulting', string $quantity = '1', int $unit = 100_000, ?string $code = 'ZA_VAT_STD', array $more = []): array
     {
         return ['description' => $description, 'quantity' => $quantity, 'unit_cents' => $unit, 'tax_code' => $code] + $more;
     }

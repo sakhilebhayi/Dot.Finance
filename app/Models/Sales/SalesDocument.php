@@ -248,7 +248,7 @@ class SalesDocument extends Model implements Allocatable, Approvable
         };
     }
 
-    public function reference(): string
+    public function displayRef(): string
     {
         return $this->number ?? ('Draft #'.$this->id);
     }
@@ -310,7 +310,7 @@ class SalesDocument extends Model implements Allocatable, Approvable
 
     public function approvalLabel(): string
     {
-        return $this->title().' '.$this->reference();
+        return $this->title().' '.$this->displayRef();
     }
 
     public function onApprovalDecided(ApprovalRequest $request): void
@@ -320,6 +320,6 @@ class SalesDocument extends Model implements Allocatable, Approvable
 
     public function auditLabel(): string
     {
-        return $this->title().' '.$this->reference();
+        return $this->title().' '.$this->displayRef();
     }
 }

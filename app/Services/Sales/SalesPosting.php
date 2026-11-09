@@ -34,7 +34,7 @@ final class SalesPosting
         ])->all(), $document->fx_rate_e8 !== null ? (int) $document->fx_rate_e8 : null);
 
         if ($folded['base_net'] !== (int) $document->base_net_cents || $folded['base_tax'] !== (int) $document->base_tax_cents) {
-            throw new LogicException("Document {$document->reference()} does not add up to its stored base totals; refusing to post it.");
+            throw new LogicException("Document {$document->displayRef()} does not add up to its stored base totals; refusing to post it.");
         }
 
         $credit = $document->isCredit();
@@ -42,7 +42,7 @@ final class SalesPosting
         $currency = $document->currency;
         $rate = $document->fx_rate_e8 !== null ? (int) $document->fx_rate_e8 : null;
         $party = (int) $document->party_id;
-        $label = $document->title().' '.$document->reference();
+        $label = $document->title().' '.$document->displayRef();
 
         $posting = [];
 

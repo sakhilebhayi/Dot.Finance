@@ -126,10 +126,10 @@ final class WriteOffs
         $foreign = $document->isForeign();
 
         $entry = $this->poster->post(new PostingRequest(
-            CarbonImmutable::today(), 'adjustment', 'write-off-'.$writeOff->id, 1, 'Write-off of '.$document->reference().': '.mb_substr($writeOff->reason, 0, 200),
+            CarbonImmutable::today(), 'adjustment', 'write-off-'.$writeOff->id, 1, 'Write-off of '.$document->displayRef().': '.mb_substr($writeOff->reason, 0, 200),
             [
-                new PostingLine('bad_debts', $base, 0, $foreign ? $document->currency : null, $foreign ? (int) $writeOff->amount_cents : null, $foreign ? (int) $document->fx_rate_e8 : null, description: 'Bad debt: '.$document->reference()),
-                new PostingLine('ar', 0, $base, $foreign ? $document->currency : null, $foreign ? (int) $writeOff->amount_cents : null, $foreign ? (int) $document->fx_rate_e8 : null, partyId: (int) $document->party_id, description: 'Written off: '.$document->reference()),
+                new PostingLine('bad_debts', $base, 0, $foreign ? $document->currency : null, $foreign ? (int) $writeOff->amount_cents : null, $foreign ? (int) $document->fx_rate_e8 : null, description: 'Bad debt: '.$document->displayRef()),
+                new PostingLine('ar', 0, $base, $foreign ? $document->currency : null, $foreign ? (int) $writeOff->amount_cents : null, $foreign ? (int) $document->fx_rate_e8 : null, partyId: (int) $document->party_id, description: 'Written off: '.$document->displayRef()),
             ],
             $by?->id,
         ));

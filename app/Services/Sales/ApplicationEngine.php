@@ -132,7 +132,7 @@ final class ApplicationEngine
                 'applied_on' => $on->toDateString(), 'applied_by' => $by?->id,
             ]);
 
-            $this->postDifference($application, $target, $diff, $on, 'Payment '.$lockedPayment->id.' applied to '.$target->reference());
+            $this->postDifference($application, $target, $diff, $on, 'Payment '.$lockedPayment->id.' applied to '.$target->displayRef());
             $this->refreshStatus($target);
             SalesTrail::event($target, 'payment_applied', $by?->id, ['payment_id' => $lockedPayment->id, 'amount_cents' => $amount]);
 
@@ -172,7 +172,7 @@ final class ApplicationEngine
                 'applied_on' => $on->toDateString(), 'applied_by' => $by?->id,
             ]);
 
-            $this->postDifference($application, $target, $diff, $on, $lockedCredit->reference().' applied to '.$target->reference());
+            $this->postDifference($application, $target, $diff, $on, $lockedCredit->displayRef().' applied to '.$target->displayRef());
             $this->refreshStatus($target);
             SalesTrail::event($target, 'credit_applied', $by?->id, ['credit_note' => $lockedCredit->number, 'amount_cents' => $amount]);
             SalesTrail::event($lockedCredit, 'credit_used', $by?->id, ['invoice' => $target->number, 'amount_cents' => $amount]);

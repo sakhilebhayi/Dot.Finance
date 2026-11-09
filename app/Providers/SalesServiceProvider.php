@@ -90,10 +90,10 @@ class SalesServiceProvider extends ServiceProvider
     private function navigation(): void
     {
         Navigation::add('sales', ['key' => 'receivables', 'label' => 'Receivables', 'icon' => 'scale', 'routes' => ['sales.receivables.index'], 'can' => 'view-finance']);
-        Navigation::add('sales', ['key' => 'credit-notes', 'label' => 'Credit notes', 'icon' => 'file-minus', 'routes' => ['sales.credit-notes.index'], 'can' => 'view-finance']);
+        Navigation::add('sales', ['key' => 'credit-notes', 'label' => 'Credit notes', 'icon' => 'receipt', 'routes' => ['sales.credit-notes.index'], 'can' => 'view-finance']);
         Navigation::add('sales', ['key' => 'payments-in', 'label' => 'Payments received', 'icon' => 'hand-coins', 'routes' => ['sales.payments.index'], 'can' => 'view-finance']);
         Navigation::add('sales', ['key' => 'recurring-invoices', 'label' => 'Repeating invoices', 'icon' => 'repeat', 'routes' => ['sales.recurring.index'], 'can' => 'issue-invoice']);
-        Navigation::add('sales', ['key' => 'sales-profile', 'label' => 'Business profile', 'icon' => 'settings-2', 'routes' => ['sales.profile.edit'], 'can' => 'manage-tax']);
+        Navigation::add('sales', ['key' => 'sales-profile', 'label' => 'Business profile', 'icon' => 'settings', 'routes' => ['sales.profile.edit'], 'can' => 'manage-tax']);
     }
 
     /** @return list<array<string, mixed>> */

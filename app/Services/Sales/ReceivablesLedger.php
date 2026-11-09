@@ -76,6 +76,32 @@ final class ReceivablesLedger
     }
 
     /**
+     * What each of these documents still owes, in its own currency, in a few grouped queries. A credit note, a quote or a
+     * void document owes nothing. Keyed by document id.
+     *
+     * @param  Collection<int, SalesDocument>  $documents
+     * @return array<int, int>
+     */
+    public function balances(LedgerContext $context, Collection $documents): array
+    {
+        $receivables = $documents->filter(fn (SalesDocument $d) => $d->isReceivable() && $d->isSealed() && ! $d->isVoid());
+        if ($receivables->isEmpty()) {
+            return [];
+        }
+
+        return LedgerContext::run($context, function () use ($context, $receivables) {
+            $ids = $receivables->pluck('id');
+            $credit = SalesApplication::query()->forContext($context)->whereIn('target_document_id', $ids)->where('kind', 'credit')->whereNull('released_at')
+                ->selectRaw('target_document_id, SUM(amount_cents) as cents')->groupBy('target_document_id')->pluck('cents', 'target_document_id');
+            $paid = PaymentAllocation::query()->forContext($context)->where('allocatable_type', (new SalesDocument)->getMorphClass())->whereIn('allocatable_id', $ids)
+                ->whereNull('released_at')->whereHas('payment', fn ($q) => $q->where('status', 'recorded'))
+                ->selectRaw('allocatable_id, SUM(amount_cents) as cents')->groupBy('allocatable_id')->pluck('cents', 'allocatable_id');
+
+            return $receivables->mapWithKeys(fn (SalesDocument $d) => [$d->id => (int) $d->total_cents - (int) ($credit[$d->id] ?? 0) - (int) $d->written_off_cents - (int) ($paid[$d->id] ?? 0)])->all();
+        });
+    }
+
+    /**
      * Credits a customer holds that are not applied to anything: payments received and credit notes.
      *
      * @return Collection<int, array{kind: string, id: int, label: string, date: CarbonImmutable, party_id: int, currency: string, cents: int, base_cents: int, model: Payment|SalesDocument}>

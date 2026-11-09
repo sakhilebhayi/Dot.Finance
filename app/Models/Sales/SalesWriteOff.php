@@ -53,7 +53,7 @@ class SalesWriteOff extends Model implements Approvable
 
     public function approvalLabel(): string
     {
-        return 'Write-off of '.($this->document?->reference() ?? 'invoice');
+        return 'Write-off of '.($this->document?->displayRef() ?? 'invoice');
     }
 
     public function onApprovalDecided(ApprovalRequest $request): void
