@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\GenerateInsights;
+use App\Console\Commands\Ops\BackupCheck;
 use App\Console\Commands\GenerateRecurringTransactions;
 use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
@@ -103,3 +104,12 @@ Schedule::command(RefreshCalendar::class)
     ->withoutOverlapping()
     ->onOneServer();
 // --- end tax ---
+
+// --- ops ---
+// The watchdog for scripts/ops/backup.sh: fails (and so reaches the scheduler watchdog) when the newest backup set is missing, too
+// old, incomplete or no longer matches its checksums. Does nothing until BACKUP_DIR is set.
+Schedule::command(BackupCheck::class)
+    ->dailyAt('08:15')
+    ->withoutOverlapping()
+    ->onOneServer();
+// --- end ops ---

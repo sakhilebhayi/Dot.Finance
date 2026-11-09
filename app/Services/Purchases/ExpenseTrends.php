@@ -38,12 +38,15 @@ final class ExpenseTrends
             $lines = JournalLine::query()->whereIn('gl_account_id', $accounts->keys())
                 ->where('entry_date', '>=', $first->toDateString())->where('entry_date', '<=', $upTo->endOfMonth()->toDateString())
                 ->when($excluded->isNotEmpty(), fn ($q) => $q->whereNotIn('journal_entry_id', $excluded))
-                ->get(['gl_account_id', 'entry_date', 'debit_cents', 'credit_cents']);
+                // summed per account and day in the database (a busy ledger has tens of thousands of expense lines in six months;
+                // loading each as a model took 200 MB and a second), then folded into months here
+                ->groupBy('gl_account_id', 'entry_date')->selectRaw('gl_account_id, entry_date, SUM(debit_cents) AS debits, SUM(credit_cents) AS credits')
+                ->toBase()->get();
 
             $by = [];
             foreach ($lines as $line) {
-                $month = $line->entry_date->format('Y-m');
-                $by[$line->gl_account_id][$month] = ($by[$line->gl_account_id][$month] ?? 0) + ($line->debit_cents - $line->credit_cents);
+                $month = substr((string) $line->entry_date, 0, 7);
+                $by[(int) $line->gl_account_id][$month] = ($by[(int) $line->gl_account_id][$month] ?? 0) + ((int) $line->debits - (int) $line->credits);
             }
 
             $current = $keys[count($keys) - 1];

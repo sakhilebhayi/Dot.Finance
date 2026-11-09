@@ -97,6 +97,7 @@ class PagesPerfTest extends TestCase
             'purchases: suppliers' => '/purchases/suppliers',
             'purchases: supplier' => '/purchases/suppliers/'.$supplier,
             'purchases: payments' => '/purchases/payments',
+            'purchases: needs documents' => '/purchases/documents',
             'planning: cash' => '/planning/cash',
             'planning: forecasts' => '/planning/forecasts',
             'planning: budgets' => '/planning/budgets',
@@ -114,12 +115,16 @@ class PagesPerfTest extends TestCase
         }
         $out = getenv('PERF_OUT') ?: '/tmp/perf-pages.jsonl';
         $only = getenv('PERF_ONLY') ?: null;
+        if (getenv('PERF_LIST') === '1') {
+            fwrite(STDERR, implode("\n", array_keys($this->pages()))."\n");
+            $this->markTestSkipped('listed');
+        }
         $team = Team::query()->where('name', 'Karoo Roasters (Pty) Ltd')->firstOrFail();
         $user = User::query()->findOrFail($team->user_id);
         $this->actingAs($user)->withSession([LedgerContextManager::SESSION_KEY => $team->id]);
 
         foreach ($this->pages() as $label => $uri) {
-            if ($only !== null && ! array_filter(explode('|', $only), fn ($f) => str_contains($label, $f))) {
+            if ($only !== null && ! array_filter(explode('|', $only), fn ($f) => getenv('PERF_EXACT') === '1' ? $label === $f : str_contains($label, $f))) {
                 continue;
             }
             $row = ['page' => $label, 'uri' => $uri];
