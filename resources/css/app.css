@@ -4,6 +4,7 @@
 @import './shell.css';
 @import './components.css';
 @import './pages.css';
+@import './intel.css';
 
 /* Tailwind: utilities only (preflight is off in tailwind.config.js). The design lives in the files above. */
 @tailwind base;

@@ -1,0 +1,280 @@
+/*
+ * Intelligence and integrations screens: the assistant, what needs attention, notifications, the integrations
+ * status page and the Dot.Emall review. Built on the existing tokens only; no new colour. Colour means one thing:
+ * pencil red is a variance (a warning or worse), ledger green is a verified fact. The rest is ink on paper.
+ */
+
+/* The question box: the one job of the assistant page, first on the screen. */
+.intel-ask {
+    display: grid;
+    gap: var(--s-3);
+}
+
+.intel-ask__row {
+    display: grid;
+    gap: var(--s-2);
+}
+
+@media (min-width: 720px) {
+    .intel-ask__row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+    }
+}
+
+.intel-suggest {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+.intel-suggest button {
+    min-height: var(--control-h-sm);
+    padding: 0 var(--s-3);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-chip);
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: var(--fs-small);
+    cursor: pointer;
+}
+
+.intel-suggest button:hover {
+    background: var(--sunk);
+    color: var(--ink);
+}
+
+/* One exchange: the question as a quiet line, the answer as the content. */
+.intel-exchange {
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-5) 0;
+    border-bottom: 1px solid var(--rule);
+    scroll-margin-top: var(--top-h);
+}
+
+.intel-exchange:last-child {
+    border-bottom: 0;
+}
+
+.intel-exchange__q {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-3);
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+}
+
+.intel-exchange__q q {
+    color: var(--ink-2);
+    quotes: none;
+    font-weight: 600;
+}
+
+.intel-sentence {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 108;
+    font-size: var(--fs-section);
+    font-weight: 560;
+    line-height: 1.4;
+    max-width: 62ch;
+    color: var(--ink);
+}
+
+.intel-sentence--none {
+    color: var(--ink-2);
+}
+
+.intel-facts {
+    display: grid;
+    gap: 0;
+    max-width: 40rem;
+}
+
+.intel-facts > div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--fs-cell);
+}
+
+.intel-facts dd {
+    font-family: var(--font-figure);
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+    text-align: right;
+}
+
+.intel-facts .is-variance dd {
+    color: var(--pencil);
+}
+
+.intel-rows {
+    list-style: none;
+    display: grid;
+    max-width: 48rem;
+}
+
+.intel-rows li {
+    border-bottom: 1px solid var(--rule);
+}
+
+.intel-rows a,
+.intel-rows div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-4);
+    padding: var(--s-2) 0;
+    font-size: var(--fs-cell);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.intel-rows a:hover {
+    background: var(--sunk);
+}
+
+.intel-rows span:last-child {
+    margin-left: auto;
+    font-family: var(--font-figure);
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+}
+
+.intel-chips {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--fs-small);
+}
+
+.intel-chips a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    min-height: var(--control-h-sm);
+    padding: 0 var(--s-2);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-chip);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.intel-chips a:hover {
+    background: var(--sunk);
+}
+
+.intel-notes {
+    list-style: none;
+    display: grid;
+    gap: var(--s-1);
+    font-size: var(--fs-small);
+    color: var(--ink-3);
+    max-width: 62ch;
+}
+
+/* A draft waiting for a person: the only thing on the page that asks for a decision. */
+.intel-draft {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    background: var(--sunk);
+    border-radius: var(--r-panel);
+}
+
+.intel-draft p {
+    font-size: var(--fs-cell);
+    max-width: 52ch;
+}
+
+/* Findings and notifications share a list shape. */
+.intel-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s-3);
+    padding: var(--s-4) 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.intel-item:last-child {
+    border-bottom: 0;
+}
+
+.intel-item h3 {
+    font-size: var(--fs-body);
+    font-weight: 650;
+}
+
+.intel-item.is-unread h3::after {
+    content: ' (unread)';
+    font-weight: 400;
+    color: var(--ink-3);
+    font-size: var(--fs-small);
+}
+
+.intel-item.is-variance > .fx-icon {
+    color: var(--pencil);
+}
+
+.intel-item__body {
+    display: grid;
+    gap: var(--s-2);
+    min-width: 0;
+}
+
+.intel-item__body p {
+    max-width: 66ch;
+    color: var(--ink-2);
+    font-size: var(--fs-cell);
+}
+
+.intel-evidence {
+    margin-top: var(--s-1);
+}
+
+.intel-evidence summary {
+    cursor: pointer;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+.intel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    align-items: center;
+}
+
+.intel-prefs td:not(:first-child),
+.intel-prefs th:not(:first-child) {
+    text-align: center;
+}
+
+/* The bell's unread count: a number, not just a dot. */
+.fx-iconbtn {
+    position: relative;
+}
+
+.intel-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 3px;
+    border-radius: var(--r-chip);
+    background: var(--pencil);
+    color: var(--paper);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1rem;
+    text-align: center;
+}

@@ -23,12 +23,16 @@ use Closure;
  */
 final class StateLine
 {
-    /** @var list<Closure(LedgerContext): (array<string, mixed>|list<array<string, mixed>>|null)> */
+    /** @var array<int|string, Closure(LedgerContext): (array<string, mixed>|list<array<string, mixed>>|null)> */
     private static array $providers = [];
 
-    public static function extend(Closure $provider): void
+    /**
+     * Add a provider. With a $key the provider replaces any earlier one registered under the same key, so a service
+     * provider that boots more than once in a process (every test boots a fresh application) does not stack duplicates.
+     */
+    public static function extend(Closure $provider, ?string $key = null): void
     {
-        self::$providers[] = $provider;
+        $key === null ? self::$providers[] = $provider : self::$providers[$key] = $provider;
     }
 
     public static function flush(): void
