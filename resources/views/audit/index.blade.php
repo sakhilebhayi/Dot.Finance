@@ -89,6 +89,10 @@
                                 <div class="fx-cell-sub">dates read as {{ $changes['date_format'] ?? '?' }}, amounts as {{ $changes['amount_locale'] ?? '?' }}</div>
                             @else
                                 @forelse($changes as $field => $change)
+                                @php
+                                    // Some modules (bank imports, for one) record plain values instead of {before, after}; show them as the value set.
+                                    $change = is_array($change) ? $change : ['after' => $change];
+                                @endphp
                                 <div>
                                     <span class="fx-cell-main">{{ $fieldLabels[$field] ?? ucfirst(str_replace('_', ' ', $field)) }}</span>
                                     @if(isset($change['changed']))
