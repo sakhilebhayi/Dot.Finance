@@ -47,7 +47,7 @@ Branch `feat/r44-gl`. Decisions D-100..D-124 are in `docs/R44_DECISIONS.md`. Inp
 | Baseline before any change | SQLite 564 tests (557 passed, 7 skipped). |
 | Final, SQLite in memory | **720 tests, 710 passed, 10 skipped** (7 existing + 3 PostgreSQL-only), 13,176 assertions. |
 | Final, PostgreSQL 16 (`phpunit.pgsql.xml`) | **720 tests, 0 failures, 8 skipped** (all pre-existing), 13,201 assertions. Includes the deferred balance trigger and the two multi-process concurrency tests. |
-| Randomised ledgers | 20 fixed seeds x 3 properties in the suite. By hand: seeds 1..120 on SQLite (41,662 assertions, all pass); 30 seeds on PostgreSQL (see section 4). |
+| Randomised ledgers | 20 fixed seeds x 3 properties in the suite. By hand (`GL_PROPERTY_SEEDS=N`): seeds 1..120 on SQLite (41,662 assertions, all pass); seeds 1..8 on PostgreSQL (2,832 assertions, pass). A 30-seed PostgreSQL run was abandoned after more than 25 minutes: all seeds share one test transaction, so the planner works from empty-table statistics and the per-step verifier degrades; not investigated further, and the committed-data timings in the next section show no such behaviour. |
 | `composer audit --locked` | No advisories (was 8 on the lock, all `symfony/*`). |
 | `route:cache` | Caches and clears cleanly; `SignedInSmokeTest` also passes with the routes cached. |
 | `pint --test` | Passes. |
@@ -75,7 +75,7 @@ Nothing was deleted or weakened.
 
 - **Browser rendering and usability** of the accounting pages: none. They are unstyled semantic HTML with existing classes (as briefed; agent U restyles). Markup is tested; pixels are not. Design skills were **not** invoked, because the brief was functional markup only; the visual pass belongs to the UI agent.
 - **Foreign-currency books**: only amounts with a known rate post. The default provider knows same-currency, and transfers get their rate from the two typed amounts. Any other foreign movement is deferred and makes `verify` fail until the shared-data module binds a real `FxRateProvider`. No revaluation (`fx_unrealised` exists in the chart, nothing posts to it yet).
-- **PostgreSQL property run** beyond the suite's 20 seeds: see the last line of section 2 once it finished: `/tmp/gl_pg_prop.out` is a local artefact, not part of the repository.
+- **PostgreSQL randomised runs** beyond 8 seeds (see section 2).
 - **Roles**: `LedgerAccess` additions are the minimum; the Controls module owns the role model and may remap them.
 - **Hash chain** is tamper-*evident* (verify notices), not tamper-proof; the append-only triggers are the prevention. Revoking UPDATE/DELETE on the journal tables from the application's database role would be a further layer; not done (owner/DBA step).
 - **Large ledgers in the browser**: the wizard refuses to apply above 5,000 transactions and names the command. Untested at 200,000 rows.
