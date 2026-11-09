@@ -53,6 +53,44 @@ final class SupplierPayments
     ) {}
 
     /**
+     * A retry must be the same payment in money terms too: the same total and the same bills (and the same amount on each bill
+     * when the request names one). Otherwise a second request under a used key would be told "done" for money it never asked
+     * for (QA security D-1410).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function assertSameMoney(Payment $existing, array $data, string $key): void
+    {
+        if (isset($data['amount_cents']) && (int) $data['amount_cents'] !== (int) $existing->amount_cents) {
+            throw new IdempotencyConflict("The key {$key} was already used for a payment of a different amount. Repeat the same request to retry, or use a new key.");
+        }
+
+        $held = [];
+        foreach ($existing->allocations()->get() as $allocation) {
+            $held[$allocation->allocatable_type.':'.$allocation->allocatable_id] = (int) $allocation->amount_cents;
+        }
+
+        $asked = [];
+        foreach ($data['allocations'] ?? [] as $row) {
+            $class = match ($row['type'] ?? null) {
+                'bill' => (new Bill)->getMorphClass(),
+                'expense_claim' => (new ExpenseClaim)->getMorphClass(),
+                default => (string) ($row['type'] ?? ''),
+            };
+            $asked[$class.':'.(int) $row['id']] = isset($row['amount_cents']) ? (int) $row['amount_cents'] : null;
+        }
+
+        $differs = array_keys($asked) !== array_keys($held) && (array_diff_key($asked, $held) !== [] || array_diff_key($held, $asked) !== []);
+        foreach ($asked as $k => $cents) {
+            $differs = $differs || ($cents !== null && isset($held[$k]) && $held[$k] !== $cents);
+        }
+
+        if ($differs) {
+            throw new IdempotencyConflict("The key {$key} was already used for a payment of different bills or amounts. Repeat the same request to retry, or use a new key.");
+        }
+    }
+
+    /**
      * @param  array{party_id: int, cash_account_id: int, paid_on: string, method?: string, reference?: ?string, idempotency_key: string, notes?: ?string, fx_rate_e8?: ?int, amount_cents?: ?int, allocations?: list<array{type: string, id: int, amount_cents?: int, take_discount?: bool}>}  $data
      * @param  bool  $approved  the caller already holds an approval for this payment (a payment run that was approved)
      *
@@ -76,6 +114,7 @@ final class SupplierPayments
                 if ($existing->paid_on->toDateString() !== CarbonImmutable::parse($data['paid_on'])->toDateString()) {
                     throw new IdempotencyConflict("The key {$key} was already used for a payment on a different date. Repeat the same request to retry, or use a new key.");
                 }
+                $this->assertSameMoney($existing, $data, $key);
 
                 return $existing;
             }

@@ -52,7 +52,12 @@ final class TaxMath
             throw new InvalidArgumentException('A flat discount cannot be negative.');
         }
 
-        $before = MoneyMath::mulDivRound($unitCents, self::quantityToE4($quantity), self::QUANTITY_SCALE);
+        try {
+            $before = MoneyMath::mulDivRound($unitCents, self::quantityToE4($quantity), self::QUANTITY_SCALE);
+        } catch (\OverflowException) {
+            // a price times a quantity past the integer range is refused with the same words as one past the supported range, never a server error
+            throw new InvalidArgumentException('Amount is outside the supported range.');
+        }
         self::assertInRange($before);
 
         $magnitude = abs($before);

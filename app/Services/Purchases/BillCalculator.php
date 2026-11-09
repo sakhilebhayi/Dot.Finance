@@ -99,10 +99,21 @@ final class BillCalculator
             $tax = $this->calculator->forDocument($inputs, $jurisdiction, $date, $doc['tax_inclusive']);
         } catch (NoValidTaxRule $e) {
             throw new PurchasesException('The tax rules do not cover '.$date->toDateString().': '.$e->getMessage(), 'no_tax_rule');
+        } catch (InvalidArgumentException|\OverflowException) {
+            // a price times a quantity beyond the supported range is refused in words, never a server error (QA security D-1411)
+            throw new PurchasesException('An amount on this document is larger than the largest this system works with ('.Money::format(Money::MAX_CENTS).').', 'amount_too_large');
+        }
+
+        if (abs($tax->grossCents) > Money::MAX_CENTS || abs($tax->netCents) > Money::MAX_CENTS) {
+            throw new PurchasesException('The document total is larger than the largest amount this system works with ('.Money::format(Money::MAX_CENTS).').', 'amount_too_large');
         }
 
         $setting = PurchaseSetting::forLedger($context);
-        $grossBase = $this->ledger->toBase($context, $tax->grossCents, $doc['currency'], $doc['fx_rate_e8'] ?? null);
+        try {
+            $grossBase = $this->ledger->toBase($context, $tax->grossCents, $doc['currency'], $doc['fx_rate_e8'] ?? null);
+        } catch (\OverflowException) {
+            throw new PurchasesException('That amount is too large to convert at this exchange rate.', 'amount_too_large');
+        }
         $posting = $doc['posting_date'] ?? now()->toImmutable();
 
         $out = [];

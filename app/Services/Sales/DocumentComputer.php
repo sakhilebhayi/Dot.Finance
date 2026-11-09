@@ -19,6 +19,7 @@ use App\Services\Shared\Tax\TaxMath;
 use App\Services\Shared\TaxCalculator;
 use App\Services\Shared\TaxRuleBook;
 use App\Support\Ledger\LedgerContext;
+use App\Support\Money;
 use App\Support\Shared\Exceptions\NoFxRate;
 use App\Support\Shared\Exceptions\NoValidTaxRule;
 use Carbon\CarbonImmutable;
@@ -171,10 +172,18 @@ final class DocumentComputer
             $confidence = 'high';
         }
 
+        if (abs($grossTotal) > Money::MAX_CENTS || abs($netTotal) > Money::MAX_CENTS) {
+            throw new SalesViolation('The document total is larger than the largest amount this system works with ('.Money::format(Money::MAX_CENTS).').', 'total_too_large');
+        }
+
         // 3. the base-currency view, folded the way the journal will be posted
-        $groups = PostingGroups::fold(array_map(fn (ComputedLine $l) => [
-            'income' => $l->incomeAccountId ?? 'sales', 'tax_code_id' => $l->taxCodeId, 'tax_code' => $l->taxCode, 'net' => $l->netCents, 'tax' => $l->taxCents,
-        ], $lines), $rateE8);
+        try {
+            $groups = PostingGroups::fold(array_map(fn (ComputedLine $l) => [
+                'income' => $l->incomeAccountId ?? 'sales', 'tax_code_id' => $l->taxCodeId, 'tax_code' => $l->taxCode, 'net' => $l->netCents, 'tax' => $l->taxCents,
+            ], $lines), $rateE8);
+        } catch (\OverflowException) {
+            throw new SalesViolation('That amount is too large to convert at this exchange rate.', 'total_too_large');
+        }
 
         return new ComputedDocument(
             currency: $currency, baseCurrency: $base, fxRateE8: $rateE8, fxAsOf: $fxAsOf, fxSource: $fxSource, fxManual: $fxManual,

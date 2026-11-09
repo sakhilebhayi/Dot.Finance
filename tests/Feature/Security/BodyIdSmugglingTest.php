@@ -4,7 +4,9 @@ namespace Tests\Feature\Security;
 
 use App\Models\Team;
 use App\Models\User;
+use Database\Seeders\TaxModuleRulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\BuildsCompanyLedgers;
 use Tests\Concerns\RunsRouteProbes;
@@ -38,7 +40,7 @@ class BodyIdSmugglingTest extends TestCase
     {
         parent::setUp();
         Storage::fake('local');
-        $this->seed(\Database\Seeders\TaxModuleRulesSeeder::class);
+        $this->seed(TaxModuleRulesSeeder::class);
         $this->me = $this->user();
         $stranger = $this->user();
         $this->mine = $this->company($this->me, 'Mine Ltd');
@@ -73,8 +75,8 @@ class BodyIdSmugglingTest extends TestCase
             'supplier payment settling a foreign bill' => ['post', 'purchases.payments.store', fn ($i) => ['party_id' => $this->own['supplierParty'], 'cash_account_id' => $this->own['account'], 'paid_on' => $day, 'idempotency_key' => 'k8', 'pay' => ['bill-'.$i['bill'] => '5.00']]],
             'bill for a foreign supplier' => ['post', 'purchases.bills.store', fn ($i) => ['party_id' => $i['supplierParty'], 'bill_date' => $day, 'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_price' => '5.00']]]],
             'bill line to a foreign GL account' => ['post', 'purchases.bills.store', fn ($i) => ['party_id' => $this->own['supplierParty'], 'bill_date' => $day, 'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_price' => '5.00', 'gl_account_id' => $i['glAccount']]]]],
-            'payment run from a foreign bank account' => ['post', 'purchases.runs.store', fn ($i) => ['name' => 'x', 'due_by' => $day, 'paid_on' => $day, 'cash_account_id' => $i['account'], 'bill_ids' => [$this->own['bill']], 'idempotency_key' => 'k9']],
-            'payment run of a foreign bill' => ['post', 'purchases.runs.store', fn ($i) => ['name' => 'x', 'due_by' => $day, 'paid_on' => $day, 'cash_account_id' => $this->own['account'], 'bill_ids' => [$i['bill']], 'idempotency_key' => 'k10']],
+            'payment run from a foreign bank account' => ['post', 'purchases.runs.store', fn ($i) => ['name' => 'x', 'due_by' => $day, 'paid_on' => $day, 'cash_account_id' => $i['account'], 'pick' => ['bill-'.$this->own['bill']], 'idempotency_key' => 'k9']],
+            'payment run of a foreign bill' => ['post', 'purchases.runs.store', fn ($i) => ['name' => 'x', 'due_by' => $day, 'paid_on' => $day, 'cash_account_id' => $this->own['account'], 'pick' => ['bill-'.$i['bill']], 'idempotency_key' => 'k10']],
             'plan cell on a foreign GL account' => ['put', 'planning.budgets.update', fn ($i) => ['rows' => [['gl_account_id' => $i['glAccount'], 'months' => ['2026-01' => '5.00']]]], ['planBudget' => 'own']],
             'spend limit for a person outside the company' => ['post', 'controls.limits.store', fn ($i) => ['who' => 'user:'.$this->me->id + 999, 'currency' => 'ZAR', 'period' => 'daily', 'amount' => '5.00']],
             'role for a person outside the company' => ['put', 'controls.members.update', fn ($i) => ['role' => 'accountant'], ['member' => 'stranger']],
@@ -84,7 +86,7 @@ class BodyIdSmugglingTest extends TestCase
 
     private function fire(string $method, string $routeName, array $body, array $params = [])
     {
-        $files = array_filter($body, fn ($v) => $v instanceof \Illuminate\Http\UploadedFile);
+        $files = array_filter($body, fn ($v) => $v instanceof UploadedFile);
 
         return $this->inCompany($this->me, $this->mine)->call(strtoupper($method), route($routeName, $params, false), array_diff_key($body, $files), [], $files);
     }

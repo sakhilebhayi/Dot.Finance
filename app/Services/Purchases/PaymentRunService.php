@@ -86,6 +86,38 @@ final class PaymentRunService
      *
      * @throws PurchasesException
      */
+    /**
+     * A key already used for a run returns that run only when the request is the same one: same account, same dates and the
+     * same bills. A different request under the key is refused instead of silently handing back the old run (D-1410).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function assertSameRun(PaymentRun $existing, array $data, string $key): void
+    {
+        $day = fn ($v) => substr((string) ($v instanceof \DateTimeInterface ? $v->format('Y-m-d') : $v), 0, 10);
+
+        $differs = (int) ($data['cash_account_id'] ?? 0) !== (int) $existing->cash_account_id
+            || $day($data['paid_on'] ?? '') !== $day($existing->paid_on)
+            || $day($data['due_by'] ?? '') !== $day($existing->due_by);
+
+        $held = [];
+        foreach ($existing->items()->get() as $item) {
+            $held[$item->allocatable_type.':'.$item->allocatable_id] = (int) $item->amount_cents;
+        }
+        $asked = [];
+        foreach ($data['selection'] ?? [] as $pick) {
+            $asked[$pick['type'].':'.(int) $pick['id']] = isset($pick['amount_cents']) ? (int) $pick['amount_cents'] : null;
+        }
+        $differs = $differs || array_diff_key($asked, $held) !== [] || array_diff_key($held, $asked) !== [];
+        foreach ($asked as $k => $cents) {
+            $differs = $differs || ($cents !== null && isset($held[$k]) && $held[$k] !== $cents);
+        }
+
+        if ($differs) {
+            throw new PurchasesException("The key {$key} was already used for a different payment run. Repeat the same request to retry, or use a new key.", 'idempotency_conflict');
+        }
+    }
+
     public function create(LedgerContext $context, User $by, array $data): PaymentRun
     {
         return LedgerContext::run($context, function () use ($context, $by, $data) {
@@ -96,6 +128,8 @@ final class PaymentRunService
 
             $existing = PaymentRun::query()->where('idempotency_key', $key)->first();
             if ($existing !== null) {
+                $this->assertSameRun($existing, $data, $key);
+
                 return $existing;
             }
 
