@@ -6,10 +6,10 @@ Branch `feat/r44-qa-acceptance`, decisions D-1600..D-1606 in `R44_DECISIONS.md`.
 
 | Run | Result |
 |---|---|
-| `tests/Feature/Acceptance`, SQLite in memory | RESULT_SQLITE_ACC |
-| `tests/Feature/Acceptance`, PostgreSQL 16 (throwaway database `finance_qa_acc`, clean environment, `phpunit.pgsql.xml`) | RESULT_PG_ACC |
-| Whole suite, SQLite | RESULT_SQLITE_FULL |
-| Whole suite, PostgreSQL | RESULT_PG_FULL |
+| `tests/Feature/Acceptance`, SQLite in memory | **210 tests, 6,712 assertions, 0 failures** |
+| `tests/Feature/Acceptance`, PostgreSQL 16 (throwaway database `finance_qa_acc`, clean environment, `phpunit.pgsql.xml`) | **210 tests, 6,712 assertions, 0 failures** (database dropped afterwards) |
+| Whole suite, SQLite | 2,176 tests, 292,286 assertions: 1 failure (the acceptance 23 audit-count assertion, fixed afterwards and re-run green), 13 skipped; every other test, including the 1,966 existing ones, passed |
+| Whole suite, PostgreSQL | 2,176 tests, 292,327 assertions: the same single failure (fixed, class re-run green on PostgreSQL), 10 skipped (all pre-existing); the whole Integration/Tax/Sales/Purchases/Bank suites passed with this branch's product changes |
 | Integration baseline before this branch | 1,966 tests, 0 failures (SQLite and PostgreSQL) |
 
 Defects found in the product and fixed with regression tests: **6** (section 3) plus the mobile layout defects of criterion 32 (section 4).
