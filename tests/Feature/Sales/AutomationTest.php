@@ -7,7 +7,6 @@ use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesRecurringTemplate;
 use App\Models\Sales\SalesReminder;
 use App\Models\Shared\Party;
-use App\Services\Sales\DocumentDrafts;
 use App\Services\Sales\DocumentIssuer;
 use App\Services\Sales\ReceiptService;
 use App\Services\Sales\RecurringInvoices;
@@ -15,8 +14,10 @@ use App\Services\Sales\Reminders;
 use App\Services\Sales\SalesProfiles;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Tests\Concerns\BuildsSales;
 use Tests\TestCase;
@@ -179,8 +180,8 @@ class AutomationTest extends TestCase
         $first = SalesDocument::query()->forContext($this->ledger)->where('recurring_template_id', $t->id)->firstOrFail();
         $second = $this->draft();
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
-        \Illuminate\Support\Facades\DB::table('sales_documents')->where('id', $second->id)->update(['recurring_template_id' => $t->id, 'recurring_period' => $first->recurring_period]);
+        $this->expectException(QueryException::class);
+        DB::table('sales_documents')->where('id', $second->id)->update(['recurring_template_id' => $t->id, 'recurring_period' => $first->recurring_period]);
     }
 
     public function test_an_issuing_template_issues_with_numbers_and_posts(): void

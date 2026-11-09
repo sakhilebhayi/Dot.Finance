@@ -10,12 +10,18 @@ use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Insight;
 use App\Models\RecurringRule;
+use App\Models\Sales\SalesRecurringTemplate;
+use App\Models\Sales\SalesShareLink;
 use App\Models\Shared\Attachment;
 use App\Models\Shared\Party;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Accounting\Chart;
 use App\Services\Accounting\ChartTemplates;
 use App\Services\Accounting\GlBackfill;
+use App\Services\Sales\DocumentDrafts;
+use App\Services\Sales\DocumentIssuer;
+use App\Services\Sales\ReceiptService;
 use App\Services\TransferService;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -134,19 +140,19 @@ class ContextIsolationRoutesTest extends TestCase
             $user = $company === null ? User::findOrFail($owner['user_id']) : $company->owner;
             // a personal chart has receivables and output VAT switched off; invoicing needs them on
             foreach (['ar', 'vat_output', 'sales'] as $key) {
-                $gl = app(\App\Services\Accounting\Chart::class)->system($key, $ledger);
-                $gl->is_active || app(\App\Services\Accounting\Chart::class)->activate($gl);
+                $gl = app(Chart::class)->system($key, $ledger);
+                $gl->is_active || app(Chart::class)->activate($gl);
             }
-            $drafts = app(\App\Services\Sales\DocumentDrafts::class);
+            $drafts = app(DocumentDrafts::class);
             $header = ['kind' => 'tax_invoice', 'party_id' => $party->id, 'currency' => 'ZAR', 'issue_date' => now()->toDateString(), 'reference' => "Sentinel document {$label}"];
             $draft = $drafts->create($ledger, $user, $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]);
-            $issued = app(\App\Services\Sales\DocumentIssuer::class)->issue($drafts->create($ledger, $user, ['reference' => "Sentinel issued {$label}"] + $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]), $user)['document'];
-            $received = app(\App\Services\Sales\ReceiptService::class)->receive($ledger, $user, [
+            $issued = app(DocumentIssuer::class)->issue($drafts->create($ledger, $user, ['reference' => "Sentinel issued {$label}"] + $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]), $user)['document'];
+            $received = app(ReceiptService::class)->receive($ledger, $user, [
                 'party_id' => $party->id, 'cash_account_id' => $account->id, 'amount_cents' => 4_000, 'paid_on' => now()->toDateString(), 'idempotency_key' => 'sentinel-'.$label,
                 'allocations' => [['document_id' => $issued->id, 'amount_cents' => 4_000]],
             ]);
-            $template = \App\Models\Sales\SalesRecurringTemplate::create($ledger->ownerAttributes() + ['party_id' => $party->id, 'name' => "Sentinel template {$label}", 'frequency' => 'monthly', 'every' => 1, 'start_date' => now()->toDateString(), 'next_run_date' => now()->addMonth()->toDateString(), 'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_cents' => 100]], 'created_by' => $user->id]);
-            $link = \App\Models\Sales\SalesShareLink::create($ledger->ownerAttributes() + ['kind' => 'document', 'document_id' => $issued->id, 'party_id' => $party->id, 'token_hash' => hash('sha256', 'sentinel-'.$label), 'expires_at' => now()->addDay()]);
+            $template = SalesRecurringTemplate::create($ledger->ownerAttributes() + ['party_id' => $party->id, 'name' => "Sentinel template {$label}", 'frequency' => 'monthly', 'every' => 1, 'start_date' => now()->toDateString(), 'next_run_date' => now()->addMonth()->toDateString(), 'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_cents' => 100]], 'created_by' => $user->id]);
+            $link = SalesShareLink::create($ledger->ownerAttributes() + ['kind' => 'document', 'document_id' => $issued->id, 'party_id' => $party->id, 'token_hash' => hash('sha256', 'sentinel-'.$label), 'expires_at' => now()->addDay()]);
 
             return [$draft->id, $received['payment']->id, $received['applications'][0]->id, $template->id, $link->id];
         });

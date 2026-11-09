@@ -3,13 +3,13 @@
 namespace App\Services\Sales;
 
 use App\Exceptions\Controls\ControlsViolation;
+use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\LedgerSetting;
 use App\Models\Controls\ApprovalRequest;
 use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesDocumentLine;
 use App\Models\Shared\Party;
 use App\Models\User;
-use App\Models\Accounting\GlAccount;
 use App\Services\Accounting\Chart;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\Exceptions\PeriodClosed;

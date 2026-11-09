@@ -12,8 +12,11 @@ use App\Models\Shared\Payment;
 use App\Models\User;
 use App\Services\Sales\DocumentLifecycle;
 use App\Services\Sales\ReceiptService;
+use App\Services\Sales\ShareLinks;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Tests\Concerns\BuildsSales;
 use Tests\TestCase;
 
@@ -74,7 +77,7 @@ class SalesCapabilityMatrixTest extends TestCase
         $this->application = $out['applications'][0];
         $this->template = SalesRecurringTemplate::create($this->ledger->ownerAttributes() + ['party_id' => $this->customer->id, 'name' => 'T', 'frequency' => 'monthly', 'every' => 1, 'start_date' => now()->toDateString(), 'next_run_date' => now()->addMonth()->toDateString(),
             'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_cents' => 100, 'tax_code' => 'ZA_VAT_STD']], 'created_by' => $this->owner->id]);
-        $this->link = LedgerContext::run($this->ledger, fn () => app(\App\Services\Sales\ShareLinks::class)->forDocument($this->issued, $this->owner)['link']);
+        $this->link = LedgerContext::run($this->ledger, fn () => app(ShareLinks::class)->forDocument($this->issued, $this->owner)['link']);
     }
 
     /** @return array<string, array{0: string, 1: string, 2: callable(): array, 3: callable(): array, 4: list<string>}> */
@@ -163,7 +166,7 @@ class SalesCapabilityMatrixTest extends TestCase
     public function test_every_sales_route_is_in_the_matrix(): void
     {
         $covered = collect($this->matrix())->pluck(1)->all();
-        $routes = collect(\Illuminate\Support\Facades\Route::getRoutes()->getRoutes())->filter(fn ($r) => str_starts_with((string) $r->getName(), 'sales.') && ! str_starts_with($r->getName(), 'sales.share.'))
+        $routes = collect(Route::getRoutes()->getRoutes())->filter(fn ($r) => str_starts_with((string) $r->getName(), 'sales.') && ! str_starts_with($r->getName(), 'sales.share.'))
             ->map(fn ($r) => $r->getName())->unique()->values()->all();
 
         $this->assertSame([], array_values(array_diff($routes, $covered)), 'These sales routes have no row in the capability matrix');
@@ -207,10 +210,10 @@ class SalesCapabilityMatrixTest extends TestCase
     private function snapshot(): string
     {
         return md5(json_encode([
-            \Illuminate\Support\Facades\DB::table('sales_documents')->count(), \Illuminate\Support\Facades\DB::table('payments')->count(), \Illuminate\Support\Facades\DB::table('journal_entries')->count(),
-            \Illuminate\Support\Facades\DB::table('sales_applications')->whereNotNull('released_at')->count(), \Illuminate\Support\Facades\DB::table('sales_share_links')->whereNotNull('revoked_at')->count(),
-            \Illuminate\Support\Facades\DB::table('sales_write_offs')->count(), \Illuminate\Support\Facades\DB::table('sales_recurring_templates')->pluck('status', 'id'),
-            \Illuminate\Support\Facades\DB::table('sales_profiles')->pluck('version'), \Illuminate\Support\Facades\DB::table('sales_party_prefs')->count(),
+            DB::table('sales_documents')->count(), DB::table('payments')->count(), DB::table('journal_entries')->count(),
+            DB::table('sales_applications')->whereNotNull('released_at')->count(), DB::table('sales_share_links')->whereNotNull('revoked_at')->count(),
+            DB::table('sales_write_offs')->count(), DB::table('sales_recurring_templates')->pluck('status', 'id'),
+            DB::table('sales_profiles')->pluck('version'), DB::table('sales_party_prefs')->count(),
         ]));
     }
 }

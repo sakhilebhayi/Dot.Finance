@@ -6,13 +6,17 @@ use App\Mail\SalesDocumentMail;
 use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesDocumentEvent;
 use App\Models\Sales\SalesShareLink;
+use App\Models\Shared\Party;
+use App\Services\Sales\DocumentIssuer;
 use App\Services\Sales\DocumentLifecycle;
 use App\Services\Sales\DocumentMailer;
 use App\Services\Sales\DocumentRenderer;
 use App\Services\Sales\ReceiptService;
+use App\Services\Sales\SalesProfiles;
 use App\Services\Sales\ShareLinks;
 use App\Services\Sales\Statements;
 use App\Services\Sales\Support\SalesViolation;
+use App\Services\Shared\FxService;
 use App\Support\Ledger\LedgerContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -164,7 +168,7 @@ class ShareMailStatementTest extends TestCase
         $this->setUpSales();
         $invoice = $this->issued();
         $this->customer->forceFill(['name' => 'Renamed Co', 'legal_name' => 'Renamed Co Ltd', 'tax_number' => null])->save();
-        LedgerContext::run($this->ledger, fn () => app(\App\Services\Sales\SalesProfiles::class)->save($this->ledger, ['legal_name' => 'Someone Else Ltd']));
+        LedgerContext::run($this->ledger, fn () => app(SalesProfiles::class)->save($this->ledger, ['legal_name' => 'Someone Else Ltd']));
 
         $html = LedgerContext::run($this->ledger, fn () => app(DocumentRenderer::class)->html($invoice));
 
@@ -196,7 +200,7 @@ class ShareMailStatementTest extends TestCase
         $credit = LedgerContext::run($this->ledger, function () use ($invoice) {
             $d = app(DocumentLifecycle::class)->draftCreditNote($invoice, $this->owner, 'Returned');
 
-            return app(\App\Services\Sales\DocumentIssuer::class)->issue($d, $this->owner)['document'];
+            return app(DocumentIssuer::class)->issue($d, $this->owner)['document'];
         });
         $html = LedgerContext::run($this->ledger, fn () => app(DocumentRenderer::class)->html($credit));
         $this->assertStringContainsString('Credit note', $html);
@@ -232,7 +236,7 @@ class ShareMailStatementTest extends TestCase
     public function test_the_statement_csv_cannot_run_a_formula_in_a_spreadsheet(): void
     {
         $this->setUpSales();
-        $evil = \App\Models\Shared\Party::create($this->ledger->ownerAttributes() + ['type' => 'customer', 'name' => '=HYPERLINK("http://evil.test")', 'status' => 'active', 'billing_address' => ['line1' => '1 X']]);
+        $evil = Party::create($this->ledger->ownerAttributes() + ['type' => 'customer', 'name' => '=HYPERLINK("http://evil.test")', 'status' => 'active', 'billing_address' => ['line1' => '1 X']]);
         $this->issued([$this->line()], [], $evil);
 
         $rows = LedgerContext::run($this->ledger, fn () => app(Statements::class)->csv(app(Statements::class)->build($this->ledger, $evil, CarbonImmutable::today()->subMonth(), CarbonImmutable::today())));
@@ -244,7 +248,7 @@ class ShareMailStatementTest extends TestCase
     {
         $this->setUpSales();
         $this->issued();
-        LedgerContext::run($this->ledger, fn () => app(\App\Services\Shared\FxService::class)->record('USD', 'ZAR', 1_850_000_000, now()->toDateString()));
+        LedgerContext::run($this->ledger, fn () => app(FxService::class)->record('USD', 'ZAR', 1_850_000_000, now()->toDateString()));
         $this->issued([$this->line('Licence', '1', 100_000, 'ZA_VAT_ZERO_EXPORT')], ['currency' => 'USD']);
 
         $s = LedgerContext::run($this->ledger, fn () => app(Statements::class)->build($this->ledger, $this->customer, CarbonImmutable::today()->subMonth(), CarbonImmutable::today()));
