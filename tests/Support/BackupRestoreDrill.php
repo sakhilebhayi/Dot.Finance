@@ -47,7 +47,22 @@ final class BackupRestoreDrill
 
         return $this->driver === 'sqlite'
             ? $base + ['DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database]
-            : $base + ['DB_CONNECTION' => 'pgsql', 'DB_HOST' => '/tmp', 'DB_PORT' => '5432', 'DB_USERNAME' => get_current_user() ?: (string) getenv('USER'), 'DB_PASSWORD' => '', 'DB_DATABASE' => $database];
+            : $base + ['DB_CONNECTION' => 'pgsql', 'DB_HOST' => $this->pg('host'), 'DB_PORT' => $this->pg('port'), 'DB_USERNAME' => $this->pg('username'), 'DB_PASSWORD' => $this->pg('password'), 'DB_DATABASE' => $database];
+    }
+
+    /** One setting of the PostgreSQL connection the running tests use (a socket directory on a developer machine, a host and password on CI). */
+    private function pg(string $key): string
+    {
+        $config = (array) config('database.connections.pgsql');
+        $default = ['host' => '127.0.0.1', 'port' => '5432', 'username' => get_current_user() ?: (string) getenv('USER'), 'password' => ''];
+
+        return (string) ($config[$key] ?? $default[$key]);
+    }
+
+    /** @return list<string> the connection flags every PostgreSQL client tool gets */
+    private function pgArgs(): array
+    {
+        return ['-h', $this->pg('host'), '-p', $this->pg('port'), '-U', $this->pg('username')];
     }
 
     /** @param list<string> $command */
@@ -63,7 +78,7 @@ final class BackupRestoreDrill
     /** @return array<string, string> */
     private function envFor(): array
     {
-        return array_merge(getenv() ?: [], ['PATH' => (string) getenv('PATH'), 'HOME' => (string) getenv('HOME')]);
+        return array_merge(getenv() ?: [], ['PATH' => (string) getenv('PATH'), 'HOME' => (string) getenv('HOME'), 'PGPASSWORD' => $this->pg('password')]);
     }
 
     private function artisan(string $database, array $args): Process
@@ -78,7 +93,7 @@ final class BackupRestoreDrill
 
             return (string) $pdo->query($statement)->fetchColumn();
         }
-        $p = $this->run(['psql', '-h', '/tmp', '-d', $database, '-At', '-c', $statement]);
+        $p = $this->run(['psql', ...$this->pgArgs(), '-d', $database, '-At', '-c', $statement]);
 
         return trim($p->getOutput());
     }
@@ -99,8 +114,8 @@ final class BackupRestoreDrill
             if ($this->driver === 'sqlite') {
                 touch($source);
             } else {
-                $this->run(['createdb', '-h', '/tmp', $source]);
-                $this->run(['createdb', '-h', '/tmp', $restored]);
+                $this->run(['createdb', ...$this->pgArgs(), $source]);
+                $this->run(['createdb', ...$this->pgArgs(), $restored]);
             }
             $this->mustPass($this->artisan($source, ['migrate', '--force']), 'migrate');
             $this->mustPass($this->artisan($source, ['finance:demo-seed', '--sales']), 'demo seed with a sales history');
@@ -112,14 +127,14 @@ final class BackupRestoreDrill
                 $pdo = new \PDO('sqlite:'.$source);
                 $pdo->exec("VACUUM INTO '".$backup."'");
             } else {
-                $this->mustPass($this->run(['pg_dump', '-h', '/tmp', '-Fc', '--no-owner', '-f', $backup, $source]), 'pg_dump -Fc');
+                $this->mustPass($this->run(['pg_dump', ...$this->pgArgs(), '-Fc', '--no-owner', '-f', $backup, $source]), 'pg_dump -Fc');
             }
 
             // 3. the source is lost; restore the backup into a new database
             if ($this->driver === 'sqlite') {
                 copy($backup, $restored);
             } else {
-                $this->mustPass($this->run(['pg_restore', '-h', '/tmp', '--no-owner', '-d', $restored, $backup]), 'pg_restore');
+                $this->mustPass($this->run(['pg_restore', ...$this->pgArgs(), '--no-owner', '-d', $restored, $backup]), 'pg_restore');
             }
 
             // 4. the restored books are the same books and still verify
@@ -134,15 +149,15 @@ final class BackupRestoreDrill
                 $pdo = new \PDO('sqlite:'.$restored);
                 $pdo->exec($tamper);
             } else {
-                $this->run(['psql', '-h', '/tmp', '-d', $restored, '-c', $tamper]);
+                $this->run(['psql', ...$this->pgArgs(), '-d', $restored, '-c', $tamper]);
             }
             $tampered = $this->artisan($restored, ['finance:gl:verify'])->getExitCode() !== 0;
 
             return ['source' => $before, 'restored' => $after, 'tampered_detected' => $tampered, 'log' => $this->log, 'backup_bytes' => (int) filesize($backup), 'seconds' => round(microtime(true) - $started, 1)];
         } finally {
             if ($this->driver !== 'sqlite') {
-                $this->run(['dropdb', '-h', '/tmp', '--if-exists', $source]);
-                $this->run(['dropdb', '-h', '/tmp', '--if-exists', $restored]);
+                $this->run(['dropdb', ...$this->pgArgs(), '--if-exists', $source]);
+                $this->run(['dropdb', ...$this->pgArgs(), '--if-exists', $restored]);
             }
             foreach (glob($this->work.'/*') ?: [] as $file) {
                 @unlink($file);
