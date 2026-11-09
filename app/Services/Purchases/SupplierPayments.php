@@ -15,6 +15,7 @@ use App\Services\Accounting\Chart;
 use App\Services\Accounting\JournalPoster;
 use App\Services\Accounting\PostingLine;
 use App\Services\Accounting\PostingRequest;
+use App\Services\Accounting\SettlementTransactions;
 use App\Services\Controls\ApprovalService;
 use App\Services\Shared\PaymentAllocator;
 use App\Services\Shared\PaymentRecorder;
@@ -206,11 +207,7 @@ final class SupplierPayments
 
             $entry = $this->poster->post(new PostingRequest($paidOn, 'payment', $payment->id, 1, 'Payment to '.mb_substr($party->name, 0, 120).($payment->reference ? ' ('.$payment->reference.')' : ''), $lines, $by->id));
 
-            $transaction = Transaction::query()->create([
-                'account_id' => $account->id, 'category_id' => $this->ledger->supplierPaymentsCategory($context)->id, 'user_id' => $context->userId, 'team_id' => $context->teamId,
-                'description' => mb_substr('Payment to '.$party->name.($payment->reference ? ' ('.$payment->reference.')' : ''), 0, 255),
-                'amount_cents' => $total, 'currency' => $currency, 'type' => 'expense', 'date' => $paidOn->toDateString(),
-            ]);
+            $transaction = SettlementTransactions::write($payment, $this->ledger->supplierPaymentsCategory($context)->id, 'Payment to '.$party->name.($payment->reference ? ' ('.$payment->reference.')' : ''));
 
             $payment->forceFill(['gl_entry_id' => $entry->id, 'transaction_id' => $transaction->id])->save();
 
@@ -250,7 +247,7 @@ final class SupplierPayments
             }
 
             if ($locked->transaction_id !== null) {
-                Transaction::query()->find($locked->transaction_id)?->delete();
+                SettlementTransactions::remove($locked);
             }
 
             $this->allocator->reverse($locked, $reason, $by);

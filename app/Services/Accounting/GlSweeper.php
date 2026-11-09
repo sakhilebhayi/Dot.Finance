@@ -33,13 +33,11 @@ class GlSweeper
         $liveEntry = fn (string $type, string $sourceExpr) => fn ($sub) => $owned($sub->selectRaw('1')->from('journal_entries as e')->where('e.source_type', $type)->where('e.status', 'posted')->whereRaw("e.source_id = {$sourceExpr}"), 'e');
 
         // Transactions that should be posted but have no live entry.
-        $missing = $owned(DB::table('transactions as t')->join('accounts as a', 'a.id', '=', 't.account_id'), 't')
+        // (the bank leg of a document payment is journalled by the payment's own entry: SettlementTransactions leaves those out)
+        $missing = SettlementTransactions::exclude($owned(DB::table('transactions as t')->join('accounts as a', 'a.id', '=', 't.account_id'), 't'))
             ->whereNull('t.deleted_at')->whereIn('t.type', ['income', 'expense'])->where('t.amount_cents', '>', 0)
-            ->whereNull('t.settlement_ref') // R44 SALES: posted by its settlement, not by the generic rules
             ->where(fn ($q) => $q->whereNull('a.opening_balance_date')->orWhereColumn('t.date', '>=', 'a.opening_balance_date'))
             ->whereNotExists($liveEntry('transaction', 'CAST(t.id AS VARCHAR(64))'))
-            // R-44: the bank leg of a document payment is journalled by the payment's own entry (SettlementTransactions)
-            ->whereNotExists(fn ($sub) => $owned($sub->selectRaw('1')->from('payments as p')->whereColumn('p.transaction_id', 't.id'), 'p'))
             ->pluck('t.id')->map(fn ($id) => (int) $id)->all();
 
         // Transactions that should not be posted (deleted, or before the opening date) but still have a live entry.

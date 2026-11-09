@@ -6,15 +6,13 @@ use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\Intelligence\RunNotifications;
 use App\Console\Commands\Intelligence\ScanInsights;
-use App\Console\Commands\PublishMetrics;
 use App\Console\Commands\PruneImports;
+use App\Console\Commands\PublishMetrics;
 use App\Console\Commands\Purchases\GenerateRecurringBills;
-
 use App\Console\Commands\Sales\CheckReceivables;
 use App\Console\Commands\Sales\ExpireQuotes;
 use App\Console\Commands\Sales\RunRecurring;
 use App\Console\Commands\Sales\SendReminders;
-
 use App\Console\Commands\Tax\RefreshCalendar;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -24,12 +22,18 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// SCHEDULE MAP (R-44 integration, D-1209; tests/Feature/Integration/ScheduleTest enforces: one command per minute, every command
+// withoutOverlapping and onOneServer). Times are server time:
+//   00:05 recurring transactions  00:10 Sundays weekly insight  00:30 prune imports  01:30 repeating invoices  01:45 expire quotes
+//   02:10 post pending journals   02:40 verify the books        02:50 receivables check
+//   03:00 recurring bills (drafts) -> 03:10 findings scan (reads them)  03:20 prune report exports  04:00 publish metrics
+//   05:30 tax calendar (creates reminder records)  07:00 notifications (delivers them)  07:30 customer payment reminders
 // Generate each user's weekly AI Insight from their real reserve-runway
 // figures. See docs/superpowers/specs/2026-08-09-weekly-insight-generator-design.md.
 // This is this repo's first scheduled command -- establishes rather than
 // follows an existing schedule convention.
 Schedule::command(GenerateInsights::class)
-    ->weekly()
+    ->weeklyOn(0, '00:10')
     ->withoutOverlapping()
     ->onOneServer();
 
@@ -38,13 +42,13 @@ Schedule::command(GenerateInsights::class)
 // since a recurring transaction can be due at any interval (daily through
 // yearly) and this just checks "is next_occurrence_date <= today" each run.
 Schedule::command(GenerateRecurringTransactions::class)
-    ->daily()
+    ->dailyAt('00:05')
     ->withoutOverlapping()
     ->onOneServer();
 
 // Staged CSV uploads that were previewed but never imported are deleted after a day.
 Schedule::command(PruneImports::class)
-    ->daily()
+    ->dailyAt('00:30')
     ->withoutOverlapping()
     ->onOneServer();
 
@@ -81,7 +85,7 @@ Schedule::command(PublishMetrics::class)
 // --- purchases ---
 // Make the draft bills that recurring-bill schedules have come due for (idempotent per schedule and period).
 Schedule::command(GenerateRecurringBills::class)
-    ->dailyAt('03:10')
+    ->dailyAt('03:00')
     ->withoutOverlapping()
     ->onOneServer();
 // --- end purchases ---

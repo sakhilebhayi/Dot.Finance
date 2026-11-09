@@ -41,7 +41,7 @@ final class PostingRules
     {
         // R44 SALES: the cash leg of a document settlement (a payment received, a refund paid). The settlement posts its own
         // entry, with the same cash account on the bank line, so the cash tie-out holds without this row being posted twice.
-        if ($t->settlement_ref !== null) {
+        if (SettlementTransactions::marked($t)) {
             return 'The cash leg of a document settlement: the settlement posts it, not the cash-ledger rules.';
         }
 

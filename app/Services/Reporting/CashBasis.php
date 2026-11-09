@@ -66,7 +66,8 @@ class CashBasis
                 continue;
             }
             $date = substr((string) $a->paid_on, 0, 10);
-            $paid[$docType][(string) $a->allocatable_id][$date] = ($paid[$docType][(string) $a->allocatable_id][$date] ?? 0) + (int) $a->amount_cents;
+            $key = $this->journalSourceId((string) $a->allocatable_type, (string) $a->allocatable_id);
+            $paid[$docType][$key][$date] = ($paid[$docType][$key][$date] ?? 0) + (int) $a->amount_cents;
         }
 
         foreach ($this->documentTypes() as $type) {
@@ -126,6 +127,15 @@ class CashBasis
         usort($events, fn ($a, $b) => [$a['date'], $a['line_id'], $a['net']] <=> [$b['date'], $b['line_id'], $b['net']]);
 
         return $events;
+    }
+
+    /**
+     * The source_id the journal entry of a payable document carries. A bill's is its id; an expense claim is posted as a 'bill'
+     * entry whose source_id is "claim-<id>" (ClaimWorkflow), so a payment allocated to the claim finds its entry (R-44 integration).
+     */
+    private function journalSourceId(string $allocatableType, string $id): string
+    {
+        return $allocatableType === 'expense_claim' ? 'claim-'.$id : $id;
     }
 
     /** 'invoice' / 'bill' for an allocation type such as "stub_invoice" or "App\Models\Sales\Invoice"; null when it is not a document type. */

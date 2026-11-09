@@ -3,6 +3,7 @@
 namespace App\Models\Purchases;
 
 use App\Models\Concerns\HasLedgerContext;
+use App\Models\Tax\TaxProfile;
 use App\Models\User;
 use App\Services\Shared\TaxRuleBook;
 use App\Support\Ledger\LedgerContext;
@@ -38,10 +39,24 @@ class PurchaseSetting extends Model
         return self::query()->forContext($context)->first() ?? new self($context->ownerAttributes());
     }
 
-    /** True / false once someone has said; null while unknown (then input VAT is not claimed). */
+    /**
+     * True / false once someone has said; null while unknown (then input VAT is not claimed). Once the ledger has a Tax profile
+     * that is the answer, so a bill, an invoice and the VAT201 can never disagree about whether the business is a VAT vendor
+     * (R-44 integration, D-1204); the setting here is what applies until then.
+     */
     public function isVatRegistered(): ?bool
     {
-        return $this->vat_registered;
+        return $this->taxProfile()?->vat_registered ?? $this->vat_registered;
+    }
+
+    /** The Tax profile that overrides this setting, when the ledger has one. */
+    public function taxProfile(): ?TaxProfile
+    {
+        if ($this->user_id === null && $this->team_id === null) {
+            return null;
+        }
+
+        return TaxProfile::query()->forContext($this->ledgerContext())->first();
     }
 
     public function setBy(): ?User

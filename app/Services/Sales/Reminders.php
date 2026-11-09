@@ -84,6 +84,32 @@ final class Reminders
         return $counts;
     }
 
+    /**
+     * Remind one customer about every invoice that is past its due date, now (the assistant's confirmed action). It uses the
+     * log, so an invoice is reminded at most once for a given number of days late: confirming twice in a day sends once.
+     *
+     * @return array<string, int> the same counts as runFor()
+     */
+    public function remindCustomer(Party $customer, ?CarbonImmutable $today = null): array
+    {
+        $today ??= CarbonImmutable::today();
+        $context = $customer->ledgerContext();
+        $counts = ['due' => 0, 'handed_to_mailer' => 0, 'skipped_opt_out' => 0, 'skipped_no_email' => 0, 'skipped_paid' => 0, 'already_logged' => 0, 'failed' => 0];
+
+        LedgerContext::run($context, function () use ($context, $customer, $today, &$counts) {
+            $profile = $this->profiles->for($context);
+            $documents = SalesDocument::query()->forContext($context)->open()->where('party_id', $customer->id)->whereNotNull('due_date')->where('due_date', '<', $today->toDateString())->with('party')->orderBy('due_date')->get();
+
+            foreach ($documents as $document) {
+                $late = (int) CarbonImmutable::parse($document->due_date->toDateString())->diffInDays($today);
+                $counts['due']++;
+                $counts[$this->handle($context, $profile, $document, 'after_due', $late, $today)]++;
+            }
+        });
+
+        return $counts;
+    }
+
     /** Whether a customer has asked not to be reminded. */
     public function optedOut(Party $party): bool
     {

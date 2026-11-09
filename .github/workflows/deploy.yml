@@ -29,12 +29,12 @@ name: Deploy to Production
 #      composer install, production invariants (APP_DEBUG forced false; APP_ENV
 #      forced to production; a warning, not a change, for an http APP_URL), swap
 #      in the new public/build, keep the docroot's build/ in step, migrations,
-#      caches, back up.
+#      then `finance:seed-reference` (tax rules, rates, codes, holidays: idempotent,
+#      and a failure stops the deploy), caches, back up.
 #   4. Cron lines, through the account's shared crontab block (see the step).
 #      This release's lines (decided from the deployed code on every run, see the
 #      step): ONE line, `artisan schedule:run` every minute, because routes/console.php
-#      schedules finance:generate-insights weekly and
-#      finance:generate-recurring-transactions daily. NO queue worker line: nothing in
+#      schedules the application's commands (`artisan schedule:list` shows them). NO queue worker line: nothing in
 #      app/ is queued. A later release that adds a queued job gets its worker line
 #      without anyone editing this file. The lines carry the marker "# dot-finance";
 #      every other line of the account's crontab is preserved. First run: the
@@ -357,6 +357,9 @@ jobs:
           $PHP artisan migrate:status --pending 2>&1 | tail -25 || true
           if [ "$MIGRATE" = "yes" ]; then
             $PHP artisan migrate --force
+            # Reference data (tax rules, rates, codes, public holidays): idempotent, so safe on every release. No `|| true`: if it
+            # fails the ERR trap fires and the site stays down with the reason above, rather than going live with an empty rule book.
+            $PHP artisan finance:seed-reference
           else
             echo "== Migrations NOT run (takeover). Read the list above; the next confirm=deploy runs them, or re-run with migrate=migrate."
           fi

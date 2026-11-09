@@ -12,8 +12,8 @@ use App\Observers\FinanceAuditObserver;
 use App\Services\AccountBalances;
 use App\Services\Accounting\Chart;
 use App\Services\Accounting\FxRateProvider;
+use App\Services\Accounting\FxServiceRateProvider;
 use App\Services\Accounting\GlSync;
-use App\Services\Accounting\ImpliedFxRateProvider;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
@@ -39,9 +39,10 @@ class AppServiceProvider extends ServiceProvider
         // Derived balances are computed once per request (flushed on every write).
         $this->app->scoped(AccountBalances::class);
 
-        // The accounting layer. The rate provider is an interface so the shared-data module can bind the
-        // fx_rates-backed one; the default knows only same-currency (and the rate implied by a transfer).
-        $this->app->singleton(FxRateProvider::class, ImpliedFxRateProvider::class);
+        // The accounting layer. The rate provider is an interface; the ONE binding is the fx_rates-backed service (R-44
+        // integration, D-1203): no other provider may bind FxRateProvider (a test reads the source to prove it). It posts a
+        // foreign-currency row at a rate on record within a week and defers it when there is none; same-currency rows need none.
+        $this->app->singleton(FxRateProvider::class, FxServiceRateProvider::class);
         $this->app->scoped(Chart::class);
         $this->app->scoped(GlSync::class);
     }

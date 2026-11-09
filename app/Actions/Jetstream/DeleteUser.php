@@ -29,6 +29,14 @@ class DeleteUser implements DeletesUsers
             throw ValidationException::withMessages(['password' => 'Your personal books have accounting switched on, and posted journal entries are kept as the record. Export what you need, then ask an administrator to retire the account.']);
         }
 
+        // The same for every other table whose key restricts deleting a person (bank statements, tax records, reports, plans):
+        // say so in words instead of letting the database refuse in the middle of the delete.
+        foreach (Team::USER_RESTRICTED_TABLES as $table) {
+            if (DB::table($table)->where('user_id', $user->id)->exists()) {
+                throw ValidationException::withMessages(['password' => 'Your personal books hold records that are kept (for example bank statements, tax records or reports), and they are not deleted along with a person. Export what you need, then ask an administrator to retire the account.']);
+            }
+        }
+
         try {
             DB::transaction(function () use ($user) {
                 $this->deleteTeams($user);

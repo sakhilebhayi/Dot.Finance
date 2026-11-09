@@ -23,6 +23,17 @@ use Closure;
  */
 final class StateLine
 {
+    /**
+     * Which item comes first when several are the same tone (smaller first); a key not listed goes after these, in the order found.
+     * Money that must move or the law first (tax, then what customers owe and what is owed to suppliers), then the books'
+     * own integrity, then work waiting on a person, then housekeeping (R-44 integration, D-1208).
+     */
+    public const PRIORITY = [
+        'tax_overdue' => 10, 'vat' => 11, 'invoices-overdue' => 20, 'bills-overdue' => 21, 'budgets-over' => 30, 'recurring-due' => 31,
+        'ap-out' => 40, 'attention-findings' => 45, 'bank-lines' => 50, 'invoices-waiting' => 60, 'purchases-awaiting' => 61,
+        'tax_soon' => 70, 'documents-missing' => 80, 'uncategorised' => 90,
+    ];
+
     /** @var array<int|string, Closure(LedgerContext): (array<string, mixed>|list<array<string, mixed>>|null)> */
     private static array $providers = [];
 
@@ -62,8 +73,8 @@ final class StateLine
             }
         }
 
-        // Overdue and over-limit first, then the rest in the order they were found.
-        usort($items, fn ($a, $b) => ($b['tone'] === 'variance') <=> ($a['tone'] === 'variance'));
+        // Overdue and over-limit first, then by priority, then in the order they were found (usort is stable).
+        usort($items, fn ($a, $b) => [$a['tone'] === 'variance' ? 0 : 1, self::PRIORITY[$a['key']] ?? 1000] <=> [$b['tone'] === 'variance' ? 0 : 1, self::PRIORITY[$b['key']] ?? 1000]);
 
         return array_values($items);
     }

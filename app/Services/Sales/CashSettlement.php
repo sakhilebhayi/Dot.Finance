@@ -7,13 +7,15 @@ use App\Models\Category;
 use App\Models\Shared\Payment;
 use App\Models\Transaction;
 use App\Services\Accounting\Chart;
+use App\Services\Accounting\SettlementTransactions;
 use App\Support\Ledger\LedgerContext;
 
 /**
  * The cash-ledger side of a settlement. Money received from (or given back to) a customer must move the account
  * balance, which is derived from the cash-ledger `transactions` table, so each settlement writes exactly one
- * transaction row. That row is marked with settlement_ref ("payment:12") and is NOT posted by the generic
- * cash-ledger rules (PostingRules::skipReason): the settlement posts its own journal entry, with the same
+ * transaction row (written by SettlementTransactions, the one mechanism Sales and Purchases share). That row is marked with
+ * settlement_ref ("payment:12") and is NOT posted by the generic cash-ledger rules (PostingRules::skipReason): the settlement
+ * posts its own journal entry, with the same
  * cash account on the bank line, so the cash tie-out (cash ledger = journals, per account, to the cent) holds.
  *
  * The rows are filed under two categories, "Customer receipts" and "Customer refunds". Their GL account is
@@ -27,38 +29,16 @@ final class CashSettlement
 
     public function __construct(private readonly Chart $chart) {}
 
-    /** The cash-ledger row for a payment: income for money in, expense for money out. */
+    /** The cash-ledger row for a payment: income for money in, expense for money out (written by the shared settlement service). */
     public function record(Payment $payment, string $description): Transaction
     {
-        $context = $payment->ledgerContext();
-        $in = $payment->direction === 'in';
-        $category = $this->category($context, $in);
-
-        $transaction = new Transaction($payment->ledgerOwner() + [
-            'account_id' => $payment->cash_account_id,
-            'category_id' => $category->id,
-            'description' => mb_substr($description, 0, 255),
-            'amount_cents' => (int) $payment->amount_cents,
-            'currency' => $payment->currency,
-            'type' => $in ? 'income' : 'expense',
-            'date' => $payment->paid_on->toDateString(),
-            'notes' => $payment->reference,
-        ]);
-        $transaction->settlement_ref = 'payment:'.$payment->id;
-        $transaction->save();
-
-        return $transaction;
+        return SettlementTransactions::write($payment, $this->category($payment->ledgerContext(), $payment->direction === 'in')->id, $description);
     }
 
     /** Remove the row when the settlement is reversed (it is soft-deleted, so the audit trail keeps it). */
     public function remove(Payment $payment): void
     {
-        if ($payment->transaction_id === null) {
-            return;
-        }
-
-        $transaction = Transaction::query()->forContext($payment->ledgerContext())->find($payment->transaction_id);
-        $transaction?->delete();
+        SettlementTransactions::remove($payment);
     }
 
     private function category(LedgerContext $context, bool $in): Category

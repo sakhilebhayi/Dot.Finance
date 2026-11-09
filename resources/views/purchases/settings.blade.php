@@ -12,6 +12,7 @@
             <option value="yes" @selected(old('vat_registered', $now) === 'yes')>Yes, registered: claim input VAT when the invoice is valid</option>
             <option value="no" @selected(old('vat_registered', $now) === 'no')>No, not registered: VAT is part of the cost</option>
         </x-fx.select>
+        @if ($settings->taxProfile())<p class="fx-hint">This ledger has a Tax profile, and it says the business is {{ $settings->taxProfile()->vat_registered ? '' : 'not ' }}a registered VAT vendor. The Tax profile is what bills, invoices and the VAT201 follow; this choice applies only if the profile is removed. <a href="{{ route('tax.profile.edit') }}">Open the Tax profile</a>.</p>@endif
         @if ($settings->vat_registered_set_at)<p class="fx-hint">Last set {{ $settings->vat_registered_set_at->format('j M Y') }}@if ($settings->setBy()) by {{ $settings->setBy()->name }}@endif.</p>@endif
     </x-fx.panel>
     <x-fx.panel title="Missing documents" meta="From the tax rules: a tax invoice is not needed under R50. Raise the level if you do not want small items listed.">

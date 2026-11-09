@@ -5,6 +5,7 @@ use App\Providers\BankServiceProvider;
 use App\Providers\ControlsServiceProvider;
 use App\Providers\FortifyServiceProvider;
 use App\Providers\HealthCheckServiceProvider;
+use App\Providers\IntegrationServiceProvider;
 use App\Providers\IntelligenceServiceProvider;
 use App\Providers\JetstreamServiceProvider;
 use App\Providers\PurchasesServiceProvider;
@@ -26,4 +27,5 @@ return [
     ReportingServiceProvider::class,
     SalesServiceProvider::class,
     TaxServiceProvider::class,
+    IntegrationServiceProvider::class,
 ];
