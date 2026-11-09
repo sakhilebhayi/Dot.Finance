@@ -9,6 +9,8 @@ use App\Models\Sales\SalesDocument;
 use App\Models\Sales\SalesDocumentLine;
 use App\Models\Shared\Party;
 use App\Models\User;
+use App\Models\Accounting\GlAccount;
+use App\Services\Accounting\Chart;
 use App\Services\Accounting\Exceptions\AccountingException;
 use App\Services\Accounting\Exceptions\PeriodClosed;
 use App\Services\Accounting\JournalPoster;
@@ -122,6 +124,10 @@ final class DocumentIssuer
             throw new SalesViolation('Accounting is not switched on for this ledger, so an invoice cannot be posted to the books. Finish the accounting set-up first.', 'accounting_not_ready');
         }
 
+        if ($posts) {
+            $this->assertChartReady($context, ['ar', 'sales'] + (($document->tax_cents ?? 0) > 0 || $document->vat_registered ? [2 => 'vat_output'] : []));
+        }
+
         $issueDate = CarbonImmutable::parse($document->issue_date->toDateString());
         if ($posts && $issueDate->isFuture() && ! $issueDate->isToday()) {
             throw new SalesViolation('A tax invoice is dated when it is issued: the date cannot be in the future.', 'dates');
@@ -222,6 +228,30 @@ final class DocumentIssuer
         }
 
         return ['document' => $document->refresh(), 'awaiting_approval' => false, 'replayed' => false, 'warnings' => $warnings];
+    }
+
+    /**
+     * The system accounts a posting needs must exist and be switched on. A personal chart switches receivables off,
+     * so without this the person would meet a bare "account is inactive" from the posting layer.
+     *
+     * @param  list<string>  $keys
+     *
+     * @throws SalesViolation
+     */
+    public function assertChartReady(LedgerContext $context, array $keys): void
+    {
+        $ids = app(Chart::class)->systemIds($context);
+        $off = [];
+        foreach (array_unique($keys) as $key) {
+            $account = isset($ids[$key]) ? GlAccount::query()->forContext($context)->find($ids[$key]) : null;
+            if ($account === null || ! $account->is_active || ! $account->is_postable) {
+                $off[] = $account ? $account->code.' '.$account->name : $key;
+            }
+        }
+
+        if ($off !== []) {
+            throw new SalesViolation('Invoicing needs these accounts switched on in the chart of accounts: '.implode(', ', $off).'. Switch them on under Chart of accounts (a personal chart has receivables off by default).', 'chart_not_ready');
+        }
     }
 
     /**

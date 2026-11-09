@@ -72,7 +72,7 @@
     <aside class="fx-stack">
         <div class="sx-savebar"><x-fx.button variant="primary" icon="check">Save profile</x-fx.button></div>
         <x-fx.panel title="Numbers">
-            <ul class="sx-links">@foreach (\App\Services\Sales\SalesProfiles::SERIES as $type => $prefix)<li><span>{{ ucfirst(str_replace('_', ' ', $type)) }}</span><span>Next {{ $sequences[$type] ? app(\App\Services\Shared\Numbering::class)->peek($type) : $prefix.'-00001' }}</span></li>@endforeach</ul>
+            <ul class="sx-links">@foreach (\App\Services\Sales\SalesProfiles::SERIES as $type => $prefix)<li><span>{{ ucfirst(str_replace('_', ' ', $type)) }}</span><span>Next {{ $sequences->has($type) ? app(\App\Services\Shared\Numbering::class)->peek($type) : $prefix.'-00001' }}</span></li>@endforeach</ul>
             <p class="sx-hint">Numbers are given when a document is issued, in order, with no gaps. A voided number stays on record.</p>
         </x-fx.panel>
     </aside>

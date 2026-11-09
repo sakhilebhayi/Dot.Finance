@@ -35,7 +35,7 @@ final class DocumentMailer
             Mail::to($to)->send(new SalesDocumentMail(
                 subjectLine: $document->title().' '.$document->number.' from '.($profile->displayName() ?: 'us'),
                 body: $message, document: $document, businessName: $profile->displayName() ?: 'Your supplier', viewUrl: $url,
-                pdf: $this->renderer->pdf($document), filename: $this->renderer->filename($document), replyTo: $profile->email,
+                pdf: $this->renderer->pdf($document), filename: $this->renderer->filename($document), replyToAddress: $profile->email,
             ));
         } catch (\Throwable $e) {
             SalesTrail::event($document, 'email_failed', $by->id, ['to' => $to]);

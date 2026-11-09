@@ -42,7 +42,7 @@ class DesignSystemTest extends TestCase
 
     public function test_fx_route_resolves_registered_routes_and_is_null_for_the_rest(): void
     {
-        $this->assertNull(fx_route('sales.invoices.index'));
+        $this->assertNull(fx_route('purchases.bills.index'));
         $this->assertSame(route('dashboard'), fx_route('dashboard'));
         $this->assertSame(route('dashboard'), fx_route(['nope.one', 'dashboard']), 'the first registered alternative wins');
         $this->assertNull(fx_route('transactions.edit'), 'a route that needs a parameter it was not given is treated as absent');
@@ -56,20 +56,20 @@ class DesignSystemTest extends TestCase
 
         $x = $this->xpath($this->actingAs($user)->get(route('dashboard'))->getContent());
 
-        $this->assertSame(1, $x->query('//span[@class="fx-nav__item"][@aria-disabled="true"][contains(normalize-space(.), "Invoices")][.//span[@class="fx-nav__soon"]]')->length);
-        $this->assertSame(0, $x->query('//a[contains(@class, "fx-nav__item")][contains(normalize-space(.), "Invoices")]')->length, 'Invoices is not a link while its route does not exist');
+        $this->assertSame(1, $x->query('//span[@class="fx-nav__item"][@aria-disabled="true"][contains(normalize-space(.), "Bills")][.//span[@class="fx-nav__soon"]]')->length);
+        $this->assertSame(0, $x->query('//a[contains(@class, "fx-nav__item")][contains(normalize-space(.), "Bills")]')->length, 'Bills is not a link while its route does not exist');
     }
 
     public function test_the_moment_a_module_registers_a_route_its_item_becomes_a_normal_link(): void
     {
-        Route::middleware('web')->get('/__test/invoices', fn () => 'ok')->name('sales.invoices.index');
+        Route::middleware('web')->get('/__test/bills', fn () => 'ok')->name('purchases.bills.index');
         Route::getRoutes()->refreshNameLookups();
         $user = User::factory()->withPersonalTeam()->create();
 
         $x = $this->xpath($this->actingAs($user)->get(route('dashboard'))->getContent());
 
-        $this->assertSame(1, $x->query('//a[contains(@class, "fx-nav__item")][contains(@href, "/__test/invoices")][contains(normalize-space(.), "Invoices")]')->length);
-        $this->assertSame(0, $x->query('//span[@aria-disabled="true"][contains(normalize-space(.), "Invoices")]')->length);
+        $this->assertSame(1, $x->query('//a[contains(@class, "fx-nav__item")][contains(@href, "/__test/bills")][contains(normalize-space(.), "Bills")]')->length);
+        $this->assertSame(0, $x->query('//span[@aria-disabled="true"][contains(normalize-space(.), "Bills")]')->length);
     }
 
     public function test_the_nav_is_grouped_and_the_current_page_is_marked(): void
@@ -86,15 +86,15 @@ class DesignSystemTest extends TestCase
 
     public function test_a_module_can_add_a_destination_and_the_command_bar_lists_only_real_ones(): void
     {
-        Route::middleware('web')->get('/__test/credit-notes', fn () => 'ok')->name('sales.credit-notes.index');
+        Route::middleware('web')->get('/__test/payables-ageing', fn () => 'ok')->name('purchases.test-ageing.index');
         Route::getRoutes()->refreshNameLookups();
-        Navigation::add('sales', ['key' => 'credit-notes', 'label' => 'Credit notes', 'icon' => 'file-text', 'routes' => ['sales.credit-notes.index']]);
+        Navigation::add('purchases', ['key' => 'test-ageing', 'label' => 'Payables ageing', 'icon' => 'file-text', 'routes' => ['purchases.test-ageing.index']]);
         $user = User::factory()->withPersonalTeam()->create();
 
         $x = $this->xpath($this->actingAs($user)->get(route('dashboard'))->getContent());
 
-        $this->assertSame(1, $x->query('//dialog[@id="fx-command"]//a[@data-command-option][@data-label="Sales Credit notes"][contains(@href, "/__test/credit-notes")]')->length);
-        $this->assertSame(0, $x->query('//dialog[@id="fx-command"]//a[@data-label="Sales Invoices"]')->length, 'the command bar never offers a destination that does not exist');
+        $this->assertSame(1, $x->query('//dialog[@id="fx-command"]//a[@data-command-option][@data-label="Purchases Payables ageing"][contains(@href, "/__test/payables-ageing")]')->length);
+        $this->assertSame(0, $x->query('//dialog[@id="fx-command"]//a[@data-label="Purchases Bills"]')->length, 'the command bar never offers a destination that does not exist');
         $this->assertSame(1, $x->query('//dialog[@id="fx-command"]//a[@data-label="Money Transactions"]')->length);
     }
 

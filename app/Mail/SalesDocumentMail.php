@@ -20,14 +20,14 @@ class SalesDocumentMail extends Mailable
         public ?string $viewUrl,
         public string $pdf,
         public string $filename,
-        public ?string $replyTo = null,
+        public ?string $replyToAddress = null,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
             subject: $this->subjectLine,
-            replyTo: $this->replyTo ? [new Address($this->replyTo)] : [],
+            replyTo: $this->replyToAddress ? [new Address($this->replyToAddress)] : [],
         );
     }
 

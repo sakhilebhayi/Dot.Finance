@@ -58,6 +58,7 @@ final class ReceiptService
     {
         return LedgerContext::run($context, function () use ($context, $by, $data) {
             $settings = $this->settings($context);
+            app(DocumentIssuer::class)->assertChartReady($context, ['ar']);
             $party = $this->customer($context, (int) $data['party_id']);
             $account = Account::query()->forContext($context)->find((int) $data['cash_account_id'])
                 ?? throw new SalesViolation('Pick one of this ledger\'s accounts for the money.', 'account');

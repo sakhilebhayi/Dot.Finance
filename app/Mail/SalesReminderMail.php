@@ -19,7 +19,7 @@ class SalesReminderMail extends Mailable
         public string $businessName,
         public ?string $viewUrl,
         public ?string $paymentInstructions,
-        public ?string $replyTo = null,
+        public ?string $replyToAddress = null,
     ) {}
 
     public function envelope(): Envelope
@@ -30,7 +30,7 @@ class SalesReminderMail extends Mailable
             default => 'Invoice '.$this->document->number.' is '.$this->offsetDays.' days past due',
         };
 
-        return new Envelope(subject: $subject.' ('.$this->businessName.')', replyTo: $this->replyTo ? [new Address($this->replyTo)] : []);
+        return new Envelope(subject: $subject.' ('.$this->businessName.')', replyTo: $this->replyToAddress ? [new Address($this->replyToAddress)] : []);
     }
 
     public function content(): Content

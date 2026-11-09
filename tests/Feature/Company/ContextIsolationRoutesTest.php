@@ -49,10 +49,16 @@ class ContextIsolationRoutesTest extends TestCase
         'accounts', 'categories', 'budgets', 'transactions', 'recurring_rules', 'finance_audit_log', 'ai_insights', 'parties', 'attachments',
         // R-44 accounting tables
         'ledger_settings', 'gl_accounts', 'accounting_periods', 'journal_entries', 'journal_lines', 'gl_backfill_runs',
+        // R-44 shared data and Sales
+        'payments', 'payment_allocations',
+        'sales_profiles', 'sales_party_prefs', 'sales_documents', 'sales_document_lines', 'sales_applications', 'sales_refunds', 'sales_write_offs',
+        'sales_document_events', 'sales_share_links', 'sales_transaction_links', 'sales_reminders', 'sales_recurring_templates',
     ];
 
     /** route parameter name => model it binds to */
-    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period'];
+    private const BINDINGS = ['account' => 'account', 'transaction' => 'transaction', 'category' => 'category', 'budget' => 'budget', 'rule' => 'rule', 'token' => 'token', 'party' => 'party', 'attachment' => 'attachment', 'glAccount' => 'glAccount', 'entry' => 'entry', 'period' => 'period',
+        // R-44 Sales
+        'document' => 'document', 'payment' => 'payment', 'application' => 'application', 'template' => 'template', 'link' => 'link', 'shareToken' => 'shareToken'];
 
     private User $me;
 
@@ -124,7 +130,28 @@ class ContextIsolationRoutesTest extends TestCase
             AccountingPeriod::query()->forContext($ledger)->orderBy('id')->firstOrFail()->id,
         ]);
 
-        return ['glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
+        [$document, $payment, $application, $template, $link] = LedgerContext::run($ledger, function () use ($ledger, $owner, $label, $party, $account, $company) {
+            $user = $company === null ? User::findOrFail($owner['user_id']) : $company->owner;
+            // a personal chart has receivables and output VAT switched off; invoicing needs them on
+            foreach (['ar', 'vat_output', 'sales'] as $key) {
+                $gl = app(\App\Services\Accounting\Chart::class)->system($key, $ledger);
+                $gl->is_active || app(\App\Services\Accounting\Chart::class)->activate($gl);
+            }
+            $drafts = app(\App\Services\Sales\DocumentDrafts::class);
+            $header = ['kind' => 'tax_invoice', 'party_id' => $party->id, 'currency' => 'ZAR', 'issue_date' => now()->toDateString(), 'reference' => "Sentinel document {$label}"];
+            $draft = $drafts->create($ledger, $user, $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]);
+            $issued = app(\App\Services\Sales\DocumentIssuer::class)->issue($drafts->create($ledger, $user, ['reference' => "Sentinel issued {$label}"] + $header, [['description' => 'Sentinel line', 'quantity' => '1', 'unit_cents' => 10_000]]), $user)['document'];
+            $received = app(\App\Services\Sales\ReceiptService::class)->receive($ledger, $user, [
+                'party_id' => $party->id, 'cash_account_id' => $account->id, 'amount_cents' => 4_000, 'paid_on' => now()->toDateString(), 'idempotency_key' => 'sentinel-'.$label,
+                'allocations' => [['document_id' => $issued->id, 'amount_cents' => 4_000]],
+            ]);
+            $template = \App\Models\Sales\SalesRecurringTemplate::create($ledger->ownerAttributes() + ['party_id' => $party->id, 'name' => "Sentinel template {$label}", 'frequency' => 'monthly', 'every' => 1, 'start_date' => now()->toDateString(), 'next_run_date' => now()->addMonth()->toDateString(), 'currency' => 'ZAR', 'lines' => [['description' => 'x', 'quantity' => '1', 'unit_cents' => 100]], 'created_by' => $user->id]);
+            $link = \App\Models\Sales\SalesShareLink::create($ledger->ownerAttributes() + ['kind' => 'document', 'document_id' => $issued->id, 'party_id' => $party->id, 'token_hash' => hash('sha256', 'sentinel-'.$label), 'expires_at' => now()->addDay()]);
+
+            return [$draft->id, $received['payment']->id, $received['applications'][0]->id, $template->id, $link->id];
+        });
+
+        return ['document' => $document, 'payment' => $payment, 'application' => $application, 'template' => $template, 'link' => $link, 'shareToken' => 'notatoken', 'glAccount' => $glAccount, 'entry' => $journalEntry, 'period' => $period, 'account' => $account->id, 'transaction' => $entry->id, 'category' => $category->id, 'budget' => $budget->id, 'rule' => $rule->id, 'token' => $token, 'second_account' => $other->id, 'party' => $party->id, 'attachment' => $attachment->id];
     }
 
     private function keyFor(array $owner): string
@@ -272,7 +299,8 @@ class ContextIsolationRoutesTest extends TestCase
     public function test_the_list_and_report_pages_never_show_a_row_from_another_context(): void
     {
         $pages = ['dashboard', 'parties.index', 'transactions.index', 'accounts.index', 'categories.index', 'budgets.index', 'recurring.index', 'reports.cash-flow', 'forecast.index', 'insights.index', 'audit.index', 'reconciliation.index', 'transactions.create', 'transactions.import.create', 'transfers.create',
-            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create'];
+            'accounting.trial-balance', 'accounting.general-ledger', 'accounting.journals.index', 'accounting.chart.index', 'accounting.periods.index', 'accounting.journals.create',
+            'sales.invoices.index', 'sales.quotes.index', 'sales.credit-notes.index', 'sales.payments.index', 'sales.customers.index', 'sales.receivables.index', 'sales.recurring.index', 'sales.reminders.index', 'sales.invoices.create'];
 
         $cases = [
             ['personal', fn () => $this->inPersonal($this->me), 'personal'],
@@ -287,7 +315,7 @@ class ContextIsolationRoutesTest extends TestCase
                     if ($other === $own) {
                         continue;
                     }
-                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party'] as $kind) {
+                    foreach (['account', 'second', 'category', 'entry', 'rule', 'insight', 'transfer', 'row', 'party', 'document', 'issued', 'template'] as $kind) {
                         $this->assertStringNotContainsString("Sentinel {$kind} {$other}", $html, "{$page} in the {$label} ledger leaked '{$kind}' from {$other}");
                     }
                 }
