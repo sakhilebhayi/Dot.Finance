@@ -9,6 +9,7 @@ use App\Services\Reporting\Export\XlsxWriter;
 use App\Services\Reporting\ExportService;
 use App\Services\Reporting\ReportRegistry;
 use App\Services\Reporting\ReportRunner;
+use App\Support\ExportAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -66,6 +67,7 @@ class ExportController extends ReportingController
         }
 
         $name = $meta['report'].'-'.$built->period->to.'.'.$meta['format'];
+        ExportAudit::record('Report '.$meta['report'].' to '.$built->period->to, $meta['format']);
 
         if ($meta['format'] === 'csv') {
             return response()->streamDownload(function () use ($result) {
@@ -98,6 +100,7 @@ class ExportController extends ReportingController
     {
         $this->require(Capability::ExportReports);
         abort_unless($reportExport->isDone() && Storage::disk($reportExport->disk)->exists($reportExport->path), 404);
+        ExportAudit::record('Report export #'.$reportExport->id.' downloaded', (string) $reportExport->format);
 
         return Storage::disk($reportExport->disk)->download($reportExport->path, $reportExport->downloadName(), ['X-Content-SHA256' => $reportExport->sha256]);
     }

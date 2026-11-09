@@ -12,6 +12,7 @@ use App\Services\Purchases\ApLedger;
 use App\Services\Purchases\SupplierBankDetails;
 use App\Services\Purchases\SupplierStatement;
 use App\Services\Tax\CsvSafe;
+use App\Support\ExportAudit;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -133,6 +134,9 @@ class SupplierController extends PurchasesController
         $statement = $statements->forSupplier($party, $from, $to);
 
         if (($v['format'] ?? null) === 'csv') {
+            Gate::authorize(Capability::ExportReports->value);
+            ExportAudit::record('Supplier statement');
+
             return Response::streamDownload(function () use ($statement) {
                 // Every text cell goes through CsvSafe: a supplier named "=HYPERLINK(...)" must not run in a spreadsheet (QA security D-1402).
                 $out = fopen('php://output', 'w');

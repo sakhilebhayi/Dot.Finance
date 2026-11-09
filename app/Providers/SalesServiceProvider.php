@@ -76,8 +76,12 @@ class SalesServiceProvider extends ServiceProvider
         Gate::policy(SalesDocument::class, SalesDocumentPolicy::class);
 
         // Customer links are public, so they are throttled per link and address.
-        RateLimiter::for('sales-share', fn (Request $request) => Limit::perMinute((int) config('sales.share.throttle_per_minute'))
-            ->by(($request->route('shareToken') ?? 'none').'|'.$request->ip()));
+        // Two limits: one per link and address (a customer reloading their invoice), and one per address across ALL links, so a client
+        // that guesses tokens meets a wall however many different tokens it tries (a limit keyed by token alone is a new bucket per guess).
+        RateLimiter::for('sales-share', fn (Request $request) => [
+            Limit::perMinute((int) config('sales.share.throttle_per_minute'))->by(($request->route('shareToken') ?? 'none').'|'.$request->ip()),
+            Limit::perMinute((int) config('sales.share.throttle_per_ip_per_minute', 60))->by('share-ip|'.$request->ip()),
+        ]);
 
         $this->navigation();
 

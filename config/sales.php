@@ -11,6 +11,8 @@ return [
         'max_days' => 180,
         // requests per minute per link token and IP (see SalesServiceProvider)
         'throttle_per_minute' => (int) env('SALES_SHARE_THROTTLE', 30),
+        // across every link from one address, so guessing many different tokens meets a wall too (QA security D-1407)
+        'throttle_per_ip_per_minute' => (int) env('SALES_SHARE_THROTTLE_IP', 60),
     ],
 
     /*

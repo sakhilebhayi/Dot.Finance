@@ -6,6 +6,7 @@ use App\Enums\Capability;
 use App\Models\Controls\AccessReview;
 use App\Services\Controls\AccessReport;
 use App\Services\Controls\AccessReviews;
+use App\Support\ExportAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -42,6 +43,7 @@ class AccessReviewController extends ControlsBaseController
         $this->authorizeAny(Capability::ViewAudit);
         $this->authorizeAny(Capability::ExportReports);
         $context = $this->ledger();
+        ExportAudit::record('Access review (who can do what)');
 
         return response($report->csv($context), 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',

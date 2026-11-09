@@ -14,6 +14,7 @@ use App\Services\Tax\FilingAdapter;
 use App\Services\Tax\TaxReturnService;
 use App\Services\Tax\Vat201Builder;
 use App\Services\Tax\Workpaper;
+use App\Support\ExportAudit;
 use App\Support\Money;
 use App\Support\Shared\Exceptions\AttachmentRejected;
 use Carbon\CarbonImmutable;
@@ -215,6 +216,7 @@ class ReturnController extends TaxController
     {
         $this->require(Capability::ExportReports);
         $taxReturn->forceFill(['export_count' => $taxReturn->export_count + 1, 'last_exported_at' => now()])->save();
+        ExportAudit::record(strtoupper($taxReturn->kind).' workpaper '.$taxReturn->period_start->format('Y-m'));
         $paper = $workpapers->build($this->ctx(), $taxReturn);
 
         return response($workpapers->csv($paper), 200, [

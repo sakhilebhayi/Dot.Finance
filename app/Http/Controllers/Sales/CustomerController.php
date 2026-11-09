@@ -14,6 +14,7 @@ use App\Services\Sales\ReceivablesLedger;
 use App\Services\Sales\Reminders;
 use App\Services\Sales\ShareLinks;
 use App\Services\Sales\Statements;
+use App\Support\ExportAudit;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -103,6 +104,8 @@ class CustomerController extends SalesController
     public function statementCsv(Request $request, Party $party, Statements $statements): Response
     {
         $this->allow('view-finance');
+        $this->allow('export-reports');
+        ExportAudit::record('Customer statement');
         [$from, $to] = $this->period($request);
         $rows = $statements->csv($statements->build($this->ledger(), $party, $from, $to));
         $out = fopen('php://temp', 'r+');
