@@ -121,7 +121,7 @@ class ExportAndDataControlsTest extends TestCase
         $row = \DB::table('finance_audit_log')->where('team_id', $this->mine->id)->where('action', 'exported')->latest('id')->first();
 
         $this->assertNotNull($row);
-        $this->assertSame('export', $row->subject_type);
+        $this->assertSame('report_export', $row->subject_type); // one export-audit mechanism after the merge: FinanceAudit::exported (D-1605)
         $this->assertSame($this->me->id, (int) $row->actor_user_id);
         $this->assertStringNotContainsString('Sentinel', json_encode($row));
     }

@@ -9,6 +9,7 @@ use App\Services\Reporting\Export\XlsxWriter;
 use App\Services\Reporting\ExportService;
 use App\Services\Reporting\ReportRegistry;
 use App\Services\Reporting\ReportRunner;
+use App\Support\ExportAudit;
 use App\Support\FinanceAudit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
