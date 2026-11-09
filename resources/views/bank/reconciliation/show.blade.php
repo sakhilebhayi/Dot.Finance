@@ -28,10 +28,18 @@
         </x-fx.statement>
 
         @if ($isDraft)
-        <p class="fx-hint">
-            {{ $openCount }} statement {{ $openCount === 1 ? 'line is' : 'lines are' }} still open.
-            @if ($outstandingTotals['count'] > 0){{ $outstandingTotals['count'] }} {{ $outstandingTotals['count'] === 1 ? 'entry' : 'entries' }} in your books {{ $outstandingTotals['count'] === 1 ? 'is' : 'are' }} not on the statement yet.@endif
-        </p>
+        {{-- The reason for the difference sits at the same reading level as the figure it explains. --}}
+        <div class="bk-why" role="status">
+            @if ($difference === 0 && $openCount === 0 && $outstandingTotals['count'] === 0)
+            <p class="bk-why__lead">Nothing left to explain.</p>
+            @else
+            <p class="bk-why__lead">{{ $difference === 0 ? 'The difference is nil.' : 'Why the statement and your books are '.\App\Support\Money::format(abs($difference), $cur).' apart' }}</p>
+            <ul class="bk-why__list">
+                <li><span class="fx-figure">{{ $openCount }}</span> statement {{ $openCount === 1 ? 'line is' : 'lines are' }} still to match</li>
+                @if ($outstandingTotals['count'] > 0)<li><span class="fx-figure">{{ $outstandingTotals['count'] }}</span> {{ $outstandingTotals['count'] === 1 ? 'entry' : 'entries' }} in your books {{ $outstandingTotals['count'] === 1 ? 'is' : 'are' }} not on the statement yet</li>@endif
+            </ul>
+            @endif
+        </div>
         @else
         <p class="fx-hint">Completed {{ $session->completed_at?->toDayDateTimeString() }} by {{ $session->completer->name ?? 'a member' }}. The {{ $matchCount }} {{ $matchCount === 1 ? 'match' : 'matches' }} it holds are locked.</p>
         @endif

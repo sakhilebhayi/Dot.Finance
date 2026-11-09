@@ -128,6 +128,19 @@ class ReceiptCaptureTest extends TestCase
         $this->assertSame(0, $this->apBalance());
     }
 
+    public function test_the_inbox_has_a_drop_zone_and_shows_each_reading_as_a_card_with_confidence_and_a_check_cue(): void
+    {
+        $this->capture();   // an invoice whose subtotal, VAT and total agree
+
+        $page = $this->inCompany($this->owner, $this->company)->get(route('purchases.receipts.index'))->assertOk();
+        $page->assertSee('fx-drop__input', false)->assertSee('Drop a supplier invoice or receipt here')->assertDontSee('No file chosen');
+        $page->assertSee('pu-read', false)->assertSee('Supplier')->assertSee('Date')->assertSee('Total')->assertSee('Figures agree');
+
+        $this->capture(MakesPdfs::text(['Quick Stop', 'Tax Invoice', 'Invoice No: QS-9', 'Total R 230.00']), 'unsure.pdf');
+        $page = $this->get(route('purchases.receipts.index'))->assertOk();
+        $page->assertSee('Check this')->assertSee('Not found on the document');
+    }
+
     public function test_an_image_with_no_model_enabled_is_stored_and_asks_for_manual_entry(): void
     {
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');

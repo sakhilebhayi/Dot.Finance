@@ -63,6 +63,8 @@ class BankFlowTest extends TestCase
         // 3. the fee line is an exception; the other two are matched for you
         $page = $this->get(route('bank.reconciliation.show', $session))->assertOk();
         $page->assertSee('Matched for you')->assertSee('Bank charges')->assertSee('MONTHLY ACCOUNT FEE')->assertSee('Matched because');
+        // the reason for the difference is said beside the difference, at the same reading level, with the counts behind it
+        $page->assertSee('bk-why', false)->assertSee('statement lines are still to match')->assertSee('Why the statement and your books are');
 
         $this->post(route('bank.reconciliation.accept', $session), ['mode' => 'auto'])->assertSessionHasNoErrors();
 

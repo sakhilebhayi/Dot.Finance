@@ -43,6 +43,51 @@ const text = (root, selector, value) => {
     root.querySelectorAll(selector).forEach((el) => { el.textContent = value ?? '–'; });
 };
 
+/* "As the customer sees it": everything shown comes from the server's customer_view; textContent only. */
+const el = (tag, className, content) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (content !== undefined) node.textContent = content;
+    return node;
+};
+
+const renderPaper = (form, view) => {
+    const paper = form.querySelector('[data-sx-paper]');
+    if (!paper) return;
+    const body = paper.querySelector('[data-sx-paper-body]');
+    const empty = paper.querySelector('[data-sx-paper-empty]');
+    const ready = !!view && view.lines.length > 0 && !!view.to;
+    body.hidden = !ready;
+    empty.hidden = ready;
+    if (!ready) return;
+
+    ['from', 'vat_number', 'title', 'number', 'to', 'date', 'due', 'reference', 'notes', 'terms'].forEach((key) => {
+        paper.querySelectorAll(`[data-sx-p="${key}"]`).forEach((node) => { node.textContent = view[key] ?? ''; });
+    });
+    ['due', 'reference'].forEach((key) => {
+        const row = paper.querySelector(`[data-sx-p-row="${key}"]`);
+        if (row) row.hidden = !view[key];
+    });
+    paper.querySelectorAll('[data-sx-p="notes"],[data-sx-p="terms"]').forEach((node) => { node.hidden = !node.textContent; });
+
+    paper.querySelector('[data-sx-p-lines]').replaceChildren(...view.lines.map((line) => {
+        const li = el('li', 'sx-paper__line');
+        const what = el('div', 'sx-paper__what');
+        what.append(el('strong', '', line.description), el('div', 'sx-muted', line.detail));
+        if (line.vat) what.append(el('div', 'sx-muted', line.vat));
+        li.append(what, el('span', 'fx-money', line.amount));
+        return li;
+    }));
+
+    paper.querySelector('[data-sx-p-totals]').replaceChildren(...view.totals.map((row) => {
+        const div = el('div', row.total ? 'fx-statement__row is-total' : 'fx-statement__row');
+        const leader = el('span', 'fx-statement__leader');
+        leader.setAttribute('aria-hidden', 'true');
+        div.append(el('dt', '', row.label), leader, el('dd', '', row.value));
+        return div;
+    }));
+};
+
 const wireEditor = (form) => {
     const url = form.dataset.calcUrl;
     const status = form.querySelector('[data-sx-status]');
@@ -103,6 +148,8 @@ const wireEditor = (form) => {
                 return li;
             }));
         }
+
+        renderPaper(form, data.customer_view);
 
         if (status) status.textContent = `Worked out by the server. Rounding: ${data.label.rounding ?? 'none (no VAT)'}.`;
     };

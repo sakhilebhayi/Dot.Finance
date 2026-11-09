@@ -35,3 +35,13 @@ if (window.matchMedia('(max-width: 719.98px)').matches) {
         if (details.dataset.active !== '1') details.open = false;
     });
 }
+
+// [data-fx-drop]: show the chosen file's name inside the drop box, and mark the box while a file is dragged over it.
+document.querySelectorAll('[data-fx-drop]').forEach((zone) => {
+    const input = zone.querySelector('input[type=file]');
+    const name = zone.querySelector('[data-fx-drop-name]');
+    if (!input || !name) return;
+    input.addEventListener('change', () => { name.textContent = input.files?.[0]?.name ?? ''; });
+    ['dragenter', 'dragover'].forEach((type) => input.addEventListener(type, () => zone.classList.add('is-over')));
+    ['dragleave', 'drop', 'blur'].forEach((type) => input.addEventListener(type, () => zone.classList.remove('is-over')));
+});

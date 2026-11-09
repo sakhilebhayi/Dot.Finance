@@ -5,7 +5,9 @@
 <x-fx.errors />
 <x-fx.panel title="Upload a document" :meta="$modelEnabled ? 'Photos and scans are read by a language model (switched on for this installation); text PDFs are read by fixed rules.' : 'Text PDFs and text files are read by fixed rules. A photo or scan is stored and you type it in: no model reads it.'">
     <form method="POST" action="{{ route('purchases.receipts.store') }}" enctype="multipart/form-data" class="fx-form">@csrf
-        <x-fx.field label="PDF, photo or text file" for="receipt-upload" :error="$errors->first('file')"><input id="receipt-upload" class="fx-input" type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt,.csv"></x-fx.field>
+        <x-fx.field label="PDF, photo or text file" for="receipt-upload" hint="PDF, JPG, PNG, WebP, HEIC or a text file." :error="$errors->first('file')">
+            <x-fx.dropzone id="receipt-upload" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt,.csv" :required="true" describedby="receipt-upload-hint" title="Drop a supplier invoice or receipt here" />
+        </x-fx.field>
         <div class="fx-formactions"><x-fx.button variant="primary" icon="upload">Upload and read</x-fx.button></div>
     </form>
 </x-fx.panel>
@@ -16,7 +18,7 @@
     <tbody>@foreach ($inbox as $a)@php $v = $capture->latest($a); @endphp<tr>
         <td data-label="File" class="is-lead"><a class="fx-link" href="{{ route('purchases.receipts.show', $a) }}">{{ $a->original_name }}</a></td>
         <td data-label="Uploaded">{{ $a->created_at->format('j M Y H:i') }}</td>
-        <td data-label="Read as">@if ($v && ! ($v['needs_manual_entry'] ?? true))<x-fx.pill>{{ $v['fields']['supplier_name'] ?? 'Unknown supplier' }}, {{ isset($v['fields']['total_cents']) ? \App\Support\Money::format($v['fields']['total_cents']) : 'no total' }}</x-fx.pill>@else<x-fx.pill>Enter by hand</x-fx.pill>@endif</td>
+        <td data-label="Read as">@if ($v && ! ($v['needs_manual_entry'] ?? true))@include('purchases.receipts._read', ['v' => $v])@else<x-fx.pill>Enter by hand</x-fx.pill> <span class="fx-cell-sub">Nothing could be read from this file.</span>@endif</td>
     </tr>@endforeach</tbody>
 </x-fx.table>
 @endif

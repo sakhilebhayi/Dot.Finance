@@ -66,7 +66,9 @@ final class SalesReceivables implements DescribesReceivables, ReceivablesSource
         $rec = $summary['reconcile'];
         $reasons = [];
         foreach (collect($rec['items'])->groupBy('source') as $source => $rows) {
-            $reasons[] = $rows->count().' '.($rows->count() === 1 ? 'entry' : 'entries').' of '.str_replace('_', ' ', (string) $source).' type posted to receivables without a matching record in Sales, '.Money::format((int) $rows->sum('cents'), $this->currency($context));
+            $net = (int) $rows->sum('cents');
+            $reasons[] = $rows->count().' '.($rows->count() === 1 ? 'entry' : 'entries').' of '.str_replace('_', ' ', (string) $source).' type posted to receivables without a matching record in Sales, '
+                .($net >= 0 ? 'adding ' : 'taking away ').Money::format(abs($net), $this->currency($context));
         }
         if ($rec['remainder_cents'] !== 0) {
             $reasons[] = Money::format(abs((int) $rec['remainder_cents']), $this->currency($context)).' that no entry explains';
