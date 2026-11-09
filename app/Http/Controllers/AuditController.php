@@ -17,7 +17,7 @@ use Illuminate\Http\Request;
 class AuditController extends Controller
 {
     // member_role .. access_review: R-44 Controls; gl_account, period: R-44 accounting.
-    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import', 'member_role', 'approval_policy', 'approval_request', 'spend_limit', 'access_review', 'gl_account', 'period'];
+    private const SUBJECTS = ['transaction', 'account', 'category', 'budget', 'recurring_rule', 'import', 'member_role', 'approval_policy', 'approval_request', 'spend_limit', 'access_review', 'gl_account', 'period', 'tax_profile', 'tax_return', 'tax_review', 'tax_estimate', 'tax_provisional', 'tax_payroll', 'tax_document', 'tax_correspondence', 'tax_export', 'tax_adjustment', 'tax_deadline'];
 
     public function index(Request $request)
     {

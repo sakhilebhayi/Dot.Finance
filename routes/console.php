@@ -48,3 +48,12 @@ Schedule::command(Verify::class)
     ->dailyAt('02:40')
     ->withoutOverlapping()
     ->onOneServer();
+
+// --- tax ---
+// Regenerate each ledger's tax calendar and create the reminder records that are due. Sends nothing; the Intelligence
+// module delivers the records.
+Schedule::command(\App\Console\Commands\Tax\RefreshCalendar::class)
+    ->dailyAt('05:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+// --- end tax ---

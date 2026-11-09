@@ -120,3 +120,11 @@ if (! Features::enabled(Features::registration())) {
 // --- shared ---
 require __DIR__.'/shared.php';
 // --- end shared ---
+
+// --- tax ---
+require __DIR__.'/tax.php';
+// --- end tax ---
+
+// --- tax ---
+require __DIR__.'/tax.php';
+// --- end tax ---

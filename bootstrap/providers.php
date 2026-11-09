@@ -6,6 +6,7 @@ use App\Providers\FortifyServiceProvider;
 use App\Providers\HealthCheckServiceProvider;
 use App\Providers\JetstreamServiceProvider;
 use App\Providers\SharedDataServiceProvider;
+use App\Providers\TaxServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -14,4 +15,5 @@ return [
     JetstreamServiceProvider::class,
     ControlsServiceProvider::class,
     SharedDataServiceProvider::class,
+    TaxServiceProvider::class,
 ];
