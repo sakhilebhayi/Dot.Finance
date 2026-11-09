@@ -61,6 +61,8 @@ final class FinanceNotifier
                 'body' => $body,
                 'href' => $href ? mb_substr($href, 0, 300) : null,
                 'dedupe_key' => mb_substr($dedupeKey, 0, 120),
+                'email_status' => 'none',
+                'notify_status' => 'none',
                 // Someone who switched the bell off for this kind still has the record, but it does not badge.
                 'read_at' => $prefs['in_app'] ? null : now(),
             ]);

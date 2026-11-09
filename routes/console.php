@@ -4,6 +4,9 @@ use App\Console\Commands\GenerateInsights;
 use App\Console\Commands\GenerateRecurringTransactions;
 use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
+use App\Console\Commands\Intelligence\RunNotifications;
+use App\Console\Commands\Intelligence\ScanInsights;
+use App\Console\Commands\PublishMetrics;
 use App\Console\Commands\PruneImports;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -46,5 +49,23 @@ Schedule::command(PostPending::class)
 
 Schedule::command(Verify::class)
     ->dailyAt('02:40')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// R-44 intelligence: refresh every ledger's findings after the nightly integrity checks, then send the scheduled
+// notifications (approvals waiting, tax deadlines, overdue summary, new warnings) in the morning. Both are idempotent.
+Schedule::command(ScanInsights::class)
+    ->dailyAt('03:10')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command(RunNotifications::class)
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// R-44 integrations: the daily aggregate snapshot for Dot.Analytics. Does nothing until its url and secret are set.
+Schedule::command(PublishMetrics::class)
+    ->dailyAt('04:00')
     ->withoutOverlapping()
     ->onOneServer();
