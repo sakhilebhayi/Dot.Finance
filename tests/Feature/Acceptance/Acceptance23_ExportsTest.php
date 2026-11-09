@@ -119,7 +119,7 @@ class Acceptance23_ExportsTest extends AcceptanceCase
         $signed = URL::temporarySignedRoute('reports.exports.download', now()->addMinutes(5), ['reportExport' => $export->id]);
         $this->asOwner()->get($signed)->assertOk()->assertHeader('X-Content-SHA256', $export->sha256);
         $this->asOwner()->get(route('reports.exports.download', $export))->assertForbidden();
-        $this->assertCount(1, $this->auditRows('exported') ?: $this->auditRows(null, 'report_export'), 'the export is on the audit trail');
+        $this->assertGreaterThanOrEqual(2, $this->auditRows('exported', 'report_export')->count(), 'the bookkeeper\'s direct export and the queued export are both on the audit trail');
     }
 
     public function test_another_ledgers_export_cannot_be_opened_or_downloaded(): void
