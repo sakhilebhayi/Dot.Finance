@@ -5,6 +5,11 @@ namespace App\Support;
 use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
+use App\Models\Controls\AccessReview;
+use App\Models\Controls\ApprovalPolicy;
+use App\Models\Controls\ApprovalRequest;
+use App\Models\Controls\LedgerMemberRole;
+use App\Models\Controls\SpendLimit;
 use App\Models\FinanceAuditLog;
 use App\Models\RecurringRule;
 use App\Models\Transaction;
@@ -47,6 +52,36 @@ class FinanceAudit
             'values' => ['account_id', 'category_id', 'amount_cents', 'currency', 'type', 'recurrence_type', 'recurrence_interval', 'start_date', 'next_occurrence_date', 'end_date', 'paused_at', 'ended_at'],
             'text' => ['description', 'notes'],
         ],
+
+        // ----- R-44 Controls (F3): roles, approvals, policies, limits, access reviews -----
+        // Policies and limits are logged by the generic observer; role grants, approval requests and
+        // access reviews are logged explicitly by their services (they carry an action and a context).
+        LedgerMemberRole::class => [
+            'type' => 'member_role',
+            'values' => ['member_user_id', 'role'],
+            'text' => [],
+        ],
+        ApprovalPolicy::class => [
+            'type' => 'approval_policy',
+            'values' => ['subject_type', 'threshold_cents', 'currency', 'approver_capability', 'min_role', 'steps_required', 'allow_self_approval', 'is_active'],
+            'text' => ['name'],
+        ],
+        ApprovalRequest::class => [
+            'type' => 'approval_request',
+            'values' => ['subject_kind', 'amount_cents', 'currency', 'status', 'steps_required', 'steps_done'],
+            'text' => ['reason', 'request_note'],
+        ],
+        SpendLimit::class => [
+            'type' => 'spend_limit',
+            'values' => ['member_user_id', 'role', 'currency', 'period', 'limit_cents'],
+            'text' => [],
+        ],
+        AccessReview::class => [
+            'type' => 'access_review',
+            'values' => ['member_count'],
+            'text' => ['notes'],
+        ],
+        // ----- end R-44 Controls -----
     ];
 
     private static int $muted = 0;
@@ -102,16 +137,17 @@ class FinanceAudit
      *
      * @param  array{user_id: ?int, team_id: ?int}  $owner
      */
-    public static function record(array $owner, string $action, string $subjectType, ?int $subjectId, ?string $label, ?array $changes = null, ?string $context = null, ?string $currency = null): FinanceAuditLog
+    public static function record(array $owner, string $action, string $subjectType, ?int $subjectId, ?string $label, ?array $changes = null, ?string $context = null, ?string $currency = null, ?int $actorUserId = null): FinanceAuditLog
     {
         $context ??= self::$contextOverride;
+        $actorUserId ??= Auth::id();
 
         return FinanceAuditLog::create([
             'user_id' => $owner['user_id'],
             'team_id' => $owner['team_id'],
             'action' => $action,
-            'actor' => Auth::check() ? 'user' : 'system',
-            'actor_user_id' => Auth::id(),
+            'actor' => $actorUserId !== null ? 'user' : 'system',
+            'actor_user_id' => $actorUserId,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
             'subject_label' => $label !== null ? mb_substr($label, 0, 255) : null,
@@ -133,6 +169,8 @@ class FinanceAudit
             $model instanceof Transaction => ucfirst($model->type).' '.Money::format((int) $model->amount_cents, $model->currency).' on '.$model->date?->toDateString(),
             $model instanceof RecurringRule => ucfirst($model->recurrence_type).' '.$model->type.' '.Money::format((int) $model->amount_cents, $model->currency),
             $model instanceof Budget => 'Budget '.sprintf('%04d-%02d', $model->year, $model->month).' '.$model->currency,
+            // R-44 Controls models describe themselves without free text.
+            method_exists($model, 'auditLabel') => $model->auditLabel(),
             default => class_basename($model),
         };
     }

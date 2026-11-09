@@ -36,7 +36,10 @@ class LedgerScopeGuardTest extends TestCase
             }
         }
 
-        $this->assertSame(7, $checked, 'accounts, categories, budgets, transactions, recurring_rules, finance_audit_log and ai_insights');
+        // 7 original: accounts, categories, budgets, transactions, recurring_rules, finance_audit_log, ai_insights.
+        // +6 R-44 Controls: ledger_member_roles, approval_policies, approval_requests, approval_decisions, spend_limits, access_reviews.
+        // (Each R-44 module adds its own tables to this count; the integrator sums them.)
+        $this->assertSame(13, $checked);
     }
 
     public function test_nothing_in_app_reaches_around_the_scope_with_a_global_scope_bypass(): void
@@ -64,6 +67,7 @@ class LedgerScopeGuardTest extends TestCase
             'Services/LedgerReconciler.php' => 'reads one ledger at a time to find rows that point across ledgers',
             'Services/LegacyRecurrenceBackfill.php' => 'one-off legacy conversion run by a migration',
             'Services/LegacyMoneyBackfill.php' => 'one-off legacy conversion run by a migration',
+            'Services/Controls/AccessReport.php' => 'reads the live sessions table for "last seen" (no model exists for it, and it holds no ledger rows)',
             'Models/Builders/AppendOnlyBuilder.php' => 'a comment about why raw access cannot be guarded',
         ];
 
