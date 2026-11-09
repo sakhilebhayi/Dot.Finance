@@ -1,12 +1,12 @@
 <?php
 
 use App\Console\Commands\GenerateInsights;
-use App\Console\Commands\Ops\BackupCheck;
 use App\Console\Commands\GenerateRecurringTransactions;
 use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\Intelligence\RunNotifications;
 use App\Console\Commands\Intelligence\ScanInsights;
+use App\Console\Commands\Ops\BackupCheck;
 use App\Console\Commands\PruneImports;
 use App\Console\Commands\PublishMetrics;
 use App\Console\Commands\Purchases\GenerateRecurringBills;
