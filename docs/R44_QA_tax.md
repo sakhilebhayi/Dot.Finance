@@ -97,7 +97,7 @@ The seeded list equals a hand-written list for each year (test `test_the_derived
 
 New files in `tests/Feature/Tax/Qa/`: `QaVatCalculationTest` (7 tests: hand-worked examples, rounding, rate boundary with a made-up rate change, and 100 random documents against an independent integer re-implementation at line and document level), `QaVat201WorkedExampleTest` (5: every box 1-20 and the diesel totals by hand), `QaCalendarTest` (11: holidays, periods A-F, VAT/EMP201/provisional dates), `QaIncomeAndPayrollTaxTest` (16), `QaTaxIntegrityTest` (17), `QaRuleVersioningTest` (3). Changed on purpose: `CalendarTest` (provisional wording), `PayrollTest` (SDL at exactly R500,000), `TaxRulesSeederTest` (31 March 2023).
 
-Results are in section 9 of the hand-off message and are repeated here once the final runs finish.
+Results: the 59 new QA tests, 59 passed, 3,400 assertions (SQLite and PostgreSQL 16 throwaway database, clean environment). Full suite on SQLite in memory: 1,973 tests, 1,960 passed, 13 skipped, 0 failed, 288,203 assertions (run before the last test, the diesel one, was added). Full suite on PostgreSQL (`phpunit.pgsql.xml`): 1,974 tests, 0 failed, 10 skipped, 288,251 assertions. The two new migrations were run up, rolled back (`--step=2`) and up again on both engines; `route:cache` then `route:clear` is clean; `pint --test` passes on every file I touched (it reports unrelated files from other modules). Not run: Dusk, phpstan, a browser check of the Basis column.
 
 ## 9. Owner steps
 
