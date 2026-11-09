@@ -200,4 +200,34 @@ class ReserveRunwayCalculatorTest extends TestCase
 
         $this->assertNotEmpty($result['basis']);
     }
+
+    public function test_reserves_at_or_below_zero_are_not_reported_as_a_number_of_months(): void
+    {
+        $user = User::factory()->create();
+        $account = $this->createAccount($user, 'checking', -3000);
+        $this->createTransaction($user, $account, 'expense', 100, now());
+
+        $result = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
+
+        $this->assertTrue($result['available']);
+        $this->assertTrue($result['no_reserves'], 'there is no cash to spend down');
+        $this->assertFalse($result['is_growing']);
+        $this->assertLessThan(0, $result['liquid_reserves_cents'], 'the account is overdrawn');
+    }
+
+    public function test_the_basis_is_worded_for_one_month_and_for_several_without_a_bracketed_plural(): void
+    {
+        $user = User::factory()->create();
+        $account = $this->createAccount($user, 'checking', 100_000);
+        $this->createTransaction($user, $account, 'expense', 100, now());
+
+        $one = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
+        $this->assertStringContainsString('trailing 1 month of', $one['basis']);
+        $this->assertStringNotContainsString('(s)', $one['basis']);
+
+        $this->createTransaction($user, $account, 'expense', 100, now()->subMonth());
+        $two = (new ReserveRunwayCalculator)->calculate(LedgerContext::personal($user), 'ZAR');
+        $this->assertStringContainsString('trailing 2 months of', $two['basis']);
+        $this->assertFalse($two['no_reserves']);
+    }
 }

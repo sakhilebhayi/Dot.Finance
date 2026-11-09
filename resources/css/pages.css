@@ -187,6 +187,11 @@
     font-size: 11px;
 }
 
+.fx-chart__label {
+    fill: var(--ink-2);
+    font-size: 11px;
+}
+
 .fx-chart__line {
     fill: none;
     stroke: var(--ink);

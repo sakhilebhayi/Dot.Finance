@@ -71,6 +71,7 @@ class ReserveRunwayCalculator
                 'liquid_reserves_cents' => null,
                 'avg_monthly_burn_cents' => null,
                 'months' => null,
+                'no_reserves' => false,
                 'is_growing' => null,
                 'basis' => null,
                 'what_if' => null,
@@ -90,9 +91,9 @@ class ReserveRunwayCalculator
         $months = $isGrowing ? null : max(0, Money::divideRound($liquidReserves, $avgMonthlyBurn));
 
         $basis = sprintf(
-            'Liquid %s reserves (checking + savings + cash accounts only, from the ledger) divided by average monthly net spend over the trailing %d month(s) of transaction history, as of %s.',
+            'Liquid %s reserves (checking + savings + cash accounts only, from the ledger) divided by average monthly net spend over the trailing %s of transaction history, as of %s.',
             $currency,
-            $monthsSpanned,
+            $monthsSpanned === 1 ? '1 month' : $monthsSpanned.' months',
             now()->toDateString()
         );
 
@@ -103,6 +104,8 @@ class ReserveRunwayCalculator
             'liquid_reserves_cents' => $liquidReserves,
             'avg_monthly_burn_cents' => $avgMonthlyBurn,
             'months' => $months,
+            // Reserves that are zero or below are not a runway: "0 months" would read as a measurement when it is not one.
+            'no_reserves' => ! $isGrowing && $liquidReserves <= 0,
             'is_growing' => $isGrowing,
             'basis' => $basis,
             'what_if' => $this->computeWhatIf($context, $currency, $windowStart, $avgMonthlyBurn, $liquidReserves, $monthsSpanned),

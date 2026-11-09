@@ -159,11 +159,15 @@
 <x-fx.panel :title="$cushionTitle">
     @if ($cushion['is_growing'])
     <p class="fx-panel__title">{{ $code }} reserves are currently growing, not depleting.</p>
+    <p class="fx-hint">{{ $cushion['basis'] }}</p>
+    @elseif ($cushion['no_reserves'])
+    <p class="fx-panel__title">There are no {{ $code }} reserves to measure: {{ $company ? 'its' : 'your' }} {{ $code }} checking, savings and cash accounts hold <x-fx.money :cents="$cushion['liquid_reserves_cents']" :currency="$code" /> today.</p>
+    <p class="fx-hint">A number of months is only worked out where there is money to spend down. {{ $code }} spending recently averages <x-fx.money :cents="$cushion['avg_monthly_burn_cents']" :currency="$code" /> a month.</p>
     @else
     <p class="fx-panel__title">Approximately {{ $cushion['months'] }} month{{ $cushion['months'] === 1 ? '' : 's' }} of {{ $code }} reserves at {{ $company ? 'its' : 'your' }} current pace.</p>
-    @endif
     <p class="fx-hint">{{ $cushion['basis'] }}</p>
-    @if ($cushion['what_if'])
+    @endif
+    @if ($cushion['what_if'] && ! $cushion['no_reserves'])
     <p class="fx-hint">If {{ $company ? 'its' : 'your' }} <strong>{{ $cushion['what_if']['category'] }}</strong> spending were eliminated, this would extend to approximately {{ $cushion['what_if']['months_without_category'] }} month{{ $cushion['what_if']['months_without_category'] === 1 ? '' : 's' }}.</p>
     @endif
 </x-fx.panel>

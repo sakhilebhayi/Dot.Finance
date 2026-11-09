@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Account;
 use App\Models\RecurringRule;
+use App\Services\Planning\CashPosition;
 use App\Support\Ledger\LedgerContext;
 use Illuminate\Support\Carbon;
 
@@ -17,6 +18,10 @@ use Illuminate\Support\Carbon;
  * amounts and anything else the future holds are all absent, and the page says
  * so. Nothing here writes to the ledger and nothing here feeds back into the
  * actuals shown elsewhere.
+ *
+ * Only cash is projected: checking, savings and cash accounts. A credit account (money owed) or an investment account is
+ * never added to, or netted against, the cash balance; it is listed beside it under `not_cash`, and a recurring item on one
+ * is left out with its reason.
  */
 class ForecastService
 {
@@ -39,7 +44,15 @@ class ForecastService
         $accounts = Account::query()->forContext($context)->withBalance()->orderBy('name')->get();
 
         $currencies = [];
+        $notCash = [];
+        $typeById = $accounts->pluck('type', 'id')->all();
         foreach ($accounts as $account) {
+            if (! in_array($account->type, CashPosition::LIQUID, true)) {
+                $notCash[$account->currency][] = ['name' => $account->name, 'type' => $account->type, 'balance_cents' => $account->balanceCents()];
+
+                continue;
+            }
+
             $currencies[$account->currency] ??= [
                 'currency' => $account->currency,
                 'start_cents' => 0, 'end_cents' => 0, 'lowest_cents' => 0, 'lowest_date' => null,
@@ -67,6 +80,13 @@ class ForecastService
 
             if ($rule->isPaused()) {
                 $excluded[] = ['description' => $rule->description, 'reason' => 'paused'];
+
+                continue;
+            }
+
+            $accountType = $typeById[$rule->account_id] ?? null;
+            if (! in_array($accountType, CashPosition::LIQUID, true)) {
+                $excluded[] = ['description' => $rule->description, 'reason' => 'on a '.($accountType ?? 'non-cash').' account, which is not cash', 'resumable' => false];
 
                 continue;
             }
@@ -122,7 +142,13 @@ class ForecastService
         }
         unset($entry);
 
-        ksort($currencies);
+        // The biggest cash balance first; an overdrawn currency comes last, never first.
+        uasort($currencies, fn ($a, $b) => [-$a['start_cents'], $a['currency']] <=> [-$b['start_cents'], $b['currency']]);
+        foreach ($currencies as $code => &$entry) {
+            $entry['overdrawn'] = $entry['start_cents'] < 0;
+            $entry['not_cash'] = $notCash[$code] ?? [];
+        }
+        unset($entry);
 
         return [
             'from' => $from->toDateString(),
@@ -131,6 +157,7 @@ class ForecastService
             'included_rules' => $included,
             'excluded' => $excluded,
             'currencies' => $currencies,
+            'not_cash' => $notCash,
         ];
     }
 

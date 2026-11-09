@@ -54,6 +54,20 @@ class GenerateInsights extends Command
                 continue;
             }
 
+            if (! empty($result['no_reserves'])) {
+                $warning = true;
+                $sentences[] = sprintf(
+                    '%s %s accounts hold %s while %s spending averages %s a month: there is no cash to measure a runway from.',
+                    $company !== null ? "{$company}'s liquid" : 'Your liquid',
+                    $result['currency'],
+                    Money::format($result['liquid_reserves_cents'], $result['currency']),
+                    $result['currency'],
+                    Money::format($result['avg_monthly_burn_cents'], $result['currency'])
+                );
+
+                continue;
+            }
+
             if ($result['is_growing'] || $result['months'] >= self::CRITICAL_MONTHS_THRESHOLD) {
                 $sentences[] = $this->healthyInsightText($result, $company);
 
