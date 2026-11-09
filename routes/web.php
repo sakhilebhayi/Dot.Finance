@@ -100,3 +100,7 @@ Route::middleware([
 if (! Features::enabled(Features::registration())) {
     Route::redirect('/register', '/login')->name('register');
 }
+
+// --- shared ---
+require __DIR__.'/shared.php';
+// --- end shared ---

@@ -7,6 +7,9 @@ use App\Models\Budget;
 use App\Models\Category;
 use App\Models\FinanceAuditLog;
 use App\Models\RecurringRule;
+use App\Models\Shared\Party;
+use App\Models\Shared\Payment;
+use App\Models\Shared\PaymentAllocation;
 use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +49,22 @@ class FinanceAudit
             'type' => 'recurring_rule',
             'values' => ['account_id', 'category_id', 'amount_cents', 'currency', 'type', 'recurrence_type', 'recurrence_interval', 'start_date', 'next_occurrence_date', 'end_date', 'paused_at', 'ended_at'],
             'text' => ['description', 'notes'],
+        ],
+        // R-44 shared data layer (F2)
+        Party::class => [
+            'type' => 'party',
+            'values' => ['type', 'name', 'currency', 'payment_terms_days', 'credit_limit_cents', 'status'],
+            'text' => ['legal_name', 'email', 'phone', 'tax_number', 'registration_number', 'billing_address', 'shipping_address', 'external_ref', 'notes'],
+        ],
+        Payment::class => [
+            'type' => 'payment',
+            'values' => ['direction', 'party_id', 'cash_account_id', 'amount_cents', 'currency', 'fx_rate_e8', 'paid_on', 'method', 'status', 'gl_entry_id', 'transaction_id'],
+            'text' => ['reference', 'reversal_reason', 'notes'],
+        ],
+        PaymentAllocation::class => [
+            'type' => 'payment_alloc',
+            'values' => ['payment_id', 'allocatable_type', 'allocatable_id', 'amount_cents', 'tax_cents', 'fx_diff_cents', 'released_at'],
+            'text' => ['release_reason'],
         ],
     ];
 
@@ -132,6 +151,9 @@ class FinanceAudit
             $model instanceof Account, $model instanceof Category => (string) $model->name,
             $model instanceof Transaction => ucfirst($model->type).' '.Money::format((int) $model->amount_cents, $model->currency).' on '.$model->date?->toDateString(),
             $model instanceof RecurringRule => ucfirst($model->recurrence_type).' '.$model->type.' '.Money::format((int) $model->amount_cents, $model->currency),
+            $model instanceof Party => 'Party '.$model->name,
+            $model instanceof Payment => ucfirst($model->direction === 'in' ? 'received' : 'paid').' '.Money::format((int) $model->amount_cents, $model->currency).' on '.$model->paid_on?->toDateString(),
+            $model instanceof PaymentAllocation => 'Allocation '.Money::format((int) $model->amount_cents),
             $model instanceof Budget => 'Budget '.sprintf('%04d-%02d', $model->year, $model->month).' '.$model->currency,
             default => class_basename($model),
         };
