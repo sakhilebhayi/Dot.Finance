@@ -4,3 +4,4 @@ import './fx/command';
 import './fx/dialogs';
 import './fx/forms';
 import './fx/toasts';
+import './fx/print';
