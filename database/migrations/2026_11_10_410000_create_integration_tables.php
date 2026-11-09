@@ -52,7 +52,10 @@ return new class extends Migration
             // staged | needs_attention | posted | rejected
             $table->string('status', 16);
             $table->json('problems')->nullable();
-            $table->foreignId('journal_entry_id')->nullable()->constrained('journal_entries')->restrictOnDelete();
+            // No foreign key on purpose (as payments.gl_entry_id): the journal tables belong to the accounting migration, which an
+            // older test rolls back, and a posted journal entry is append-only so the link can never dangle. Same-ledger is checked
+            // by LedgerOwnership through the model's ledgerReferences().
+            $table->unsignedBigInteger('journal_entry_id')->nullable()->index();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();

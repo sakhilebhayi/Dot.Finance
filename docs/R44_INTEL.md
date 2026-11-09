@@ -49,7 +49,8 @@ $this->app->bind(\App\Contracts\Integrations\PayrollSummarySink::class, \App\Ser
 |---|---|
 | Baseline before this work | SQLite 1,169 tests, 1,159 passed, 10 skipped |
 | Final, SQLite in memory | **1,324 tests, 1,314 passed, 10 skipped, 0 failures** (155 new), 269,385 assertions |
-| Final, PostgreSQL 16 (`phpunit.pgsql.xml`, clean environment, throwaway database) | see the report below (filled in at the end of the run) |
+| PostgreSQL 16 (`phpunit.pgsql.xml`, clean environment, throwaway database), first full run | 1,324 tests, 2 problems. (1) `IntegerMoneyTest` could not drop `journal_entries` because `emall_sale_lines` had a foreign key to it: fixed by removing that key (D-1018). (2) `AttachmentsTest::test_script_capable_and_executable_types_are_refused` failed once: it feeds `random_bytes(64)` as a `.bin` file and the content sniffer occasionally calls such bytes text; it passes when run alone and is not touched by this branch (a flaky test of the shared-data module, not fixed here) |
+| PostgreSQL after the fix, the affected groups (`IntegerMoneyTest`, `tests/Feature/Integrations`, `tests/Feature/Company`) | 184 tests, 0 failures (1 skipped, pre-existing); the whole suite was **not** rerun after the fix. An earlier PostgreSQL run of `tests/Feature/Intelligence` and `tests/Feature/Integrations` found and fixed the aborted-transaction bug (D-1017): 116 tests, 0 failures |
 | `route:cache` then `route:clear` | caches and clears cleanly |
 | Pint | clean on touched files |
 

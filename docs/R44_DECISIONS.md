@@ -125,3 +125,4 @@ Binding decisions D-1..D-20 are in `docs/R44_ARCHITECTURE.md` section 7. Each ag
 | D-1015 | Dot.HR payroll: contract and validator only, no route. | An endpoint nobody calls is attack surface. |
 | D-1016 | `StateLine::extend` accepts an optional key so a provider that boots more than once in a process replaces its entry instead of stacking. | Every test boots a fresh application. |
 | D-1017 | A unique-index race on a dedupe write is caught inside a nested transaction (savepoint) with an existence pre-check. | On PostgreSQL a failed statement aborts the caller's whole transaction. Found by the PostgreSQL run. |
+| D-1018 | `emall_sale_lines.journal_entry_id` has no foreign key (like `payments.gl_entry_id`). | A test rolls the accounting migration back on PostgreSQL, which a dependent key blocks; a posted entry is append-only so the link cannot dangle, and `LedgerOwnership` checks it is in the same ledger. |
