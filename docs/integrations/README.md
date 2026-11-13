@@ -14,7 +14,6 @@ Statuses: **connected** means a real signed channel exists on both sides and thi
 | Dot.HR payroll | contract only | Payroll summary totals; see `hr-payroll-contract.md` | Dot.HR must build payroll first; the Tax module's `PayrollImport` then implements `PayrollSummarySink` |
 | Dot.Projects | not possible | none | None until Dot.Projects publishes a project list endpoint |
 | Dot.Files | not possible | none (Files has signed membership and search endpoints only) | None until Dot.Files offers a storage API |
-| Dot.Billing | not possible | Billing has `GET /api/entitlements/{company_uuid}`; Dot.Finance has no plan to gate | Decide whether Dot.Finance has paid tiers |
 | Dot.Engage | not possible | none | None |
 | Dot.Agents | not possible | none, deliberately | None |
 | Dot.Brain and Dot.Memory | not possible | none agreed | Decide which aggregate events, if any, should be recorded there |

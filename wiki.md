@@ -82,7 +82,6 @@ None. There is no event bus, queue-fired domain event or webhook emission. The a
 | Audit trail | Implemented: append-only log and a read-only page. |
 | AI categorisation / AI insights | Not implemented. Nothing in this repo calls a language model. |
 | Anomaly detection | Not implemented. |
-| Invoice reconciliation with Dot.Billing | Not implemented. |
 | Company finances | Implemented alongside the personal ledger: one ledger per InfoDot company, roles owner/admin, editor, viewer, a company audit log with actor names. Moving rows between ledgers and consolidating across currencies are deliberately not built. |
 | Ecosystem SSO | Implemented: `EcosystemAuthController`. |
 
@@ -90,7 +89,7 @@ This wiki reports the code-reality column as current state and treats anything e
 
 ## 6. Relationship to Dot.Brain's Platform Doc
 
-Dot.Brain's ingested view of this platform (`platforms/dot-finance.md`) describes Dot.Finance as a financial-*products* platform — credit, insurance, savings instruments, regulatory watch, DKP-versioned Knowledge Pack publishing, a `finproduct.*` metric namespace, and a three-way money boundary against Dot.Billing (settlement) and Dot.Charts (traded instruments). None of that exists in this repository yet. That document should be read as the target architecture the ecosystem has designed for this platform, not as a description of shipped code.
+Dot.Brain's ingested view of this platform (`platforms/dot-finance.md`) describes Dot.Finance as a financial-*products* platform — credit, insurance, savings instruments, regulatory watch, DKP-versioned Knowledge Pack publishing, a `finproduct.*` metric namespace, and a money boundary against Dot.Charts (traded instruments). None of that exists in this repository yet. That document should be read as the target architecture the ecosystem has designed for this platform, not as a description of shipped code.
 
 The gap is real and worth naming plainly: today's Dot.Finance is a personal transaction tracker; Dot.Brain's platform doc describes a regulated financial-products and regulatory-watch service. Closing that gap is the platform's actual roadmap (§8), not a documentation inconsistency to paper over.
 
@@ -129,7 +128,6 @@ Not done:
 - [ ] Transaction categorisation by a language model, if it is ever wanted (nothing calls one today)
 - [ ] Anomaly detection on transaction streams
 - [ ] Charts beyond the dashboard trend and the forecast line
-- [ ] Invoice reconciliation with Dot.Billing
 - [ ] Domain event emission (transaction created, budget exceeded, account synced)
 - [ ] First DKP manifest (`platform.dkp.json`) and Knowledge Pack publishing client
 - [ ] Decide whether this platform grows into the financial-products (credit/insurance/savings) domain Dot.Brain's platform doc anticipates, or stays a personal ledger with that domain built elsewhere

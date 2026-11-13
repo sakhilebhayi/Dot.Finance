@@ -130,9 +130,14 @@ class SecurityHeadersTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/\sstyle\s*=/i', $html, "[$routeName] carries a style attribute");
         $this->assertDoesNotMatchRegularExpression('/<(?:script|style)\b(?![^>]*\bnonce="'.preg_quote($nonce, '/').'")(?![^>]*\bsrc=)[^>]*>/i', $html, "[$routeName] has an inline script or style without this request's nonce");
         $this->assertDoesNotMatchRegularExpression('/\son[a-z]+\s*=\s*"/i', $html, "[$routeName] has an inline event handler");
-        preg_match_all('#(?:src|href)="https?://([^/"]+)#i', $html, $hosts);
+        // Anything the page loads (src, and href on anything but a plain link: stylesheets, preloads, icons) must be this app's own.
+        preg_match_all('#<(?!a\b)[a-z][^>]*?\s(?:src|href)="https?://([^/"]+)#i', $html, $loaded);
         $own = [parse_url((string) config('app.url'), PHP_URL_HOST), 'localhost'];
-        $this->assertSame([], array_values(array_diff($hosts[1], $own)), "[$routeName] references a third-party origin");
+        $this->assertSame([], array_values(array_diff($loaded[1], $own)), "[$routeName] references a third-party origin");
+        // A link a person follows may also lead back to InfoDot (the landing's way back, R-50), and nowhere else.
+        preg_match_all('#<a\b[^>]*?\shref="https?://([^/"]+)#i', $html, $linked);
+        $infodot = parse_url((string) config('ecosystem.platforms.infodot.url'), PHP_URL_HOST);
+        $this->assertSame([], array_values(array_diff($linked[1], [...$own, $infodot])), "[$routeName] links to an origin that is neither this app nor InfoDot");
         $this->assertDoesNotMatchRegularExpression('#cdn\.tailwindcss\.com|fonts\.googleapis\.com|fonts\.gstatic\.com#', $html, "[$routeName] loads a CDN or Google font");
     }
 

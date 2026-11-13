@@ -65,7 +65,7 @@ Installed and discovered: awesome-design-md, awwwards, canvas-ui, design-md, des
 ## 7. Integrations (honest status; `docs/integrations/README.md`)
 - **Connected:** InfoDot sign-in and team sync (existing, hardened), InfoDot membership webhook (new, signed), Dot.Notify client (signed to match Notify's receiver; never observed delivering to a live Notify; off until configured and opted in).
 - **Contract only (nothing on the other side yet):** Dot.Analytics (publisher inert; Analytics' catalogue has no `finance` entry), Dot.Emall sales import (signed endpoint stages lines for review; Emall exports nothing yet), Dot.HR payroll (contract and validator; HR stores no salary and has no payroll).
-- **Not possible (no real API):** Dot.Projects, Dot.Files storage (membership/search only), Dot.Billing, Dot.Engage, Dot.Agents, Dot.Brain, Dot.Memory.
+- **Not possible (no real API):** Dot.Projects, Dot.Files storage (membership/search only), Dot.Engage, Dot.Agents, Dot.Brain, Dot.Memory.
 
 ## 8. Not built / partial / not verified
 - **Not built:** live bank feeds, payment gateways (a person records each payment; a gateway port exists with a manual implementation), SARS submission, an exchange-rate entry screen (rates are stored and used; entry is by service only), purchase orders, e-invoicing, IRP5/IT3(a), EMP501 reconciliation itself, dividends tax, capital gains, wear-and-tear schedules, payments-basis VAT (blocks "prepare" until adjusted), VAT apportionment/bad-debt relief calculation, ETI calculation, per-employee salary projection.

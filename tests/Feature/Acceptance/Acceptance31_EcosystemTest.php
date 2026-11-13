@@ -27,7 +27,7 @@ use Symfony\Component\Console\Output\BufferedOutput;
  *   CONTRACT ONLY  Dot.Analytics (daily aggregate snapshot; Analytics does not list "finance" yet); Dot.Emall (signed inbound sales and
  *                  fees, staged for review; Emall has no seller fees or export to send them); Dot.HR (signed payroll summary; Dot.HR has no
  *                  payroll).  Both inbound contracts are exercised here with signed requests, as the sender would make them.
- *   NOT POSSIBLE   Projects, Files, Billing, Engage, Agents, Brain/Memory (nothing sound to build against, or deliberately not connected).
+ *   NOT POSSIBLE   Projects, Files, Engage, Agents, Brain/Memory (nothing sound to build against, or deliberately not connected).
  */
 class Acceptance31_EcosystemTest extends AcceptanceCase
 {
@@ -50,14 +50,14 @@ class Acceptance31_EcosystemTest extends AcceptanceCase
         $all = collect(app(IntegrationStatus::class)->all())->keyBy('key');
         $this->assertSame(['infodot-sso', 'infodot-membership', 'notify'], $all->where('status', 'connected')->keys()->all());
         $this->assertSame(['analytics', 'emall', 'hr'], $all->where('status', 'contract_only')->keys()->all());
-        $this->assertSame(['projects', 'files', 'billing', 'engage', 'agents', 'brain'], $all->where('status', 'not_possible')->keys()->all());
+        $this->assertSame(['projects', 'files', 'engage', 'agents', 'brain'], $all->where('status', 'not_possible')->keys()->all());
         foreach ($all as $row) {
             $this->assertNotSame('', $row['summary']);
             $this->assertNotSame('', $row['owner_step'], "{$row['key']} says what the owner has to do");
         }
 
         $text = html_entity_decode(preg_replace('/\s+/', ' ', strip_tags($this->asOwner()->get(route('intel.integrations.index'))->assertOk()->getContent())), ENT_QUOTES);
-        foreach (['Dot.Analytics', 'Dot.Emall', 'Dot.HR payroll', 'Dot.Notify', 'InfoDot sign-in and companies', 'Dot.Projects', 'Dot.Files', 'Dot.Billing', 'Dot.Brain and Dot.Memory'] as $name) {
+        foreach (['Dot.Analytics', 'Dot.Emall', 'Dot.HR payroll', 'Dot.Notify', 'InfoDot sign-in and companies', 'Dot.Projects', 'Dot.Files', 'Dot.Brain and Dot.Memory'] as $name) {
             $this->assertStringContainsString($name, $text);
         }
         $this->assertStringContainsString('Emall has no seller fees, payouts or export yet, so nothing calls it', $text, 'the page says plainly that nothing flows from Emall');

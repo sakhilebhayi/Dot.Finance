@@ -7,13 +7,104 @@
     $canRecord = auth()->user()->can('create', \App\Models\Transaction::class);
 @endphp
 
-<x-fx.page-head title="Command centre" :sub="now()->format('l, j F Y').'. '.($company ? $activeLedger->label() : 'Your own ledger').', '.now()->format('F Y').' to date.'">
-    <x-slot name="actions">
-        @if ($canRecord)
-        <x-fx.button variant="primary" :href="route('transactions.create')" icon="plus">Add transaction</x-fx.button>
-        @endif
-    </x-slot>
-</x-fx.page-head>
+@php
+    // ── The landing: what a person sees first when they arrive from InfoDot. ──
+    // One primary action, chosen from what this person may do in this ledger and what the ledger already holds:
+    //   may record and there is an account to record against  -> add a transaction
+    //   no account yet and may create one                     -> add the first account (a transaction needs one)
+    //   anyone else (a read-only member)                      -> read the entries
+    $canAddAccount = auth()->user()->can('create', \App\Models\Account::class);
+    $landAction = match (true) {
+        $canRecord && $accountCount > 0 => ['label' => 'Add transaction', 'url' => route('transactions.create'), 'icon' => 'plus'],
+        $accountCount === 0 && $canAddAccount => ['label' => $company ? 'Add the first company account' : 'Add your first account', 'url' => route('accounts.index'), 'icon' => 'plus'],
+        default => ['label' => 'Read the entries', 'url' => route('transactions.index'), 'icon' => 'receipt-text'],
+    };
+    $firstName = \Illuminate\Support\Str::of(auth()->user()->name)->trim()->before(' ')->toString();
+    $lastEntry = $recentTransactions->first();
+    $ledgerEmpty = $accountCount === 0 && $entryCount === 0;
+    $infodot = rtrim((string) config('ecosystem.platforms.infodot.url'), '/');
+    // Arriving in the personal ledger while belonging to companies: their books are one step away, by the same POST the sidebar uses.
+    $otherCompanies = $company ? [] : array_values(array_filter(
+        app(\App\Support\Ledger\LedgerContextManager::class)->contextsFor(auth()->user()),
+        fn ($choice) => $choice->isCompany(),
+    ));
+@endphp
+
+<section class="fx-land" aria-labelledby="fx-land-title" data-landing>
+    <div class="fx-land__mast">
+        {{-- The original logo files, untouched: the day artwork on paper, the light artwork at night. --}}
+        <span class="fx-land__logo">
+            <img class="fx-land__logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
+            <img class="fx-land__logo-night" src="{{ asset('images/logo-light.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
+        </span>
+        <nav class="fx-land__back" aria-label="Dot ecosystem">
+            <a href="{{ $infodot }}/home">InfoDot</a>
+            <a href="{{ $infodot }}/platforms">Platforms</a>
+        </nav>
+    </div>
+
+    <div class="fx-land__body">
+        <div class="fx-land__say">
+            <h1 id="fx-land-title">Welcome, {{ $firstName }}. {{ $company ? 'You are in the books of '.$activeLedger->label().'.' : 'You are in your own ledger.' }}</h1>
+            <p class="fx-land__lead">Every figure here traces back to the entries behind it.</p>
+            <p class="fx-land__sub">Dot.Finance keeps {{ $company ? "the company's" : 'your' }} ledger, sales, purchases, bank, tax and reports in one set of books. {{ $canRecord ? 'Record what happened and the statements are worked out from it; nothing is estimated.' : 'You have read-only access here: every statement can be read, and each figure opens the rows it came from.' }}</p>
+            <div class="fx-land__act">
+                <x-fx.button variant="primary" :href="$landAction['url']" :icon="$landAction['icon']" class="fx-land__go" data-primary-action>{{ $landAction['label'] }}</x-fx.button>
+                @if ($landAction['url'] !== route('transactions.index') && $entryCount > 0)
+                <a href="{{ route('transactions.index') }}" class="fx-link">Read the entries</a>
+                @elseif (fx_route_exists('reports.index') && $entryCount > 0)
+                <a href="{{ route('reports.index') }}" class="fx-link">Open the reports</a>
+                @endif
+            </div>
+            @if ($otherCompanies !== [])
+            <form method="POST" action="{{ route('ledger.context.switch') }}" class="fx-land__switch" aria-label="Open a company's books">
+                @csrf
+                <p>You also belong to {{ count($otherCompanies) === 1 ? 'a company' : 'companies' }} here. Open {{ count($otherCompanies) === 1 ? 'its' : 'their' }} books:</p>
+                <div class="fx-land__switch-opts">
+                    @foreach ($otherCompanies as $choice)
+                    <x-fx.button size="sm" name="context" :value="$choice->teamId" icon="building-2">{{ $choice->label() }}</x-fx.button>
+                    @endforeach
+                </div>
+            </form>
+            @endif
+        </div>
+
+        <div class="fx-land__proof">
+            <h2 class="fx-land__proof-title">{{ $company ? 'What these books hold' : 'What your ledger holds' }}</h2>
+            @if ($ledgerEmpty)
+            <div class="fx-land__blank" data-landing-empty>
+                <p class="fx-land__blank-title">Nothing has been recorded yet.</p>
+                <p>{{ $company ? $activeLedger->label().' has' : 'Your ledger has' }} no account and no entry, so this page has no figures to show. They appear once something is recorded, and each one will link to the rows it came from.</p>
+                @unless ($canAddAccount)<p>A company owner or admin needs to add the first account.</p>@endunless
+            </div>
+            @else
+            <x-fx.statement>
+                <x-fx.statement-row label="Accounts">
+                    <span class="fx-figure-line">@if ($accountCount > 0)<span class="fx-figure" data-landing-count="accounts">{{ number_format($accountCount) }}</span>@else<span class="fx-land__none">none yet</span>@endif<x-fx.trace :href="route('accounts.index')" label="See the accounts" /></span>
+                </x-fx.statement-row>
+                <x-fx.statement-row label="Entries recorded">
+                    <span class="fx-figure-line">@if ($entryCount > 0)<span class="fx-figure" data-landing-count="entries">{{ number_format($entryCount) }}</span>@else<span class="fx-land__none">none yet</span>@endif<x-fx.trace :href="route('transactions.index')" label="See every entry" /></span>
+                </x-fx.statement-row>
+                @if ($lastEntry)
+                <x-fx.statement-row label="Last entry dated">
+                    <span class="fx-figure-line"><span class="fx-figure fx-date" data-landing-last>{{ $lastEntry->date->format('Y-m-d') }}</span><x-fx.trace :href="route('transactions.index', ['from' => $lastEntry->date->toDateString(), 'to' => $lastEntry->date->toDateString()])" label="See the entries on that date" /></span>
+                </x-fx.statement-row>
+                @endif
+            </x-fx.statement>
+            @if ($lastEntry)
+            <p class="fx-land__last">{{ $lastEntry->description }}@if ($lastEntry->account), in {{ $lastEntry->account->name }}@endif</p>
+            @endif
+            @endif
+        </div>
+    </div>
+</section>
+
+<header class="fx-pagehead fx-pagehead--under">
+    <div class="fx-pagehead__text">
+        <h2>Command centre</h2>
+        <p class="fx-pagehead__sub">{{ now()->format('l, j F Y').'. '.($company ? $activeLedger->label() : 'Your own ledger').', '.now()->format('F Y').' to date.' }}</p>
+    </div>
+</header>
 
 <div class="fx-grid fx-grid--lead">
 
