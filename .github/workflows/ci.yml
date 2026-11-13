@@ -110,6 +110,41 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
+      # The backup and restore drill (Acceptance34) shells out to pg_dump, pg_restore, psql, createdb and dropdb. They must be the
+      # same major version as the service container above: a newer pg_restore sends settings an older server does not know
+      # (v17 sends "SET transaction_timeout", which PostgreSQL 16 refuses) and the restore fails. The runner image's own client
+      # moves with the image, so the client is installed here at the server's major and put first on PATH. Keep PG_MAJOR equal
+      # to the major of the postgres image in `services`; the next step fails the job when they differ.
+      - name: Install the PostgreSQL client that matches the server
+        env:
+          PG_MAJOR: "16"
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg-ci.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends "postgresql-client-${PG_MAJOR}"
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
+
+      - name: Check that the client tools and the server are the same major version
+        env:
+          PGPASSWORD: finance
+        run: |
+          server="$(psql -h 127.0.0.1 -p 5432 -U finance -d finance_test -At -c 'SHOW server_version')"
+          server_major="${server%%.*}"
+          echo "server:     PostgreSQL ${server} (major ${server_major})"
+          status=0
+          for tool in pg_dump pg_restore psql createdb dropdb; do
+            version="$("$tool" --version)"
+            major="$(printf '%s' "$version" | grep -oE '[0-9]+' | head -n 1)"
+            echo "${tool}: ${version} (major ${major}, $(command -v "$tool"))"
+            if [ "$major" != "$server_major" ]; then
+              echo "::error::${tool} is PostgreSQL ${major} but the server is PostgreSQL ${server_major}. The backup and restore drill needs client tools of the server's major version: set PG_MAJOR in this job to the major of the postgres service image."
+              status=1
+            fi
+          done
+          exit "$status"
+
       - name: Run tests on PostgreSQL
         env:
           DB_CONNECTION: pgsql
