@@ -66,7 +66,10 @@ jobs:
   # run here.
   tests-postgres:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # 90, not 60: the same 2,463 tests took 29 min and then 55 min on two runs 17 minutes apart (9 Nov), and the
+    # 2,477-test run on 13 Nov took 56 min, so the time swings by a factor of two with the runner and the suite
+    # now sits close to the old 60-minute limit. The suite is about three times slower here than on SQLite (17 min).
+    timeout-minutes: 90
     services:
       postgres:
         image: postgres:16
