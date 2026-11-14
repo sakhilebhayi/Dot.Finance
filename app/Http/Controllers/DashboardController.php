@@ -80,9 +80,37 @@ class DashboardController extends Controller
         $needs = StateLine::for($context);
         $extraPanels = DashboardPanels::views();
 
+        // The accounts ledger: grouped by currency (the lead currency first), cash accounts above the "Cash available" subtotal
+        // and the accounts that are not cash (cards, loans, investments) below it, never netted into it. Everything read here is
+        // already confined to the active ledger by the shared scope.
+        $accountFacts = Transaction::query()
+            ->selectRaw('account_id, COUNT(*) AS entries, MAX(date) AS last_date')
+            ->whereNotNull('account_id')
+            ->groupBy('account_id')
+            ->get()
+            ->keyBy('account_id');
+
+        $ledgerGroups = [];
+        foreach ($currencyOrder as $code) {
+            $inCurrency = $accounts->where('currency', $code)->sortBy(fn ($a) => mb_strtolower((string) $a->name))->values();
+            $ledgerGroups[$code] = [
+                'cash' => $inCurrency->filter(fn ($a) => LedgerSummary::kindOf((string) $a->type) === 'cash')->values(),
+                'other' => $inCurrency->reject(fn ($a) => LedgerSummary::kindOf((string) $a->type) === 'cash')->values(),
+            ];
+        }
+
+        // The selected account comes from ?account=, accepted only when it is one of the accounts loaded for this ledger; anything
+        // else (another ledger's id, a string, a stale id) falls back to the first row of the first currency.
+        $firstShown = collect($ledgerGroups)->flatMap(fn ($g) => $g['cash']->concat($g['other']))->first();
+        $requested = $request->query('account');
+        $selectedAccount = (is_string($requested) && ctype_digit($requested))
+            ? ($accounts->firstWhere('id', (int) $requested) ?? $firstShown)
+            : $firstShown;
+
         return view('dashboard', compact(
             'position', 'accounts', 'recentTransactions', 'budgets', 'summaryCount',
-            'cushions', 'spendingTrend', 'currencies', 'currencyOrder', 'trendCurrency', 'upcoming', 'needs', 'extraPanels', 'accountingOn', 'accountCount', 'entryCount'
+            'cushions', 'spendingTrend', 'currencies', 'currencyOrder', 'trendCurrency', 'upcoming', 'needs', 'extraPanels', 'accountingOn', 'accountCount', 'entryCount',
+            'accountFacts', 'ledgerGroups', 'selectedAccount'
         ));
     }
 }

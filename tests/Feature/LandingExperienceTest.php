@@ -60,9 +60,15 @@ class LandingExperienceTest extends TestCase
         return $section;
     }
 
-    /** The landing's words, without the screen-reader labels inside icons. */
+    /** The landing's words, without the screen-reader labels inside icons and without today's date line. */
     private function words(DOMElement $landing): string
     {
+        $landing = $landing->cloneNode(true);
+        $xp = new DOMXPath($landing->ownerDocument);
+        foreach (iterator_to_array($xp->query('.//*[@data-landing-date]', $landing)) as $date) {
+            $date->parentNode?->removeChild($date);
+        }
+
         return trim((string) preg_replace('/\s+/', ' ', $landing->textContent));
     }
 
@@ -92,7 +98,7 @@ class LandingExperienceTest extends TestCase
         return ['owner' => $owner, 'company' => $company, 'account' => $account];
     }
 
-    public function test_the_logo_files_are_the_originals_and_the_landing_shows_them(): void
+    public function test_the_logo_files_are_the_originals_and_the_layout_shows_them(): void
     {
         foreach (self::LOGO_HASHES as $file => $hash) {
             $this->assertFileExists(public_path($file));
@@ -100,7 +106,9 @@ class LandingExperienceTest extends TestCase
         }
 
         $page = $this->xpath($this->actingAs($this->user())->get(route('dashboard'))->assertOk()->getContent());
-        $logos = $page->query('//section[@data-landing]//img');
+        // The dashboard no longer repeats the logo in its body (R-51): the sidebar carries it, and the top bar on a phone.
+        $this->assertSame(0, $page->query('//section[@data-landing]//img')->length, 'the landing does not repeat the logo');
+        $logos = $page->query('//aside//img');
 
         $this->assertSame(2, $logos->length, 'the day artwork and the night artwork');
         $sources = [];
@@ -110,7 +118,7 @@ class LandingExperienceTest extends TestCase
             $sources[] = parse_url($logo->getAttribute('src'), PHP_URL_PATH);
         }
         $this->assertSame(['/images/logo.png', '/images/logo-light.png'], $sources);
-        $this->assertSame(0, $page->query('//section[@data-landing]//*[contains(@class, "fx-mark")]')->length, 'the landing does not draw the chrome mark in place of the logo');
+        $this->assertSame(0, $page->query('//main//*[contains(@class, "fx-mark")]')->length, 'the page does not draw the chrome mark in place of the logo');
     }
 
     public function test_a_company_owner_is_welcomed_by_name_into_the_company_books_with_one_primary_action_that_works(): void
@@ -120,9 +128,9 @@ class LandingExperienceTest extends TestCase
         $page = $this->xpath($this->inCompany($w['owner'], $w['company'])->get(route('dashboard'))->assertOk()->getContent());
         $words = $this->words($this->landing($page));
 
-        $this->assertStringContainsString('Welcome, Naledi. You are in the books of Karoo Roasters (Pty) Ltd.', $words);
-        $this->assertStringContainsString('Every figure here traces back to the entries behind it.', $words);
-        $this->assertStringContainsString('Dot.Finance keeps the company\'s ledger', $words);
+        $this->assertStringContainsString('Every figure here traces back to the entries behind it', $words);
+        $this->assertStringContainsString('ZAR 7,200.00 in cash in one account.', $words);
+        $this->assertStringContainsString('Karoo Roasters (Pty) Ltd', trim((string) $page->query('//section[@data-landing]//*[@data-landing-date]')->item(0)?->textContent));
 
         $action = $this->primaryAction($page);
         $this->assertSame('Add transaction', $action['label']);
@@ -157,10 +165,9 @@ class LandingExperienceTest extends TestCase
         $viewer = $this->memberOf($w['company'], 'viewer');
 
         $html = $this->inCompany($viewer, $w['company'])->get(route('dashboard'))->assertOk()->getContent();
-        $words = $this->words($this->landing($this->xpath($html)));
 
-        $this->assertStringContainsString('You have read-only access here', $words);
-        $this->assertStringNotContainsString('Record what happened', $words);
+        $this->assertStringContainsString('You have read-only access to Karoo Roasters', $html);
+        $this->assertStringNotContainsString('Record what happened', $html);
         $this->assertStringNotContainsString(route('transactions.create'), $html);
     }
 
@@ -173,7 +180,7 @@ class LandingExperienceTest extends TestCase
         $landing = $this->landing($page);
         $words = $this->words($landing);
 
-        $this->assertStringContainsString('Welcome, Nomsa. You are in your own ledger.', $words);
+        $this->assertStringContainsString('Your own ledger.', (string) $page->query('//section[@data-landing]//*[@data-landing-date]')->item(0)?->textContent);
         $this->assertSame(1, $page->query('//section[@data-landing]//*[@data-landing-empty]')->length);
         $this->assertStringContainsString('Nothing has been recorded yet.', $words);
         $this->assertStringContainsString('no account and no entry', $words);
@@ -224,16 +231,12 @@ class LandingExperienceTest extends TestCase
         $this->assertSame('1', trim($page->query('//section[@data-landing]//*[@data-landing-count="accounts"]')->item(0)?->textContent ?? ''));
         $this->assertSame('2', trim($page->query('//section[@data-landing]//*[@data-landing-count="entries"]')->item(0)?->textContent ?? ''));
         $this->assertSame('2026-03-09', trim($page->query('//section[@data-landing]//*[@data-landing-last]')->item(0)?->textContent ?? ''));
-        $this->assertStringContainsString('Wholesale order, Stellenbosch, in Operating', $this->words($landing));
 
-        // Nothing else in the landing is a number: take the three seeded values out and no digit is left.
-        $figures = '';
-        foreach ($page->query('//section[@data-landing]//*[@data-landing-count or @data-landing-last]') as $node) {
-            $figures .= ' '.trim($node->textContent);
-        }
-        $this->assertSame(' 1 2 2026-03-09', $figures);
-        preg_match_all('/\d+/', $this->words($landing), $digits);
-        $this->assertSame(['1', '2', '2026', '03', '09'], $digits[0], 'the landing prints only the seeded counts and the seeded date');
+        // The cash figure in the headline is the company's own account only: 5,000.00 opening - 1,200.00 + 3,400.00. The other
+        // company's entries and the personal ledger's account are in no figure here.
+        $headline = trim((string) $page->query('//section[@data-landing]//h2//*[contains(@class, "fx-money")]')->item(0)?->textContent);
+        $this->assertSame('ZAR 7,200.00', $headline);
+        $this->assertStringNotContainsString('Courier', $this->words($landing));
 
         // One more entry, and the count follows it.
         $this->entryOn($w['account'], ['description' => 'Courier', 'date' => '2026-03-11']);
@@ -249,7 +252,7 @@ class LandingExperienceTest extends TestCase
         $page = $this->xpath($this->inPersonal($user)->get(route('dashboard'))->assertOk()->getContent());
         $words = $this->words($this->landing($page));
 
-        $this->assertStringContainsString('Entries recorded none yet', $words);
+        $this->assertStringContainsString('no entries yet', $words);
         $this->assertSame(0, $page->query('//section[@data-landing]//*[@data-landing-count="entries"]')->length);
         $this->assertSame('Add transaction', $this->primaryAction($page)['label']);
     }
@@ -262,7 +265,7 @@ class LandingExperienceTest extends TestCase
         $page = $this->xpath($html);
         $switch = $page->query('//section[@data-landing]//form[@action="'.route('ledger.context.switch').'"]//button[@name="context"]');
 
-        $this->assertStringContainsString('Welcome, Naledi. You are in your own ledger.', $this->words($this->landing($page)));
+        $this->assertStringContainsString('Your own ledger.', (string) $page->query('//section[@data-landing]//*[@data-landing-date]')->item(0)?->textContent);
         $this->assertSame(1, $switch->length);
         $this->assertSame((string) $w['company']->id, $switch->item(0)?->getAttribute('value'));
         $this->assertSame('Karoo Roasters (Pty) Ltd', trim($switch->item(0)?->textContent ?? ''));
@@ -304,7 +307,7 @@ class LandingExperienceTest extends TestCase
 
         $html = $this->inCompany($w['owner'], $w['company'])->get(route('dashboard'))->assertOk()->getContent();
 
-        foreach (['Command centre', 'Cash position', 'Coming up', 'Needs you', 'Budgets this month', 'Spending trend', 'Recent transactions', 'Accounts', 'Rule-based summary'] as $panel) {
+        foreach (['Command centre', 'Cash available', 'Coming up', 'Needs you', 'Budgets this month', 'Spending trend', 'Recent entries', 'Accounts', 'Selected account'] as $panel) {
             $this->assertStringContainsString($panel, $html);
         }
         foreach (['transactions.create', 'transactions.index', 'accounts.index', 'budgets.index'] as $route) {

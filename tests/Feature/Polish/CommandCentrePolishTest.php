@@ -55,8 +55,8 @@ class CommandCentrePolishTest extends TestCase
         $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
         $this->assertStringContainsString('Cash available', $html);
         $this->assertStringContainsString('ZAR 15,000.00', $html, 'the hero');
-        $this->assertStringContainsString('Not in the cash figure above', $html);
-        $this->assertStringContainsString('owed <span', $html);
+        $this->assertStringContainsString('Cards and loans are not taken off the cash figure.', $html);
+        $this->assertStringContainsString('fxd-meta">owed</span>', $html, 'the card is shown as owed, apart from the cash');
         $this->assertStringContainsString('Cash after settling the cards:', $html, 'the other figure has its own label and the sum that makes it');
         $this->assertStringContainsString('ZAR 12,000.00', $html);
     }
