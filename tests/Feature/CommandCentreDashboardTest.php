@@ -109,7 +109,7 @@ class CommandCentreDashboardTest extends TestCase
 
         $x = $this->page($this->inPersonal($owner)->get(route('dashboard'))->assertOk()->getContent());
 
-        $this->assertSame(3, $x->query('//section[@id="cash-position"]/table//thead//th[contains(@class,"is-num")]')->length);
+        $this->assertSame(3, $x->query('//section[@id="cash-position"]/div/table//thead//th[contains(@class,"is-num")]')->length);
         $this->assertSame(1, $x->query('//section[@id="cash-position"]//details//thead//th[contains(@class,"is-num")]')->length);
         $this->assertStringContainsString('Other currencies (1)', $this->text($x, '//section[@id="cash-position"]//details/summary'));
     }

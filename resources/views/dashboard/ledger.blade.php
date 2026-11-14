@@ -21,7 +21,7 @@
 @endphp
 <section class="fxd-sec fxd-arrive" aria-labelledby="fxd-accounts-h" data-fxd-ledger>
     <div class="fxd-sec__h"><h2 id="fxd-accounts-h">Accounts</h2><a href="{{ route('accounts.index') }}">Open the accounts</a></div>
-    <table class="fxd-tbl fxd-tbl--accounts" id="fxd-accounts">
+    <div class="table-scroll"><table class="fxd-tbl fxd-tbl--accounts" id="fxd-accounts">
         <caption class="sr-only">Account balances, grouped by currency. The currencies are never added together.</caption>
         <thead>
             <tr>
@@ -53,6 +53,6 @@
             @endif
         @endforeach
         </tbody>
-    </table>
+    </table></div>
     <p class="fxd-meta fxd-gap">Currencies are never added together. Cards and loans are not taken off the cash figure.</p>
 </section>

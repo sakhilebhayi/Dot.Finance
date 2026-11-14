@@ -57,8 +57,8 @@ class OriginalLogoTest extends TestCase
         $page = $this->dom($this->actingAs(User::factory()->create())->get(route('dashboard'))->assertOk()->getContent());
 
         $this->assertSame(0, $page->query('//*[contains(@class, "fx-mark")]')->length);
-        // The sidebar, the phone top bar and the landing each carry the day and the night file.
-        $this->assertLogos($page, 3);
+        // The sidebar and the phone top bar each carry the day and the night file; since R-51 the dashboard body does not repeat the logo.
+        $this->assertLogos($page, 2);
         $this->assertGreaterThan(0, $page->query('//aside//img[@alt="Dot.Finance"]')->length, 'the sidebar brand');
         $this->assertGreaterThan(0, $page->query('//header//img[@alt="Dot.Finance"]')->length, 'the top bar brand');
     }

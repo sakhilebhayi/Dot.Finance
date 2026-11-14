@@ -1,4 +1,4 @@
-<table class="fxd-tbl fxd-tbl--month fxd-rows">
+<div class="table-scroll"><table class="fxd-tbl fxd-tbl--month fxd-rows">
     <caption class="sr-only">Income, spending and net for {{ now()->format('F Y') }}, one column for each currency</caption>
     <thead><tr><th scope="col"><span class="sr-only">Line</span></th>@foreach ($codes as $code)<th scope="col" class="is-num">{{ $code }}</th>@endforeach</tr></thead>
     <tbody>
@@ -15,4 +15,4 @@
         </tr>
         @endforeach
     </tbody>
-</table>
+</table></div>
