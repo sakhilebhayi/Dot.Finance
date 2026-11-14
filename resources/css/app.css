@@ -9,6 +9,7 @@
 @import './bank.css';
 @import './reports.css';
 @import './sales.css';
+@import './dashboard.css';
 
 /* Tailwind: utilities only (preflight is off in tailwind.config.js). The design lives in the files above. */
 @tailwind base;
