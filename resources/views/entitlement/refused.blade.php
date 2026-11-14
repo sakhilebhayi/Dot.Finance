@@ -13,7 +13,7 @@
         @foreach ($otherLedgers as $other)
             <form method="POST" action="{{ route('ledger.context.switch') }}">
                 @csrf
-                <button type="submit" name="context" value="{{ $other->value }}" class="fx-btn" aria-label="Switch to {{ $other->name }}">Switch to {{ $other->name }}</button>
+                <button type="submit" name="context" value="{{ $other->value }}" class="fx-btn" aria-label="Switch to {{ $other->name }}">{{ $other->value === 'personal' ? 'Switch to your personal ledger' : 'Switch to '.$other->name }}</button>
             </form>
         @endforeach
     @endauth

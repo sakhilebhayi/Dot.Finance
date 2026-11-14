@@ -39,17 +39,17 @@ class EntitlementRefusal
             'suspended' => [
                 'stamp' => 'SUSPENDED',
                 'title' => "Dot.Finance is suspended for {$for}",
-                'body' => 'Nobody in the company can open its books until the suspension is lifted. The books in it are kept as they are. Platforms in InfoDot shows what is needed.',
+                'body' => 'Nobody in the company can open its books until the suspension is lifted. Nothing in its books has been changed. Platforms in InfoDot shows what is needed.',
             ],
             'payment_required' => [
                 'stamp' => 'PAYMENT NEEDED',
                 'title' => "Dot.Finance needs a payment for {$for}",
-                'body' => 'The books open again once the payment is settled. The books in it are kept as they are. An owner or administrator can settle it from Platforms in InfoDot.',
+                'body' => 'The books open again once the payment is settled. Nothing in its books has been changed. An owner or administrator can settle it from Platforms in InfoDot.',
             ],
             'subscription_expired', 'trial_ended', 'expired', 'cancelled' => [
                 'stamp' => 'ENDED',
                 'title' => "Dot.Finance has ended for {$for}",
-                'body' => 'The company no longer holds this platform. The books are kept as they are. An owner or administrator can take it up again from Platforms in InfoDot.',
+                'body' => 'The company no longer holds this platform. Nothing in its books has been changed. An owner or administrator can take it up again from Platforms in InfoDot.',
             ],
             'activation_pending' => [
                 'stamp' => 'NOT YET ON',
@@ -64,7 +64,7 @@ class EntitlementRefusal
             'no_personal_access', 'company_required' => [
                 'stamp' => 'COMPANY NEEDED',
                 'title' => 'Dot.Finance needs a company that has switched it on',
-                'body' => 'A personal ledger does not hold this platform. Add or join a company in InfoDot and switch Dot.Finance on for it from Platforms. Nothing in this personal ledger has been removed.',
+                'body' => 'A personal ledger does not hold this platform. Add or join a company in InfoDot and switch Dot.Finance on for it from Platforms. Nothing in your personal ledger has been changed.',
             ],
             'temporarily_unavailable', 'not_launched' => [
                 'stamp' => 'UNAVAILABLE',
@@ -74,7 +74,7 @@ class EntitlementRefusal
             default => [
                 'stamp' => 'NOT SWITCHED ON',
                 'title' => "Dot.Finance is not switched on for {$for}",
-                'body' => 'An owner or administrator can switch it on from Platforms in InfoDot. Anything already in the books is kept as it is.',
+                'body' => 'An owner or administrator can switch it on from Platforms in InfoDot. Nothing in its books has been changed.',
             ],
         };
     }
