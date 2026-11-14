@@ -24,7 +24,7 @@ Branch `feat/r44-intel`, decisions D-1000..D-1017 in `R44_DECISIONS.md`, integra
 | Dot.Analytics | contract only (Analytics' catalogue lacks `finance`) |
 | Dot.Emall | contract only (Emall has no sender, fees or API) |
 | Dot.HR payroll | contract only (HR has no payroll) |
-| Projects, Files, Billing, Engage, Agents, Brain/Memory | not possible, with reasons |
+| Projects, Files, Engage, Agents, Brain/Memory | not possible, with reasons |
 
 `/integrations` shows the same table to signed-in people, and `/integrations/emall` is the review screen for staged Emall sales.
 

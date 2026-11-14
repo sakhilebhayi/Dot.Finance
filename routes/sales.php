@@ -10,6 +10,7 @@ use App\Http\Controllers\Sales\ReminderController;
 use App\Http\Controllers\Sales\SalesDocumentController;
 use App\Http\Controllers\Sales\ShareController;
 use App\Http\Controllers\Sales\ShareLinkController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -25,7 +26,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 | route:cache; the throttle and the policy live in SalesServiceProvider).
 */
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class])->prefix('sales')->group(function () {
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class, EnsureCompanyEntitled::class])->prefix('sales')->group(function () {
     // lists
     Route::get('/invoices', [SalesDocumentController::class, 'index'])->defaults('group', 'invoices')->name('sales.invoices.index');
     Route::get('/quotes', [SalesDocumentController::class, 'index'])->defaults('group', 'quotes')->name('sales.quotes.index');

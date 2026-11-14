@@ -270,6 +270,7 @@ A ruled T-frame at 1024px and up: a 248px sidebar and a sticky top bar on the pa
 - Tables: caption, `th scope`, sticky header. Below 720px a table becomes a list of cards, each cell labelled from `data-label`; nothing is dropped and the page never scrolls sideways.
 - Breakpoints verified: 375, 768, 1280 (and 1440).
 - The command centre answers one question first (how much cash, and does anything need me) with the cash position leading and the needs-you list beside it.
+- The command centre opens with the landing (`fx-land`), set on the paper rather than in a sheet: the original logo file (`public/images/logo.png`, `logo-light.png` at night, never redrawn), a welcome from the person's first name and the active ledger, the one primary action on the page (`data-primary-action`: add a transaction, or the first account when there is none, or read the entries for a read-only member), the way back to InfoDot and its Platforms page, and what the ledger holds as a ruled statement of counts read from its rows. An empty ledger says so in words and prints no figure. A double rule closes it and the working panels follow. Nothing in it moves on load.
 
 ## Elevation & Depth
 

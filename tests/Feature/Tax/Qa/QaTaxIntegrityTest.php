@@ -392,10 +392,31 @@ class QaTaxIntegrityTest extends TestCase
                     $this->assertStringContainsString('QA-REF-9', $body);
                     $this->assertStringContainsString('5 November 2026', $body);
                     $this->assertStringContainsString('Dot.Finance did not submit this to SARS', $body);
-                    $this->assertStringContainsString($this->people['owner']->name, $body, 'the person who recorded it is named');
                 }
+                // The name is text in the CSV and escaped once in the HTML: a generated surname with an apostrophe (O'Keefe) is
+                // &#039; on the page, so the page is compared with the escaped form and the file with the name as stored.
+                $this->assertStringContainsString(e($this->people['owner']->name), $html, "{$stage}: the page names the person who recorded it");
+                $this->assertStringContainsString($this->people['owner']->name, $csv, "{$stage}: the file names the person who recorded it");
             }
         }
+    }
+
+    public function test_a_name_with_an_apostrophe_is_escaped_once_on_the_page_and_left_as_text_in_the_file(): void
+    {
+        $this->people['owner']->forceFill(['name' => "Mona O'Keefe <b>& Sons</b>"])->save();
+
+        $r = $this->start();
+        $prepared = LedgerContext::run($this->tax, fn () => $this->svc->prepare($this->tax, $r, $this->profile, $this->people['owner']));
+        $submitted = LedgerContext::run($this->tax, fn () => $this->svc->recordSubmission($this->tax, $prepared, 'QA-REF-9', CarbonImmutable::parse('2026-11-05'), $this->people['owner']));
+
+        $html = $this->as('owner')->get(route('tax.returns.workpaper', $submitted))->assertOk()->getContent();
+        $csv = $this->as('owner')->get(route('tax.returns.csv', $submitted))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Mona O&#039;Keefe &lt;b&gt;&amp; Sons&lt;/b&gt;, SARS reference QA-REF-9', $html, 'escaped exactly once on the page');
+        $this->assertStringNotContainsString("Mona O'Keefe <b>", $html, 'the name never reaches the page as markup');
+        $this->assertStringNotContainsString('&amp;#039;', $html, 'and it is not escaped twice');
+        $this->assertStringContainsString("Mona O'Keefe <b>& Sons</b>, SARS reference QA-REF-9", $csv, 'the file carries the name as stored');
+        $this->assertStringNotContainsString('&#039;', $csv, 'a CSV is not HTML: no entity in it');
     }
 
     public function test_the_submitted_banner_names_the_person_who_recorded_it(): void

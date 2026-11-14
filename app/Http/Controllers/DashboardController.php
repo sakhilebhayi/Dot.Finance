@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\Accounting\LedgerSetting;
 use App\Models\Budget;
 use App\Models\Insight;
@@ -70,12 +71,18 @@ class DashboardController extends Controller
 
         $accountingOn = app(GlSync::class)->isEnabled($context);
 
+        // The landing at the top of the page says what the active ledger holds, in counts read straight from its rows
+        // (the shared ledger scope confines both queries). Nothing here is estimated, and an empty ledger is told apart
+        // from one whose figures happen to be zero.
+        $accountCount = Account::query()->count();
+        $entryCount = Transaction::query()->count();
+
         $needs = StateLine::for($context);
         $extraPanels = DashboardPanels::views();
 
         return view('dashboard', compact(
             'position', 'accounts', 'recentTransactions', 'budgets', 'summaryCount',
-            'cushions', 'spendingTrend', 'currencies', 'currencyOrder', 'trendCurrency', 'upcoming', 'needs', 'extraPanels', 'accountingOn'
+            'cushions', 'spendingTrend', 'currencies', 'currencyOrder', 'trendCurrency', 'upcoming', 'needs', 'extraPanels', 'accountingOn', 'accountCount', 'entryCount'
         ));
     }
 }

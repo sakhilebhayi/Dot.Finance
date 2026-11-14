@@ -5,6 +5,7 @@ use App\Http\Controllers\Bank\ReconciliationController;
 use App\Http\Controllers\Bank\RuleController;
 use App\Http\Controllers\Bank\StatementController;
 use App\Http\Controllers\Bank\StatementImportController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
     ResolveLedgerContext::class,
+    EnsureCompanyEntitled::class,
 ])->prefix('bank')->name('bank.')->group(function () {
     // Statements
     Route::get('/statements', [StatementController::class, 'index'])->name('statements.index');

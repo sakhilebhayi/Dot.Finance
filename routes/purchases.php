@@ -9,6 +9,7 @@ use App\Http\Controllers\Purchases\ReceiptController;
 use App\Http\Controllers\Purchases\RecurringBillController;
 use App\Http\Controllers\Purchases\SupplierController;
 use App\Http\Controllers\Purchases\SupplierPaymentController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
     ResolveLedgerContext::class,
+    EnsureCompanyEntitled::class,
 ])->prefix('purchases')->name('purchases.')->group(function () {
     Route::get('/', [PayablesController::class, 'overview'])->name('index');
 

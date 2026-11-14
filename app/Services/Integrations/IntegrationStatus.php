@@ -45,8 +45,6 @@ final class IntegrationStatus
                 'summary' => 'Dot.Projects exposes no API. Project dimensions are typed on journal lines here.', 'owner_step' => 'None until Dot.Projects publishes a project list endpoint.'],
             ['key' => 'files', 'name' => 'Dot.Files', 'status' => 'not_possible', 'configured' => null,
                 'summary' => 'Dot.Files has signed membership and search endpoints but no file upload or storage API, so attachments stay on this app\'s private disk.', 'owner_step' => 'None until Dot.Files offers a storage API.'],
-            ['key' => 'billing', 'name' => 'Dot.Billing', 'status' => 'not_possible', 'configured' => null,
-                'summary' => 'Billing answers "what plan is this company on" (GET /api/entitlements/{company}), but Dot.Finance has no plan or feature gate to apply it to.', 'owner_step' => 'Decide whether Dot.Finance has paid tiers; if so, this is the endpoint to ask.'],
             ['key' => 'engage', 'name' => 'Dot.Engage', 'status' => 'not_possible', 'configured' => null,
                 'summary' => 'Engage\'s API serves signatures, contract PDFs and video tokens; none is a finance use.', 'owner_step' => 'None.'],
             ['key' => 'agents', 'name' => 'Dot.Agents', 'status' => 'not_possible', 'configured' => null,

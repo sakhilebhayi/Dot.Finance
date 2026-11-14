@@ -12,6 +12,7 @@ use App\Http\Controllers\Tax\ProfileController;
 use App\Http\Controllers\Tax\ProvisionalController;
 use App\Http\Controllers\Tax\ReturnController;
 use App\Http\Controllers\Tax\VatController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Route;
  * view-payroll-detail, export-reports). Route-model binding runs inside the ledger scope, so another ledger's id is a 404
  * before any capability check.
  */
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class])
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class, EnsureCompanyEntitled::class])
     ->prefix('tax')->name('tax.')->group(function () {
         Route::get('/', OverviewController::class)->name('index');
 

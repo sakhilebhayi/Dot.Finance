@@ -6,11 +6,12 @@ use App\Http\Controllers\Controls\ControlsIndexController;
 use App\Http\Controllers\Controls\MembersController;
 use App\Http\Controllers\Controls\PoliciesController;
 use App\Http\Controllers\Controls\SpendLimitsController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
 // Controls: roles, approvals, spend limits, access review. Registers nothing but routes (route:cache).
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class])
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class, EnsureCompanyEntitled::class])
     ->prefix('controls')->name('controls.')->group(function () {
         Route::get('/', ControlsIndexController::class)->name('index');
 

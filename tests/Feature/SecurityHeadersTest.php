@@ -130,10 +130,36 @@ class SecurityHeadersTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/\sstyle\s*=/i', $html, "[$routeName] carries a style attribute");
         $this->assertDoesNotMatchRegularExpression('/<(?:script|style)\b(?![^>]*\bnonce="'.preg_quote($nonce, '/').'")(?![^>]*\bsrc=)[^>]*>/i', $html, "[$routeName] has an inline script or style without this request's nonce");
         $this->assertDoesNotMatchRegularExpression('/\son[a-z]+\s*=\s*"/i', $html, "[$routeName] has an inline event handler");
+        // Every absolute src or href on the page, exactly as this test has always collected them, must be this app's own host.
         preg_match_all('#(?:src|href)="https?://([^/"]+)#i', $html, $hosts);
         $own = [parse_url((string) config('app.url'), PHP_URL_HOST), 'localhost'];
-        $this->assertSame([], array_values(array_diff($hosts[1], $own)), "[$routeName] references a third-party origin");
+        $foreign = array_values(array_diff($hosts[1], $own));
+        // One exception (R-50), on the landing only: a plain link a person follows back to InfoDot, at the exact host the
+        // ecosystem configuration names. Each foreign host found must be accounted for by one such <a>, so the same host in
+        // an image, a stylesheet, a script or any other tag still fails, and so does any other host in a link.
+        $infodot = (string) parse_url((string) config('ecosystem.platforms.infodot.url'), PHP_URL_HOST);
+        $wayBack = $routeName === 'dashboard'
+            ? preg_match_all('#<a\s(?:[^<>]*?\s)?href="https?://'.preg_quote($infodot, '#').'(?=[/"])[^"]*"[^<>]*>#i', $html)
+            : 0;
+        $this->assertSame(array_fill(0, (int) $wayBack, $infodot), $foreign, "[$routeName] references a third-party origin");
+        // A form never posts anywhere but this app (the policy's form-action 'self' says the same).
+        preg_match_all('#\s(?:action|formaction)="(?:https?:)?//([^/"]+)#i', $html, $targets);
+        $this->assertSame([], array_values(array_diff($targets[1], $own)), "[$routeName] has a form that posts to another origin");
         $this->assertDoesNotMatchRegularExpression('#cdn\.tailwindcss\.com|fonts\.googleapis\.com|fonts\.gstatic\.com#', $html, "[$routeName] loads a CDN or Google font");
+    }
+
+    public function test_the_way_back_to_infodot_is_the_only_foreign_origin_and_only_as_a_plain_link(): void
+    {
+        $user = User::factory()->withPersonalTeam()->create();
+        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+
+        preg_match_all('#<a\s(?:[^<>]*?\s)?href="(https?://[^"]+)"#i', $html, $links);
+        $foreign = array_values(array_filter($links[1], fn (string $url) => ! in_array(parse_url($url, PHP_URL_HOST), [parse_url((string) config('app.url'), PHP_URL_HOST), 'localhost'], true)));
+        $this->assertSame(['https://infodot.co.za/home', 'https://infodot.co.za/platforms'], $foreign);
+
+        // A look-alike host is not the configured host: with the configuration pointing elsewhere, the same check refuses infodot.co.za.
+        $this->assertSame(0, preg_match_all('#<a\s(?:[^<>]*?\s)?href="https?://'.preg_quote('infodot.co', '#').'(?=[/"])[^"]*"[^<>]*>#i', $html));
+        $this->assertSame(0, preg_match_all('#<a\s(?:[^<>]*?\s)?href="https?://'.preg_quote('dot.co.za', '#').'(?=[/"])[^"]*"[^<>]*>#i', $html));
     }
 
     public function test_public_pages_and_error_pages_are_clean_too(): void

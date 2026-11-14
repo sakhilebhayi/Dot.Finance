@@ -16,6 +16,7 @@ use App\Http\Controllers\RecurringRuleController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\TransferController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -54,6 +55,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
     ResolveLedgerContext::class,
+    EnsureCompanyEntitled::class,
 ])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 

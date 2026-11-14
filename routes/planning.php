@@ -6,6 +6,7 @@ use App\Http\Controllers\Planning\DimensionController;
 use App\Http\Controllers\Planning\ForecastController;
 use App\Http\Controllers\Planning\PlanBudgetController;
 use App\Http\Controllers\Planning\ScenarioController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 | scenarios and dimensions are rows of their own. Model binding goes through the ledger scope, so another ledger's id is
 | a 404 before any capability check.
 */
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class])
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class, EnsureCompanyEntitled::class])
     ->prefix('planning')->name('planning.')->group(function () {
         Route::get('/budgets', [PlanBudgetController::class, 'index'])->name('budgets.index');
         Route::get('/budgets/create', [PlanBudgetController::class, 'create'])->name('budgets.create');
