@@ -235,4 +235,45 @@ class CommandCentreDashboardTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/@property|counter-set|counter-increment/', $css);
         $this->assertDoesNotMatchRegularExpression('/setInterval|requestAnimationFrame|toLocaleString|textContent\s*=\s*.*\+\+/', (string) file_get_contents(resource_path('js/fx/dashboard.js')), 'the script never counts a number up');
     }
+
+    public function test_the_cash_split_draws_the_real_shares_of_the_lead_currencys_cash_and_only_when_it_is_true(): void
+    {
+        $w = $this->world();
+        $c = $this->inCompany($w['owner'], $w['company'])->get(route('dashboard'))->assertOk()->getContent();
+        $x = $this->page($c);
+
+        // Operating 10,000.00 + 3,400.00 - 1,200.00 = 12,200.00 and Reserve 5,000.00: 12,200 / 17,200 = 71%, 5,000 / 17,200 = 29%.
+        $this->assertSame(1, $x->query('//figure[@data-fxd-split]')->length);
+        $this->assertSame(2, $x->query('//figure[@data-fxd-split]//svg//rect')->length, 'one segment per cash account, the card and the USD account are not in it');
+        $label = (string) $x->query('//figure[@data-fxd-split]//svg')->item(0)->getAttribute('aria-label');
+        $this->assertStringContainsString('Operating 71 percent, Reserve 29 percent', $label);
+        $this->assertSame(0, $x->query('//svg[contains(@class,"fxd-sheet")]')->length, 'the decorative sheet gives way to the real figure');
+    }
+
+    public function test_the_cash_split_is_not_drawn_for_one_cash_account_or_an_overdrawn_one(): void
+    {
+        $user = $this->user();
+        Account::factory()->create(['user_id' => $user->id, 'name' => 'Only', 'type' => 'checking', 'currency' => 'ZAR', 'opening_balance_cents' => 100_000]);
+        $x = $this->page($this->inPersonal($user)->get(route('dashboard'))->assertOk()->getContent());
+        $this->assertSame(0, $x->query('//figure[@data-fxd-split]')->length);
+        $this->assertSame(1, $x->query('//svg[contains(@class,"fxd-sheet")]')->length, 'the ruled sheet stays');
+
+        Account::factory()->create(['user_id' => $user->id, 'name' => 'Overdrawn', 'type' => 'checking', 'currency' => 'ZAR', 'opening_balance_cents' => -20_000]);
+        $x = $this->page($this->inPersonal($user)->get(route('dashboard'))->assertOk()->getContent());
+        $this->assertSame(0, $x->query('//figure[@data-fxd-split]')->length, 'shares of a total that includes an overdraft would not be true');
+    }
+
+    public function test_the_headline_keeps_its_words_and_the_current_month_in_the_chart_is_marked_as_still_running(): void
+    {
+        $w = $this->world();
+        $html = $this->inCompany($w['owner'], $w['company'])->get(route('dashboard'))->assertOk()->getContent();
+        $x = $this->page($html);
+
+        $this->assertStringContainsString('in cash across 2 accounts.', $this->text($x, '//section[@data-landing]//h2'));
+        $this->assertSame(1, $x->query('//*[contains(@class,"fxd-say__cash")]//*[contains(@class,"fx-money")]')->length);
+        $this->assertSame(1, $x->query('//svg[contains(@class,"fxd-chart")]//g[contains(@class,"is-running")]')->length, 'only the newest month is hatched');
+        $this->assertStringContainsString('hatched pair is the current month', $html);
+        // every bar still carries its exact amount
+        $this->assertGreaterThanOrEqual(2, $x->query('//svg[contains(@class,"fxd-chart")]//rect/title')->length);
+    }
 }

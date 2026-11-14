@@ -27,6 +27,25 @@
 .fxd-say h2, .fxd-blank h2 { font-size: var(--fs-title); font-weight: 660; line-height: 1.25; }
 .fxd-say h2 .fx-money { font-weight: 600; }
 .fxd-say h2 .fx-money::after { display: none; }
+/* The lead figure is the page's one large number: set in the display face with tabular lining figures (the ledger's monospace
+   face opens its commas and points too wide at this size). The tick and the table figures keep the ledger face. */
+.fxd-say__cash, .fxd-say__net { display: block; }
+.fxd-say__cash { font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem); line-height: 1.08; font-weight: 700; letter-spacing: -0.025em; }
+.fxd-say__net { margin-top: var(--s-2); font-size: var(--fs-title); font-weight: 560; line-height: 1.2; color: var(--ink-2); }
+.fxd-say__cash .fx-money, .fxd-say__net .fx-money { font-family: inherit; font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' 1, 'lnum' 1; letter-spacing: inherit; font-weight: inherit; }
+.fxd-say__net .fx-money { color: var(--ink); font-weight: 650; }
+.fxd-say { align-items: center; }
+
+/* where the cash sits: real shares of the lead currency's cash, in ink steps, square ends, a gap between segments */
+.fxd-split { margin: 0; display: grid; gap: var(--s-2); width: 100%; max-width: 22rem; }
+.fxd-split figcaption { font-size: var(--fs-small); color: var(--ink-3); }
+.fxd-split svg { width: 100%; height: auto; display: block; }
+.fxd-split ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); font-size: var(--fs-small); color: var(--ink-2); }
+.fxd-split li { display: inline-flex; align-items: center; gap: var(--s-1); }
+.fxd-split li .fx-fig { color: var(--ink); font-size: var(--fs-small); }
+.fxd-split__s0 { fill: var(--ink); } .fxd-split__s1 { fill: var(--ink-3); } .fxd-split__s2 { fill: var(--edge); } .fxd-split__s3 { fill: var(--rule-strong); } .fxd-split__s4 { fill: var(--rule); }
+.fxd-split__key { width: 0.65rem; height: 0.65rem; display: inline-block; flex: none; }
+.fxd-split__k0 { background: var(--ink); } .fxd-split__k1 { background: var(--ink-3); } .fxd-split__k2 { background: var(--edge); } .fxd-split__k3 { background: var(--rule-strong); } .fxd-split__k4 { background: var(--rule); }
 .fxd-say__facts, .fxd-blank p { color: var(--ink-2); font-size: var(--fs-cell); }
 .fxd-blank { display: grid; gap: var(--s-2); }
 .fxd-sheet { display: none; width: 15rem; height: auto; color: var(--ink-3); }
@@ -90,6 +109,16 @@
 .fxd-band { display: grid; gap: var(--s-6); }
 .fxd-col { display: grid; gap: var(--s-6); align-content: start; }
 .fxd-chart { margin-top: var(--s-3); }
+/* the current month is hatched and outlined: still running, not yet a whole month */
+.fxd-hatch-bg { fill: var(--sheet); } .fxd-hatch--in { fill: var(--ink); } .fxd-hatch--out { fill: var(--ink-3); }
+.fxd-bars.is-running .fx-chart__bar--in { fill: url(#fxd-hatch-in); stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fxd-bars.is-running .fx-chart__bar--out { fill: url(#fxd-hatch-out); stroke: var(--ink-3); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fxd-chart .fxd-now { fill: var(--ink); font-weight: 700; }
+@media (hover: hover) {
+    .fxd-chart .fxd-bars { transition: opacity 140ms var(--ease); }
+    .fxd-chart:hover .fxd-bars { opacity: 0.45; }
+    .fxd-chart .fxd-bars:hover { opacity: 1; }
+}
 .fxd-chart .fx-chart__tick { font-size: 14px; }
 .fxd-list { list-style: none; margin: 0; padding: 0; }
 .fxd-need, .fxd-up { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-3); align-items: center; min-height: var(--row); border-bottom: 1px solid var(--rule); padding: var(--s-2); font-size: var(--fs-cell); position: relative; margin-inline: -0.5rem; transition: background-color 120ms var(--ease); }
@@ -127,6 +156,7 @@
 @media (min-width: 760px) {
     .fxd-band { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
     .fxd-say { grid-template-columns: minmax(0, 1fr) auto; }
+    .fxd-split { width: 22rem; }
 }
 @media (min-width: 1024px) {
     .fxd-desk { grid-template-columns: minmax(0, 1fr) 23.75rem; }
@@ -227,11 +257,16 @@
 .fxd-rows tbody > tr:nth-child(11), .fxd-rows > :nth-child(11) { animation-delay: 568ms; }
 .fxd-rows tbody > tr:nth-child(12), .fxd-rows > :nth-child(12) { animation-delay: 596ms; }
 
-    .fxd-bars { transform-box: fill-box; animation: fxd-bar 380ms var(--ease) backwards; }
-    .fxd-bars--m0 { animation-delay: 460ms; } .fxd-bars--m1 { animation-delay: 520ms; } .fxd-bars--m2 { animation-delay: 580ms; }
-    .fxd-bars--m3 { animation-delay: 640ms; } .fxd-bars--m4 { animation-delay: 700ms; } .fxd-bars--m5 { animation-delay: 760ms; }
-    .fxd-bars--m6 { animation-delay: 820ms; } .fxd-bars--m7 { animation-delay: 880ms; } .fxd-bars--m8 { animation-delay: 940ms; }
-    .fxd-bars--m9 { animation-delay: 1000ms; } .fxd-bars--m10 { animation-delay: 1060ms; } .fxd-bars--m11 { animation-delay: 1120ms; }
+    /* the bars grow from the zero line to their true height; the amounts on the newest pair arrive after the bars have landed */
+    @keyframes fxd-grow { from { transform: scaleY(0); } }
+    .fxd-bars rect { transform-box: fill-box; transform-origin: 50% 100%; animation: fxd-grow 460ms var(--ease) var(--fxd-bd, 460ms) backwards; }
+    .fxd-bars text { animation: fxd-fade 260ms var(--ease) 1000ms backwards; }
+    .fxd-bars--m1 { --fxd-bd: 520ms; } .fxd-bars--m2 { --fxd-bd: 580ms; } .fxd-bars--m3 { --fxd-bd: 640ms; } .fxd-bars--m4 { --fxd-bd: 700ms; } .fxd-bars--m5 { --fxd-bd: 760ms; }
+    .fxd-bars--m6 { --fxd-bd: 820ms; } .fxd-bars--m7 { --fxd-bd: 880ms; } .fxd-bars--m8 { --fxd-bd: 940ms; } .fxd-bars--m9 { --fxd-bd: 1000ms; } .fxd-bars--m10 { --fxd-bd: 1060ms; } .fxd-bars--m11 { --fxd-bd: 1120ms; }
+    .fxd-say__net { animation: fxd-in 380ms var(--ease) 150ms backwards; }
+    .fxd-split__s { transform-box: fill-box; transform-origin: left center; animation: fxd-draw 520ms var(--ease) 260ms backwards; }
+    .fxd-split__s1 { animation-delay: 330ms; } .fxd-split__s2 { animation-delay: 400ms; } .fxd-split__s3 { animation-delay: 470ms; } .fxd-split__s4 { animation-delay: 540ms; }
+    .fxd-split ul, .fxd-split figcaption { animation: fxd-fade 300ms var(--ease) 420ms backwards; }
     .fxd-stage__body.is-settling { animation: fxd-settle 200ms var(--ease); }
     .fxd .fx-btn:active, .fxd-quiet:active { transform: translateY(1px); }
 }

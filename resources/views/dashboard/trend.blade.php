@@ -7,7 +7,7 @@
     $hasTrendData = collect($trendMonths)->contains(fn ($m) => $m['income_cents'] > 0 || $m['expense_cents'] > 0);
     $axisW = 52; $chartW = 700; $plotW = $chartW - $axisW; $chartH = 160; $top = 14;
     $slot = $plotW / max(count($trendMonths), 1);
-    $barW = $slot * 0.3; $barGap = $slot * 0.06;
+    $barW = $slot * 0.2; $barGap = $slot * 0.04;
     $lastIndex = count($trendMonths) - 1;
     $step = \App\Support\FigureWords::niceStep($trendPeak);
     $scaleMax = $step * 4;
@@ -28,6 +28,10 @@
     </div>
     @if ($hasTrendData)
     <svg class="fx-chart fxd-chart" viewBox="0 0 {{ $chartW }} {{ $top + $chartH + 26 }}" role="img" aria-label="Income and spending by month in {{ $trendCurrency }}. The scale starts at zero.">
+        <defs>
+            <pattern id="fxd-hatch-in" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="fxd-hatch-bg" width="5" height="5" /><rect class="fxd-hatch--in" width="2" height="5" /></pattern>
+            <pattern id="fxd-hatch-out" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="fxd-hatch-bg" width="5" height="5" /><rect class="fxd-hatch--out" width="2" height="5" /></pattern>
+        </defs>
         @foreach ([0, 1, 2, 3, 4] as $quarter)
         @php $gy = $top + $chartH - $chartH * $quarter / 4; @endphp
         <line @class(['fx-chart__grid', 'fx-chart__base' => $quarter === 0]) x1="{{ $axisW }}" y1="{{ $gy }}" x2="{{ $chartW }}" y2="{{ $gy }}" />
@@ -41,7 +45,7 @@
             $incomeX = $slotX + ($slot / 2) - $barW - ($barGap / 2);
             $expenseX = $slotX + ($slot / 2) + ($barGap / 2);
         @endphp
-        <g class="fxd-bars fxd-bars--m{{ min($i, 11) }}">
+        <g @class(['fxd-bars', 'fxd-bars--m'.min($i, 11), 'is-running' => $i === $lastIndex])>
             <rect class="fx-chart__bar--in" x="{{ round($incomeX, 1) }}" y="{{ round($top + $chartH - $incomeH, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($incomeH, 1) }}"><title>{{ $month['label'] }} income: {{ \App\Support\Money::format($month['income_cents'], $trendCurrency) }}</title></rect>
             <rect class="fx-chart__bar--out" x="{{ round($expenseX, 1) }}" y="{{ round($top + $chartH - $expenseH, 1) }}" width="{{ round($barW, 1) }}" height="{{ round($expenseH, 1) }}"><title>{{ $month['label'] }} spending: {{ \App\Support\Money::format($month['expense_cents'], $trendCurrency) }}</title></rect>
             @if ($i === $lastIndex)
@@ -49,10 +53,10 @@
             <text class="fx-chart__tick fx-chart__direct" x="{{ round($expenseX + $barW / 2, 1) }}" y="{{ round($top + $chartH - $expenseH - 4, 1) }}" text-anchor="middle">{{ \App\Support\FigureWords::axis($month['expense_cents']) }}</text>
             @endif
         </g>
-        <text class="fx-chart__tick" x="{{ round($slotX + $slot / 2, 1) }}" y="{{ $top + $chartH + 18 }}" text-anchor="middle">{{ \Illuminate\Support\Str::before($month['label'], ' ') }}<tspan class="fxd-yr">{{ ' '.\Illuminate\Support\Str::after($month['label'], ' ') }}</tspan></text>
+        <text @class(['fx-chart__tick', 'fxd-now' => $i === $lastIndex]) x="{{ round($slotX + $slot / 2, 1) }}" y="{{ $top + $chartH + 18 }}" text-anchor="middle">{{ \Illuminate\Support\Str::before($month['label'], ' ') }}<tspan class="fxd-yr">{{ ' '.\Illuminate\Support\Str::after($month['label'], ' ') }}</tspan></text>
         @endforeach
     </svg>
-    <p class="fxd-meta">Figures on the left are in {{ $trendCurrency }} (k is thousands, m is millions). The newest month is labelled and still running; point at any bar for its exact amount.</p>
+    <p class="fxd-meta">Figures on the left are in {{ $trendCurrency }} (k is thousands, m is millions). The hatched pair is the current month, still running, and is labelled with its amounts; point at any bar for its exact amount.</p>
     @else
     <x-fx.empty title="No trend to draw yet.">Not enough transaction history yet to chart a trend. It appears once there is income or spending in more than one month.</x-fx.empty>
     @endif
