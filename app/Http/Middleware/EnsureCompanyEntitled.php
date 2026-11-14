@@ -36,9 +36,10 @@ use Symfony\Component\HttpFoundation\Response;
  *  - the public invoice and quote links (/s/{token}), the CSP report, health, the home page, the cookie page;
  *  - sign-in, the handoff receiver, sign-out and password reset;
  *  - every scheduled command and queued job (they are not HTTP requests, so no middleware runs);
- *  - inside the signed-in area, only what keeps a person able to leave a refused company: the ledger switch,
- *    Jetstream's company switch, the person's own account page (where they export or erase their own data), terms,
- *    privacy and invitations.
+ *  - inside the signed-in area, only what keeps a person able to leave a refused company (the ledger switch,
+ *    Jetstream's company switch, the person's own account page where they export or erase their own data, terms,
+ *    privacy and invitations) and the two read-only downloads of the company's own records: the signed report
+ *    export and the signed attachment link.
  */
 class EnsureCompanyEntitled
 {
@@ -48,6 +49,10 @@ class EnsureCompanyEntitled
         'current-team.update',   // Jetstream's switch to another company
         'profile.show',          // the person's own account: their data, export and erasure
         'terms.show', 'policy.show', 'team-invitations.accept',
+        // A company's own records stay downloadable by its people (owner decision, 2026-11-14): a company has legal
+        // duties to keep and produce accounting and tax records. Read-only, signed, and still behind sign-in, the
+        // ledger scope and their capability checks; every write is refused.
+        'reports.exports.download', 'attachments.show',
     ];
 
     /** Session key: redeem's `entitled` for the person's personal workspace, remembered at sign-in (absent: not set). */

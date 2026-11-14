@@ -6,19 +6,26 @@ use App\Console\Commands\GenerateRecurringTransactions;
 use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use App\Models\Account;
+use App\Models\Reporting\ReportExport;
+use App\Models\Shared\Party;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\InfoDot\EntitlementClient;
 use App\Services\Integrations\SignedRequest;
+use App\Services\Shared\Attachments;
+use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
 use Closure;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Livewire\Mechanisms\PersistentMiddleware\PersistentMiddleware;
@@ -613,5 +620,62 @@ class CompanyEntitlementTest extends TestCase
         $this->get(route('teams.show', $other))->assertForbidden()->assertDontSee('Globex Corporation');
 
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), self::GLOBEX));
+    }
+
+    // ------------------------------------------------------------------ a refused company's own records stay downloadable
+
+    /** A finished export and a stored attachment in $team's own books, with their signed links. @return array{0: string, 1: string} */
+    private function recordsOf(Team $team): array
+    {
+        $export = LedgerContext::run(LedgerContext::company($team), function () use ($team) {
+            Storage::disk('local')->put('report-exports/'.$team->id.'.csv', "Net profit,535750.00\n");
+
+            return ReportExport::create(['team_id' => $team->id, 'requested_by' => $team->user_id, 'report_key' => 'profit-loss', 'format' => 'csv', 'params' => [], 'params_hash' => 'h'.$team->id,
+                'idempotency_key' => 'k'.$team->id, 'journal_seq' => 1, 'status' => 'done', 'disk' => 'local', 'path' => 'report-exports/'.$team->id.'.csv', 'sha256' => hash('sha256', "Net profit,535750.00\n"), 'size_bytes' => 22, 'row_count' => 1, 'attempts' => 1]);
+        });
+        $party = Party::factory()->forCompany($team)->create();
+        $file = UploadedFile::fake()->createWithContent('receipt.pdf', "%PDF-1.4\n% ".$team->id."\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
+        $attachment = app(Attachments::class)->store($file, $party, null, context: LedgerContext::company($team));
+
+        return [
+            URL::temporarySignedRoute('reports.exports.download', now()->addMinutes(5), ['reportExport' => $export->id]),
+            app(Attachments::class)->url($attachment),
+        ];
+    }
+
+    public function test_a_refused_company_can_still_download_its_own_export_and_attachment_but_not_anothers_and_cannot_write(): void
+    {
+        Storage::fake('local');
+        [$owner, $acme, $account] = $this->acme();
+        [$other, $globex] = $this->acme(self::GLOBEX, 'Globex Corporation');
+        [$exportUrl, $fileUrl] = $this->recordsOf($acme);
+        [$foreignExport, $foreignFile] = $this->recordsOf($globex);
+        $this->infodotSays([
+            self::readUrl(self::ACME) => Http::response(self::platforms(self::ACME, false, 'suspended')),
+            self::readUrl(self::GLOBEX) => Http::response(self::platforms(self::GLOBEX, true, 'included')),
+        ]);
+
+        // The pages are refused, the downloads of its own records are not.
+        $this->inCompany($owner, $acme)->get(route('accounts.index'))->assertStatus(403);
+        $export = $this->inCompany($owner, $acme)->get($exportUrl)->assertOk();
+        $this->assertStringContainsString('Net profit,535750.00', $export->streamedContent());
+        $this->inCompany($owner, $acme)->get($fileUrl)->assertOk();
+
+        // Another company's records are still not reachable from here, and an unsigned link is still refused.
+        $this->inCompany($owner, $acme)->get($foreignExport)->assertNotFound();
+        $this->inCompany($owner, $acme)->get($foreignFile)->assertNotFound();
+        $this->inCompany($owner, $acme)->get(route('reports.exports.download', 1))->assertForbidden();
+        $this->flushSession();
+        $this->app['auth']->forgetGuards();
+        $this->get($exportUrl)->assertRedirect();
+
+        // Every write stays refused and nothing changes.
+        $attachments = \DB::table('attachments')->count();
+        $this->inCompany($owner, $acme)->post(route('accounts.store'), ['name' => 'Sneaky', 'type' => 'checking', 'currency' => 'ZAR'])->assertStatus(403);
+        $this->inCompany($owner, $acme)->put(route('accounts.update', $account), ['name' => 'Renamed', 'type' => 'checking', 'currency' => 'ZAR'])->assertStatus(403);
+        $this->inCompany($owner, $acme)->post(route('reports.exports.store'), ['report' => 'profit-loss', 'format' => 'csv'])->assertStatus(403);
+        $this->assertSame('Reserve at Acme Ltd', $account->fresh()->name);
+        $this->assertSame(0, Account::withoutGlobalScopes()->where('name', 'Sneaky')->count());
+        $this->assertSame($attachments, \DB::table('attachments')->count());
     }
 }
