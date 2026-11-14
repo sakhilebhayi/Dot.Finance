@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -53,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // R-50: Livewire updates from a page in the signed-in area carry that page's entitlement check with them.
+        Livewire::addPersistentMiddleware([EnsureCompanyEntitled::class]);
+
         // Every id in a URL is a whole number that fits a bigint. Without this, /accounts/abc/edit reaches the database as
         // `id = 'abc'` and PostgreSQL answers 500 (invalid input syntax for type bigint), as does an id of 25 digits; SQLite
         // quietly says "not found". Now both are a plain 404 before any query (QA security D-1418). Tokens (uuid, share) are not here.

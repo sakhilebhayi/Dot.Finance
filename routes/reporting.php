@@ -4,6 +4,7 @@ use App\Http\Controllers\Reporting\DrillController;
 use App\Http\Controllers\Reporting\ExportController;
 use App\Http\Controllers\Reporting\PresetController;
 use App\Http\Controllers\Reporting\ReportController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 | Every report is one GET page; the report key is a route default, never a request value. Route-model binding goes
 | through the ledger scope, so another ledger's export or saved view is a 404 before any capability check.
 */
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class])
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class, EnsureCompanyEntitled::class])
     ->prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
 

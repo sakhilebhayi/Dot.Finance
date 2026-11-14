@@ -5,6 +5,7 @@ use App\Http\Controllers\Integrations\IntegrationsController;
 use App\Http\Controllers\Intelligence\AssistantController;
 use App\Http\Controllers\Intelligence\AttentionController;
 use App\Http\Controllers\Intelligence\NotificationController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 | ledger; each also names the capability it needs.
 */
 
-Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class])->group(function () {
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified', ResolveLedgerContext::class, EnsureCompanyEntitled::class])->group(function () {
     // The assistant: asking reads only. A draft is confirmed by a POST (CSRF-protected) bound to the draft and the asker.
     Route::middleware('can:view-finance')->prefix('assistant')->name('intel.assistant.')->group(function () {
         Route::get('/', [AssistantController::class, 'index'])->name('index');

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Shared\AttachmentController;
 use App\Http\Controllers\Shared\PartyAttachmentController;
 use App\Http\Controllers\Shared\PartyController;
+use App\Http\Middleware\EnsureCompanyEntitled;
 use App\Http\Middleware\ResolveLedgerContext;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
     ResolveLedgerContext::class,
+    EnsureCompanyEntitled::class,
 ])->group(function () {
     Route::get('/parties', [PartyController::class, 'index'])->name('parties.index');
     Route::get('/parties/create', [PartyController::class, 'create'])->name('parties.create');
