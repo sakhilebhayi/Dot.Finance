@@ -21,7 +21,7 @@
 @endif
 
 <form method="GET" action="{{ url()->current() }}" class="fx-filters" role="search" aria-label="Filter {{ strtolower($spec['title']) }}">
-    <x-fx.input name="q" id="f-q" type="search" label="Search" :value="$filters['q']" placeholder="Number, reference or customer" />
+    <x-fx.field label="Search" for="f-q"><x-dot.filter-search name="q" id="f-q" label="Search" :value="$filters['q']" placeholder="Number, reference or customer" /></x-fx.field>
     <x-fx.select name="status" id="f-status" label="Status">
         <option value="">Any</option>
         @foreach (($group === 'quotes' ? ['draft' => 'draft', 'issued' => 'sent', 'accepted' => 'accepted', 'declined' => 'declined', 'expired' => 'expired', 'void' => 'void'] : ($group === 'invoices' ? ['draft' => 'draft', 'awaiting_approval' => 'awaiting approval', 'open' => 'open (owing)', 'overdue' => 'overdue', 'paid' => 'paid', 'void' => 'void'] : ['draft' => 'draft', 'issued' => 'issued', 'void' => 'void'])) as $value => $label)

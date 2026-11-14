@@ -19,7 +19,7 @@
 <details class="fx-panel fx-collapse r-stack" open data-fx-collapse-mobile data-active="{{ $filtered ? '1' : '0' }}">
 <summary><span>Filters @if ($filtered) <x-fx.pill kind="plain">on</x-fx.pill>@endif</span><x-fx.icon name="chevron-down" /></summary>
 <form method="GET" action="{{ route('transactions.index') }}" class="fx-filters" role="search" aria-label="Filter transactions">
-    <x-fx.input name="search" id="transactions-index-search" label="Search" :value="request('search')" placeholder="Description contains..." wrap="fx-filters__wide" :bind="false" />
+    <x-fx.field label="Search" for="transactions-index-search" class="fx-filters__wide"><x-dot.filter-search name="search" id="transactions-index-search" label="Search" :value="request('search')" placeholder="Description contains..." /></x-fx.field>
     <x-fx.select name="type" id="transactions-index-type" label="Type">
         <option value="">All</option>
         @foreach (['income', 'expense', 'transfer'] as $type)

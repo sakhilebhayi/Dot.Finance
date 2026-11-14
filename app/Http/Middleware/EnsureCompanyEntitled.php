@@ -6,6 +6,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\InfoDot\EntitlementClient;
 use App\Support\EntitlementRefusal;
+use App\Support\Ledger\EntitledCompany;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
 use Closure;
@@ -61,6 +62,7 @@ class EnsureCompanyEntitled
     public function __construct(
         private readonly EntitlementClient $entitlements,
         private readonly LedgerContextManager $contexts,
+        private readonly EntitledCompany $companies,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -75,7 +77,7 @@ class EnsureCompanyEntitled
             return $next($request);
         }
 
-        $team = $this->company($request, $user);
+        $team = $this->companies->for($request, $user);
 
         // The personal ledger, a team InfoDot does not know, or no ledger at all: the read endpoint is never asked.
         if (! $team) {
@@ -106,30 +108,6 @@ class EnsureCompanyEntitled
         }
 
         return $page();
-    }
-
-    /** The company whose books this request opens, or null for the personal ledger (or a team with no InfoDot uuid). */
-    private function company(Request $request, User $user): ?Team
-    {
-        $named = $request->route('team');
-
-        if (is_scalar($named)) {
-            $named = $user->allTeams()->firstWhere('id', (int) $named);
-        }
-
-        if ($named instanceof Team && $user->belongsToTeam($named)) {
-            return $named->isCompany() ? $named : null;
-        }
-
-        $context = $this->contexts->current();
-
-        if ($context === null || ! $context->isCompany()) {
-            return null;
-        }
-
-        $team = Team::find($context->teamId);
-
-        return $team instanceof Team && $team->isCompany() ? $team : null;
     }
 
     /**

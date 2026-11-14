@@ -2,6 +2,14 @@
 <html lang="en-ZA">
 <head>
     @include('layouts.partials-head')
+    {{-- The shared Dot UI (search pill and platform switcher): self-hosted, no inline style or script. Its colours are mapped to the
+         Finance tokens in resources/css/shell.css (the block marked "Dot UI"). --}}
+    <link rel="stylesheet" href="/dot-ui/css/dot-fonts.css">
+    <link rel="stylesheet" href="/dot-ui/css/dot-switcher-fonts.css">
+    <link rel="stylesheet" href="/dot-ui/css/dot-tokens.css">
+    <link rel="stylesheet" href="/dot-ui/css/dot-search.css">
+    <link rel="stylesheet" href="/dot-ui/css/dot-switcher.css">
+    <script src="/dot-ui/js/dot-switcher.js" defer nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}"></script>
     <title>{{ $title ?? (isset($header) ? strip_tags((string) $header) : null) ?? 'Command centre' }} · Dot.Finance</title>
     @livewireStyles(['nonce' => \Illuminate\Support\Facades\Vite::cspNonce()])
     {{-- No stand-alone Alpine here: Livewire 3 bundles and starts its own (@livewireScripts). A second copy
@@ -12,6 +20,9 @@
     $ledgerLabel = $activeLedger?->isCompany() ? $activeLedger->label() : 'Personal';
     $ledgerAccess = Auth::check() ? \App\Support\Ledger\LedgerAccess::current(Auth::user()) : null;
     $canRecord = $ledgerAccess?->canRecordEntries() ?? false;
+    // The platform switcher asks InfoDot about the company the entitlement check asks about (a {team} in the address wins when the
+    // person belongs to it, otherwise the active ledger). The personal ledger has no company: the switcher shows its personal state.
+    $switcherCompany = Auth::check() ? app(\App\Support\Ledger\EntitledCompany::class)->for(request(), Auth::user()) : null;
 @endphp
 <body>
     <a href="#main" class="fx-skip">Skip to the content</a>
@@ -134,13 +145,14 @@
                 <x-fx.state-line :items="$fxState" />
 
                 <div class="fx-top__tools">
+                    @auth
+                    <x-dot.switcher platform="finance" :company="$switcherCompany?->infodot_team_uuid" :company-name="$switcherCompany?->name" logos="/dot-ui/img/platforms" />
+                    @endauth
                     @includeIf('intel.partials.bell')
                     @if (fx_route_exists('transactions.index'))
-                    <form class="fx-search" role="search" method="GET" action="{{ route('transactions.index') }}">
-                        <x-fx.icon name="search" />
-                        <label for="fx-search" class="sr-only">Search transactions</label>
-                        <input id="fx-search" type="search" name="search" placeholder="Search transactions" autocomplete="off" />
-                    </form>
+                    <div class="fx-hsearch">
+                        <x-dot.search name="search" id="fx-search" :action="route('transactions.index')" placeholder="Search transactions" label="Search transactions" />
+                    </div>
                     @endif
                     <button type="button" class="fx-cmdbtn" data-fx-command-open aria-keyshortcuts="Control+K Meta+K">Quick actions <kbd>Ctrl K</kbd></button>
                     <button type="button" class="fx-iconbtn fx-iconbtn--phone" data-fx-command-open aria-label="Search and quick actions"><x-fx.icon name="search" /></button>
