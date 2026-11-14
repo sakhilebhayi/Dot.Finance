@@ -17,7 +17,7 @@
         <option value="">All suppliers</option>
         @foreach ($suppliers as $s)<option value="{{ $s->id }}" @selected((int) $filters['party_id'] === $s->id)>{{ $s->name }}</option>@endforeach
     </x-fx.select>
-    <x-fx.input name="q" id="bills-q" label="Number or supplier reference" :value="$filters['q']" optional maxlength="100" />
+    <x-fx.field label="Number or supplier reference" for="bills-q" optional><x-dot.filter-search name="q" id="bills-q" label="Number or supplier reference" :value="$filters['q']" maxlength="100" placeholder="Search bills" /></x-fx.field>
     <div class="fx-formactions"><x-fx.button icon="search">Filter</x-fx.button></div>
 </form>
 

@@ -430,35 +430,47 @@
     gap: var(--s-2);
 }
 
-.fx-search {
+/* ---- Dot UI: the shared search pill and platform switcher (public/dot-ui, mapped here to the Finance tokens) ------------ */
+:root {
+    --dsr-panel: var(--sheet);
+    --dsr-hover: var(--sunk);
+    --dsr-rule: var(--rule);
+    --dsr-rule-strong: var(--rule-strong);
+    --dsr-text: var(--ink);
+    --dsr-text-2: var(--ink-2);
+    --dsr-text-3: var(--ink-3);
+    /* The in-page filters sit beside .fx-input, so they take its height, radius, border and surface. */
+    --dsr-filter-h: var(--control-h);
+    --dsr-filter-radius: var(--r-control);
+    --dsr-filter-bg: var(--sheet);
+    --dsr-filter-border: var(--edge);
+    --dsr-filter-border-hover: var(--ink-3);
+    --dsr-filter-border-focus: var(--ink);
+    --dsr-filter-ink: var(--ink);
+    --dsr-filter-placeholder: var(--ink-3);
+}
+
+.fx-top .dsw {
+    --dsw-btn-ink: var(--ink);
+    --dsw-btn-border: var(--rule-strong);
+    --dsw-btn-bg-hover: var(--sunk);
+    --dsw-focus: var(--ink);
+}
+
+/* The switcher's panel hangs from the header's bottom edge, so the header is the positioned ancestor at every width. */
+.fx-top {
     position: relative;
+}
+
+/* The pill keeps InfoDot's own size and look; the header only decides how much room it may take. */
+.fx-hsearch {
     display: none;
+    flex: 0 1 22rem;
+    min-width: 0;
 }
 
-.fx-search .fx-icon {
-    position: absolute;
-    left: 0.65rem;
-    top: 50%;
-    width: 0.95rem;
-    height: 0.95rem;
-    transform: translateY(-50%);
-    color: var(--ink-3);
-    pointer-events: none;
-}
-
-.fx-search input {
-    width: 15rem;
-    height: var(--control-h-sm);
-    padding: 0 0.65rem 0 2.1rem;
-    border: 1px solid var(--edge);
-    border-radius: var(--r-control);
-    background: var(--sheet);
-    font-size: var(--fs-small);
-}
-
-.fx-search input::placeholder {
-    color: var(--ink-3);
-    opacity: 1;
+.fx-hsearch .dsr {
+    margin: 0;
 }
 
 .fx-iconbtn {
@@ -809,7 +821,7 @@ html.is-locked body {
         padding-block: var(--s-2);
     }
 
-    .fx-search,
+    .fx-hsearch,
     .fx-cmdbtn {
         display: flex;
     }

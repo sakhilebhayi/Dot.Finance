@@ -352,6 +352,14 @@ jobs:
             echo "== docroot build/ did not exist; linked to $APPDIR/public/build"
           fi
 
+          # ---- static files that live in public/ but are served from the docroot
+          # The shared Dot UI (public/dot-ui: its stylesheets, fonts, logos and scripts) is not part of public/build. While the
+          # docroot is the folder above the app (not <app>/public) Apache serves ITS copy, which git never refreshes: a new
+          # stylesheet or logo would 404 for days. Mirror it. Skipped once the document root is <app>/public.
+          if [ -n "${APP_REAL:-}" ] && [ "${CURRENT_DOCROOT:-}" != "$APP_REAL/public" ] && [ ! -f "$DEPLOY_PATH/.docroot-is-public" ]; then
+            if [ -d public/dot-ui ] && [ ! -L "$DOCROOT/dot-ui" ]; then mkdir -p "$DOCROOT/dot-ui" && rsync -a --delete public/dot-ui/ "$DOCROOT/dot-ui/" && echo "== docroot dot-ui/ mirrored" || echo "::warning::could not mirror public/dot-ui into the docroot"; fi
+          fi
+
           # ---- database
           echo "== Pending migrations:"
           $PHP artisan migrate:status --pending 2>&1 | tail -25 || true
@@ -517,6 +525,11 @@ jobs:
           for ASSET in $(python3 -c "import json; m=json.load(open('public/build/manifest.json')); print(' '.join(sorted({v['file'] for v in m.values() if v.get('isEntry')} | {f for v in m.values() if v.get('isEntry') for f in v.get('css', [])})))"); do
             CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL/build/$ASSET" || true)
             if [ "$CODE" = "200" ]; then echo "200 $SITE_URL/build/$ASSET"; else echo "::error::$SITE_URL/build/$ASSET answered ${CODE:-no response} (expected 200): the docroot is not serving the new build"; FAILED=1; fi
+          done
+          # The shared Dot UI files the signed-in header loads (served from the docroot's own copy until the docroot is <app>/public).
+          for DOTUI in dot-ui/css/dot-search.css dot-ui/css/dot-switcher.css dot-ui/js/dot-switcher.js; do
+            CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL/$DOTUI" || true)
+            if [ "$CODE" = "200" ]; then echo "200 $SITE_URL/$DOTUI"; else echo "::error::$SITE_URL/$DOTUI answered ${CODE:-no response} (expected 200): the docroot is not serving the shared Dot UI files"; FAILED=1; fi
           done
           # A GET-only route answering POST is a harmless 405: ~1 KB in
           # production, an ~840 KB stack-trace page when APP_DEBUG is on.

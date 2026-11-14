@@ -21,6 +21,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -102,8 +103,25 @@ class CompanyEntitlementTest extends TestCase
         $owner ??= $this->user();
         $team = Team::forceCreate(['user_id' => $owner->id, 'name' => $name, 'personal_team' => false, 'infodot_team_uuid' => $uuid]);
         $account = $this->companyAccount($team, ['name' => 'Reserve at '.$name]);
+        $this->warmTheHeaderSwitcher($uuid);
 
         return [$owner->fresh(), $team, $account];
+    }
+
+    /**
+     * The header's platform switcher (Dot UI) reads the same InfoDot endpoint as the entitlement check, under its own cache key.
+     * These tests count and script the CHECK's calls, so the switcher's answer is put in its cache first (forever: a test that
+     * travels in time must not make it ask again). What the switcher itself asks and shows is tested in DotUiHeaderTest.
+     */
+    private function warmTheHeaderSwitcher(string $uuid): void
+    {
+        Cache::forever('infodot:platforms:finance:'.$uuid, [
+            'ok' => true, 'personal' => false,
+            'rows' => [
+                ['key' => 'finance', 'name' => 'Dot.Finance', 'entitled' => true, 'plain' => false, 'status' => 'included'],
+                ['key' => 'infodot', 'name' => 'InfoDot', 'entitled' => true, 'plain' => false, 'status' => 'included'],
+            ],
+        ]);
     }
 
     private function fromInfodot(): array

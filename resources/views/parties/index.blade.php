@@ -14,7 +14,7 @@
 <details class="fx-panel fx-collapse" open data-fx-collapse-mobile data-active="{{ $filtered ? '1' : '0' }}">
     <summary><span>Search and filter @if ($filtered) <x-fx.pill kind="plain">on</x-fx.pill>@endif</span><x-fx.icon name="chevron-down" /></summary>
     <form method="GET" action="{{ route('parties.index') }}" role="search" class="fx-filters" aria-label="Search customers and suppliers">
-        <x-fx.input name="q" id="parties-q" type="search" label="Search" :value="$filters['q']" maxlength="100" placeholder="Name, email or VAT number" wrap="fx-filters__wide" :bind="false" />
+        <x-fx.field label="Search" for="parties-q" class="fx-filters__wide"><x-dot.filter-search name="q" id="parties-q" label="Search" :value="$filters['q']" maxlength="100" placeholder="Name, email or VAT number" /></x-fx.field>
         <x-fx.select name="type" id="parties-type" label="Show">
             <option value="">Everyone</option>
             <option value="customer" @selected($filters['type'] === 'customer')>Customers</option>

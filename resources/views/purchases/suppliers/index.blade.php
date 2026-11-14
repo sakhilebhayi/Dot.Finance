@@ -5,7 +5,7 @@
 @include('purchases._nav')
 <x-fx.flash />
 <form method="GET" action="{{ route('purchases.suppliers.index') }}" role="search" class="fx-row fx-row--3">
-    <x-fx.input name="q" id="suppliers-q" label="Name or VAT number" :value="$filters['q']" optional maxlength="100" />
+    <x-fx.field label="Name or VAT number" for="suppliers-q" optional><x-dot.filter-search name="q" id="suppliers-q" label="Name or VAT number" :value="$filters['q']" maxlength="100" placeholder="Search suppliers" /></x-fx.field>
     <div class="fx-field"><span class="fx-label">Archived</span><x-fx.check name="archived" :checked="$archived">show archived only</x-fx.check></div>
     <div class="fx-formactions"><x-fx.button icon="search">Filter</x-fx.button></div>
 </form>

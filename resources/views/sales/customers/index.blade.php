@@ -5,7 +5,7 @@
 </x-fx.page-head>
 @include('sales._tabs')
 <form method="GET" action="{{ route('sales.customers.index') }}" class="fx-filters" role="search" aria-label="Find a customer">
-    <x-fx.input name="q" id="c-q" type="search" label="Search" :value="$filters['q']" placeholder="Name or e-mail" />
+    <x-fx.field label="Search" for="c-q"><x-dot.filter-search name="q" id="c-q" label="Search" :value="$filters['q']" placeholder="Name or e-mail" /></x-fx.field>
     <x-fx.check name="owing" id="c-owing" :checked="(bool) $filters['owing']">Only those who owe</x-fx.check>
     <div class="fx-filters__go"><x-fx.button>Filter</x-fx.button></div>
 </form>
