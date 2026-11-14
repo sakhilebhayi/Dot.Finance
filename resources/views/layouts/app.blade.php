@@ -21,8 +21,8 @@
         <aside id="app-sidebar" class="fx-side sidebar" data-shell-drawer aria-label="Sidebar" tabindex="-1">
             <div class="fx-side__head">
                 <a href="{{ route('dashboard') }}" class="fx-side__brand" aria-label="Dot.Finance, command centre">
-                    <x-fx.mark />
-                    <span class="fx-wordmark">Dot.Finance<small>{{ $activeLedger?->isCompany() ? 'Company ledger' : 'Personal ledger' }}</small></span>
+                    <x-fx.logo />
+                    <small class="fx-side__ledger">{{ $activeLedger?->isCompany() ? 'Company ledger' : 'Personal ledger' }}</small>
                 </a>
                 <button type="button" class="fx-iconbtn fx-side__close" data-shell-close aria-label="Close menu"><x-fx.icon name="x" /></button>
             </div>
@@ -128,8 +128,7 @@
         <div class="fx-column">
             <header class="fx-top topbar">
                 <a href="{{ route('dashboard') }}" class="fx-top__brand" aria-label="Dot.Finance, command centre">
-                    <x-fx.mark />
-                    <span class="fx-wordmark">Dot.Finance</span>
+                    <x-fx.logo />
                 </a>
 
                 <x-fx.state-line :items="$fxState" />
