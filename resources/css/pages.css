@@ -1343,30 +1343,38 @@ html:has(body.tax-print) {
     margin: -1rem 0 -1rem -0.95rem;
 }
 
-.fx-land__logo img {
+/* The shared logo (components/fx/logo.blade.php): the original day file on paper, the original light file at night. The
+   box that holds it sets the width; the image fills it and keeps its own proportions. */
+.fx-logo {
+    display: block;
+    flex: none;
+}
+
+.fx-logo img {
+    display: block;
     width: 100%;
     height: auto;
 }
 
-.fx-land__logo-night {
+.fx-logo .fx-logo__night {
     display: none;
 }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) .fx-land__logo-day {
+    :root:not([data-theme='light']) .fx-logo__day {
         display: none;
     }
 
-    :root:not([data-theme='light']) .fx-land__logo-night {
+    :root:not([data-theme='light']) .fx-logo__night {
         display: block;
     }
 }
 
-:root[data-theme='dark'] .fx-land__logo-day {
+:root[data-theme='dark'] .fx-logo__day {
     display: none;
 }
 
-:root[data-theme='dark'] .fx-land__logo-night {
+:root[data-theme='dark'] .fx-logo__night {
     display: block;
 }
 

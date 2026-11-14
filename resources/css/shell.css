@@ -43,47 +43,30 @@
     text-decoration: none;
 }
 
-.fx-mark {
-    flex: none;
-    width: 2rem;
-    height: 2rem;
+/* Logo sizes. The artwork carries its own clear space (about a tenth of the file on every side), so each box is pulled
+   back by that much to sit on its edge. The file itself is never cropped, recoloured or redrawn. */
+.fx-side__brand .fx-logo {
+    width: 6.5rem;
+    margin: -0.8rem 0 -0.8rem -0.7rem;
 }
 
-.fx-mark__box {
-    fill: var(--ink);
-}
-
-.fx-mark__tick {
-    fill: none;
-    stroke: var(--paper);
-    stroke-width: 2.4;
-    stroke-linecap: square;
-    stroke-linejoin: miter;
-}
-
-.fx-mark__rule {
-    stroke: var(--paper);
-    stroke-width: 1.2;
-}
-
-.fx-wordmark {
-    font-family: var(--font-display);
-    font-stretch: 112%;
-    font-weight: 700;
-    font-size: 1.0625rem;
-    letter-spacing: -0.01em;
-    line-height: 1.1;
-}
-
-.fx-wordmark small {
-    display: block;
-    margin-top: 2px;
-    font-family: var(--font-text);
-    font-stretch: 100%;
-    font-weight: 500;
+.fx-side__ledger {
+    margin-left: auto;
     font-size: var(--fs-meta);
-    letter-spacing: 0;
+    font-weight: 500;
     color: var(--ink-3);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.fx-top__brand .fx-logo {
+    width: 4.75rem;
+    margin: -0.7rem 0 -0.7rem -0.6rem;
+}
+
+.fx-auth__brand .fx-logo {
+    width: 12rem;
+    margin: -1.2rem 0 -1.2rem -1.2rem;
 }
 
 .fx-side__scroll {

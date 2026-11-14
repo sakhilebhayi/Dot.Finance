@@ -33,10 +33,7 @@
 <section class="fx-land" aria-labelledby="fx-land-title" data-landing>
     <div class="fx-land__mast">
         {{-- The original logo files, untouched: the day artwork on paper, the light artwork at night. --}}
-        <span class="fx-land__logo">
-            <img class="fx-land__logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
-            <img class="fx-land__logo-night" src="{{ asset('images/logo-light.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
-        </span>
+        <x-fx.logo class="fx-land__logo" />
         <nav class="fx-land__back" aria-label="Dot ecosystem">
             <a href="{{ $infodot }}/home">InfoDot</a>
             <a href="{{ $infodot }}/platforms">Platforms</a>

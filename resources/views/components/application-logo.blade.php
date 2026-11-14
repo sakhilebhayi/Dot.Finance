@@ -1,1 +1,0 @@
-<x-fx.mark {{ $attributes }} />

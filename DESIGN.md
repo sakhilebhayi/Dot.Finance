@@ -255,7 +255,7 @@ Contrast, measured: ink 17.8:1, ink 2 10.2:1, ink 3 6.1:1, tick 7.6:1, pencil 6.
 
 Three open-licence families, self-hosted from the `@fontsource-variable` packages (SIL OFL 1.1), latin subset.
 
-- **Archivo** (display): headings, the state line, the wordmark. Set at 112% width (the `wdth` axis) so titles look stamped, like a ledger masthead. Page title 24px, section 17px.
+- **Archivo** (display): headings and the state line. Set at 112% width (the `wdth` axis) so titles look stamped, like a ledger masthead. Page title 24px, section 17px.
 - **Public Sans** (text): everything read. 15px body, 14px in tables, 13px labels, 12px meta. A quiet, civic grotesque derived from Franklin Gothic.
 - **Chivo Mono** (figures): every amount, date and reference, with tabular numerals and slashed zeros so columns align on the decimal and a 0 is never an O. The lead figure on a screen is 30px; no figure is larger.
 
@@ -298,7 +298,7 @@ All in `resources/views/components/fx`, used as `<x-fx.name>`.
 - **dialog, confirm, command, toasts, toast**: native `<dialog>` (focus trap, Escape), a single accessible confirm replacing `window.confirm()`, the Ctrl/Cmd+K command bar, a polite live region.
 - **gloss**: a plain-language tooltip for a term. It reads the `glossary` slot, or `App\Support\Glossary` when that exists; with neither the term is shown plainly.
 - **state-line / state-item**: the sentence at the top of every page. Modules add items with `StateLine::extend()`.
-- **page-head, panel, swatch, avatar, icon, mark.**
+- **page-head, panel, swatch, avatar, icon, logo.** The logo component shows the original files (`public/images/logo.png` on paper, `logo-light.png` at night) and nothing else: no drawn or typed stand-in, never cropped, recoloured or redrawn. Callers set only its width and place.
 - **steps**: a real ordered list for a guided flow (the four steps of switching accounting on); a step is ticked green when done, ink when current, outlined when still to come. Only used where order carries meaning.
 - **Statement tables** (`fx-table--statement`, `--stack`, `--tree`): group heads in the display face, a single rule under a subtotal, a double rule under a total, the provenance tick beside every drill-down figure. Below 540px a row becomes a two-column line (name left, figure right) with the unused side of a debit and credit pair dropped; nothing is removed.
 - **Voucher** (`fx-voucher`): a journal entry set as a ledger voucher, the reference as the one lead figure, a rule under the head, ruled lines and a double-ruled total.

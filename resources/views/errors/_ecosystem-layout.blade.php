@@ -25,7 +25,7 @@
     <body>
         <div class="fx-bare">
             <header class="fx-bare__head">
-                <a href="/" class="fx-auth__brand" aria-label="Dot.Finance home"><x-fx.mark /><span class="fx-wordmark">Dot.Finance</span></a>
+                <a href="/" class="fx-auth__brand" aria-label="Dot.Finance home"><x-fx.logo /></a>
             </header>
 
             <main class="fx-bare__main" id="main">
