@@ -4,14 +4,9 @@
     @include('layouts.partials-head')
     {{-- The shared Dot UI (header, search pill and platform switcher, dot-ui 0.6.0): self-hosted, no inline style or script. Roboto and the theme
          boot are in the shared head partial. Its colours are mapped to the Finance tokens in resources/css/shell.css (the block marked "Dot UI"). --}}
-    <link rel="stylesheet" href="/dot-ui/css/dot-tokens.css">
-    <link rel="stylesheet" href="/dot-ui/css/dot-search.css">
-    <link rel="stylesheet" href="/dot-ui/css/dot-switcher.css">
-    <link rel="stylesheet" href="/dot-ui/css/dot-header.css">
-    <script src="/dot-ui/js/dot-search.js" defer nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}"></script>
-    <script src="/dot-ui/js/dot-search-results.js" defer nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}"></script>
-    <script src="/dot-ui/js/dot-switcher.js" defer nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}"></script>
-    <script src="/dot-ui/js/dot-nav.js" defer nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}"></script>
+    {{-- One minified stylesheet (roboto, type, tokens, search, switcher, header) is linked from the shared head. The results controller is called
+         from resources/js/fx/search.js (attach), so this host links the full bundle, not the core one with the lazy results script. --}}
+    <script src="/dot-ui/js/dot-ui.min.js" defer nonce="{{ \Illuminate\Support\Facades\Vite::cspNonce() }}"></script>
     <title>{{ $title ?? (isset($header) ? strip_tags((string) $header) : null) ?? 'Command centre' }} · Dot.Finance</title>
     @livewireStyles(['nonce' => \Illuminate\Support\Facades\Vite::cspNonce()])
     {{-- No stand-alone Alpine here: Livewire 3 bundles and starts its own (@livewireScripts). A second copy
@@ -59,7 +54,7 @@
         <x-slot:brand>
             {{-- The original logo files, untouched: the day one on paper, the light one at night (dot-ui swaps the pair). --}}
             <img class="dh-logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
-            <img class="dh-logo-night" src="{{ asset('images/logo-light.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
+            <img class="dh-logo-night" src="{{ asset('images/logo-light.png') }}" alt="Dot.Finance" width="1181" height="886" loading="lazy" decoding="async">
         </x-slot:brand>
         @auth
         <x-slot:search>

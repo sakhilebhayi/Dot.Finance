@@ -112,6 +112,40 @@ class BooksSearchTest extends TestCase
         $this->assertSame([], array_filter($personalHits, fn ($l) => str_contains($l, 'Acmeword') || str_contains($l, 'Globexword')));
     }
 
+    /**
+     * R-52 tenant-OR sweep: every list page's own ?q= / ?search= filter puts its OR conditions inside one closure, so the ledger scope the models
+     * add cannot be bypassed by a word that matches another ledger's row. The same word is in two companies and the personal ledger; each list
+     * shows only the open ledger's rows.
+     */
+    public function test_the_list_page_filters_never_match_rows_of_another_ledger(): void
+    {
+        $owner = $this->user();
+        $acme = $this->company($owner, 'Acme (Pty) Ltd');
+        $globex = $this->company($owner, 'Globex (Pty) Ltd');
+        $this->seedBooks($acme, 'Sharedword');
+        $this->seedBooks($globex, 'Sharedword');
+        // a row that exists ONLY in Globex, so its name tells which ledger a list came from
+        Party::factory()->forCompany($globex)->create(['name' => 'Sharedword GLOBEXONLY customer', 'type' => 'customer']);
+        Party::factory()->forCompany($globex)->supplier()->create(['name' => 'Sharedword GLOBEXONLY supplier']);
+        Bill::create(['user_id' => null, 'team_id' => $globex->id, 'party_id' => Party::query()->withoutGlobalScopes()->where('name', 'Sharedword GLOBEXONLY supplier')->value('id'), 'number' => 'BILL-GLOBEXONLY', 'bill_date' => '2026-11-01', 'currency' => 'ZAR', 'status' => 'draft', 'kind' => 'bill']);
+        $personal = Account::factory()->create(['user_id' => $owner->id, 'team_id' => null, 'name' => 'Sharedword PERSONALONLY wallet']);
+        $this->entryOn($personal, ['description' => 'Sharedword PERSONALONLY coffee', 'type' => 'expense', 'date' => '2026-11-02']);
+
+        foreach ([
+            route('sales.customers.index', ['q' => 'Sharedword']),
+            route('purchases.suppliers.index', ['q' => 'Sharedword']),
+            route('purchases.bills.index', ['q' => 'Sharedword']),
+            route('sales.invoices.index', ['q' => 'Sharedword']),
+            route('parties.index', ['q' => 'Sharedword']),
+            route('transactions.index', ['search' => 'Sharedword']),
+        ] as $url) {
+            $html = $this->inCompany($owner, $acme)->get($url)->assertOk()->getContent();
+            $this->assertStringContainsString('Sharedword', $html, "{$url} finds this company's own rows");
+            $this->assertStringNotContainsString('GLOBEXONLY', $html, "{$url} must not match another company's rows");
+            $this->assertStringNotContainsString('PERSONALONLY', $html, "{$url} must not match the personal ledger's rows");
+        }
+    }
+
     public function test_a_person_who_is_not_a_member_of_the_company_gets_nothing_from_it(): void
     {
         $owner = $this->user();

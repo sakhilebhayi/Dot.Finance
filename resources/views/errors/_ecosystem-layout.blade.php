@@ -15,9 +15,9 @@
         @endphp
         @isset($faviconPath)<link rel="icon" href="{{ asset($faviconPath) }}">@endisset
         {{-- Roboto and the first-paint theme come from the shared dot-ui files (static, so an error page never depends on the build). --}}
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-roboto.css') }}">
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-type.css') }}">
-        <script src="{{ asset('dot-ui/js/dot-theme-boot.js') }}"></script>
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-roboto.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-type.min.css') }}">
+        <script src="{{ asset('dot-ui/js/dot-theme-boot.min.js') }}"></script>
         @if ($viteBuilt)
             @vite(['resources/css/app.css', 'resources/js/app.js'])
         @endif

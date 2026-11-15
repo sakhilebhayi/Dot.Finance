@@ -367,9 +367,10 @@ class DotUiHeaderTest extends TestCase
         $response = $this->inCompany($owner, $team)->get('/dashboard')->assertOk();
         $html = $response->getContent();
 
-        // R-52 (dot-ui 0.6.0): Roboto and the type scale are linked from the shared head, the header, search and switcher CSS and JS from the layout.
+        // R-52 (dot-ui 0.6.1): one minified stylesheet (Roboto, type scale, tokens, search, switcher, header) is linked from the shared head, the minified boot
+        // script in the head and the full script bundle (it holds the results controller the host calls attach() on) from the layout.
         // The legacy Archivo and stencil stylesheets are not distributed any more.
-        foreach (['css/dot-roboto.css', 'css/dot-type.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher.css', 'css/dot-header.css', 'js/dot-theme-boot.js', 'js/dot-search.js', 'js/dot-search-results.js', 'js/dot-switcher.js', 'js/dot-nav.js'] as $asset) {
+        foreach (['css/dot-ui.min.css', 'js/dot-theme-boot.min.js', 'js/dot-ui.min.js'] as $asset) {
             $this->assertMatchesRegularExpression('#"(https?://[^"/]+)?/dot-ui/'.preg_quote($asset, '#').'"#', $html, $asset.' is linked from this site');
             $this->assertFileExists(public_path('dot-ui/'.$asset));
         }
@@ -377,7 +378,10 @@ class DotUiHeaderTest extends TestCase
             $this->assertStringNotContainsString($gone, $html, $gone.' is not linked');
             $this->assertFileDoesNotExist(public_path('dot-ui/'.$gone));
         }
-        foreach (['dot-search.js', 'dot-search-results.js', 'dot-switcher.js', 'dot-nav.js'] as $script) {
+        foreach (['css/dot-roboto.css', 'css/dot-type.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher.css', 'css/dot-header.css', 'js/dot-search.js', 'js/dot-search-results.js', 'js/dot-switcher.js', 'js/dot-nav.js'] as $separate) {
+            $this->assertDoesNotMatchRegularExpression('#"(https?://[^"/]+)?/dot-ui/'.preg_quote($separate, '#').'"#', $html, $separate.' is inside the bundle, not linked on its own');
+        }
+        foreach (['dot-ui.min.js'] as $script) {
             $this->assertMatchesRegularExpression('#<script src="/dot-ui/js/'.preg_quote($script, '#').'" defer nonce="[^"]+"#', $html, $script.' carries the CSP nonce');
         }
 

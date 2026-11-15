@@ -45,8 +45,8 @@ class RobotoAndHeaderTest extends TestCase
 
         $html = $this->dashboard();
         $this->assertMatchesRegularExpression('/<html[^>]*class="dot-roboto"/', $html);
-        $this->assertStringContainsString('/dot-ui/css/dot-roboto.css', $html);
-        $this->assertStringContainsString('/dot-ui/css/dot-type.css', $html);
+        $this->assertStringContainsString('/dot-ui/css/dot-ui.min.css', $html);
+        // Kept on purpose (dot-ui 0.6.1 no longer preloads by default): without it the Roboto swap re-wraps text and shifts the 320px forms.
         $this->assertMatchesRegularExpression('#<link rel="preload" href="[^"]*/dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>#', $html);
     }
 
@@ -87,8 +87,8 @@ class RobotoAndHeaderTest extends TestCase
 
     public function test_the_guest_and_error_pages_are_roboto_too(): void
     {
-        $this->get(route('login'))->assertOk()->assertSee('class="dot-roboto"', false)->assertSee('/dot-ui/css/dot-roboto.css', false);
-        $this->get('/no-such-page-here')->assertNotFound()->assertSee('class="dot-roboto"', false)->assertSee('/dot-ui/css/dot-roboto.css', false);
+        $this->get(route('login'))->assertOk()->assertSee('class="dot-roboto"', false)->assertSee('/dot-ui/css/dot-ui.min.css', false);
+        $this->get('/no-such-page-here')->assertNotFound()->assertSee('class="dot-roboto"', false)->assertSee('/dot-ui/css/dot-roboto.min.css', false);
     }
 
     // ── The header ───────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ class RobotoAndHeaderTest extends TestCase
         $html = $this->dashboard();
 
         $this->assertStringContainsString('data-dh-theme-key="dot-finance-theme"', $html, 'a choice made before R-52 still holds');
-        $this->assertMatchesRegularExpression('#<script src="[^"]*/dot-ui/js/dot-theme-boot.js"></script>#', $html);
+        $this->assertMatchesRegularExpression('#<script src="[^"]*/dot-ui/js/dot-theme-boot.min.js"></script>#', $html);
         $this->assertStringNotContainsString("getItem('dot-finance-theme')", $html, 'the old inline theme script is gone');
     }
 
@@ -178,7 +178,7 @@ class RobotoAndHeaderTest extends TestCase
     public function test_the_deploy_smoke_check_also_asks_for_the_header_files(): void
     {
         $deploy = File::get(base_path('.github/workflows/deploy.yml'));
-        foreach (['dot-ui/css/dot-header.css', 'dot-ui/css/dot-roboto.css', 'dot-ui/js/dot-nav.js', 'dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2'] as $file) {
+        foreach (['dot-ui/css/dot-ui.min.css', 'dot-ui/js/dot-ui.min.js', 'dot-ui/js/dot-theme-boot.min.js', 'dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2'] as $file) {
             $this->assertStringContainsString($file, $deploy, "{$file} is smoke-checked after a deploy");
         }
     }
