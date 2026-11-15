@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-ZA">
+<html lang="en-ZA" class="dot-roboto" data-dh-theme-key="dot-finance-theme" data-dh-theme-default="system">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +7,6 @@
         <meta name="robots" content="noindex">
         <title>{{ $code }}: @yield('title') · Dot.Finance</title>
         @php
-            $fxNonce = \Illuminate\Support\Facades\Vite::cspNonce();
             // An error page must never be the thing that fails: the stylesheet is only linked when a build exists.
             $viteBuilt = file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'));
             foreach (['favicon-32x32.png', 'favicon-16x16.png'] as $faviconCandidate) {
@@ -15,9 +14,10 @@
             }
         @endphp
         @isset($faviconPath)<link rel="icon" href="{{ asset($faviconPath) }}">@endisset
-        <script nonce="{{ $fxNonce }}">
-            (function () { try { var s = window.localStorage.getItem('dot-finance-theme'); if (s === 'light' || s === 'dark') document.documentElement.setAttribute('data-theme', s); } catch (e) {} })();
-        </script>
+        {{-- Roboto and the first-paint theme come from the shared dot-ui files (static, so an error page never depends on the build). --}}
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-roboto.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-type.min.css') }}">
+        <script src="{{ asset('dot-ui/js/dot-theme-boot.min.js') }}"></script>
         @if ($viteBuilt)
             @vite(['resources/css/app.css', 'resources/js/app.js'])
         @endif

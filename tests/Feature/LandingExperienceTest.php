@@ -106,9 +106,9 @@ class LandingExperienceTest extends TestCase
         }
 
         $page = $this->xpath($this->actingAs($this->user())->get(route('dashboard'))->assertOk()->getContent());
-        // The dashboard no longer repeats the logo in its body (R-51): the sidebar carries it, and the top bar on a phone.
+        // The dashboard no longer repeats the logo in its body (R-51); since R-52 the shared header carries it (the sidebar's brand row went).
         $this->assertSame(0, $page->query('//section[@data-landing]//img')->length, 'the landing does not repeat the logo');
-        $logos = $page->query('//aside//img');
+        $logos = $page->query('//header//img');
 
         $this->assertSame(2, $logos->length, 'the day artwork and the night artwork');
         $sources = [];

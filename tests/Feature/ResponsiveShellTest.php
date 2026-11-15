@@ -59,38 +59,41 @@ class ResponsiveShellTest extends TestCase
 
         $this->assertStringContainsString('<meta name="viewport" content="width=device-width, initial-scale=1"', $html);
 
-        // Visible, labelled "More" button wired to the sheet, in the bottom bar.
-        $this->assertMatchesRegularExpression('/<button[^>]*class="[^"]*\bshell-menu\b[^"]*"[^>]*data-shell-menu[^>]*aria-controls="app-sidebar"[^>]*aria-expanded="false"/', $html);
-        $this->assertMatchesRegularExpression('/<button[^>]*data-shell-menu[^>]*>.*?<span>More<\/span>/s', $html);
+        // R-52: the menu button is the shared header's (dot-ui adopt mode), wired to the sidebar that is the sheet; the bottom bar keeps four places.
+        $this->assertMatchesRegularExpression('/<button[^>]*class="dh-icon-btn dh-menu-btn"[^>]*data-dh-menu-button[^>]*aria-expanded="false"[^>]*aria-controls="app-sidebar"|<button[^>]*data-dh-menu-button[^>]*aria-controls="app-sidebar"/', $html);
         $this->assertMatchesRegularExpression('/<nav class="fx-bar" aria-label="Quick navigation">/', $html);
 
-        // The sheet is the sidebar, addressable by the id the button controls.
+        // The sheet is the sidebar, addressable by the id the button controls, and it closes itself.
         $this->assertMatchesRegularExpression('/<aside id="app-sidebar" class="[^"]*\bfx-side\b[^"]*"[^>]*data-shell-drawer/', $html);
-        $this->assertStringContainsString('data-shell-backdrop', $html);
-        $this->assertMatchesRegularExpression('/<button[^>]*data-shell-close[^>]*aria-label="Close menu"/', $html);
+        $this->assertMatchesRegularExpression('/<button[^>]*data-dh-close[^>]*aria-label="Close menu"/', $html);
 
-        // Landmarks and the skip link.
-        $this->assertStringContainsString('<a href="#main" class="fx-skip">', $html);
+        // Landmarks and the skip link (the header's).
+        $this->assertStringContainsString('<a class="dh-skip skip-link" href="#main">', $html);
         $this->assertStringContainsString('<main id="main"', $html);
         $this->assertStringContainsString('<nav class="fx-nav" aria-label="Main">', $html);
     }
 
-    public function test_the_sheet_behaviour_is_in_the_built_script_and_respects_reduced_motion(): void
+    public function test_the_sheet_behaviour_is_the_shared_scripts_and_respects_reduced_motion(): void
     {
-        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/fx/shell.js');
+        // R-52: shell.js is gone; the open, close, scrim, scroll lock, focus trap and inert page are dot-ui's dot-nav.js (adopt mode).
+        $this->assertFileDoesNotExist(dirname(__DIR__, 2).'/resources/js/fx/shell.js');
+        $script = file_get_contents(dirname(__DIR__, 2).'/public/dot-ui/js/dot-nav.js');
         $css = file_get_contents(dirname(__DIR__, 2).'/resources/css/base.css').file_get_contents(dirname(__DIR__, 2).'/resources/css/shell.css');
 
-        $this->assertStringContainsString("event.key === 'Escape'", $script);
-        $this->assertStringContainsString('is-locked', $script);
+        $this->assertStringContainsString("'Escape'", $script);
+        $this->assertStringContainsString('inert', $script);
+        $this->assertStringContainsString('data-dh-open', $script);
         $this->assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
         $this->assertStringContainsString('@media (max-width: 1023.98px)', $css);
+        $this->assertStringContainsString('[data-dh-open]', $css);
     }
 
-    public function test_the_state_line_leads_the_top_bar(): void
+    public function test_the_state_line_leads_the_page_under_the_header(): void
     {
         $html = $this->signedInPage('dashboard');
 
-        $this->assertMatchesRegularExpression('/<header class="fx-top topbar">.*?<section class="fx-state" aria-label="What needs you">/s', $html);
+        // R-52: under the shared header, one slim line at every width (it used to share the top bar's row).
+        $this->assertMatchesRegularExpression('/<\/header>.*?<div class="fx-statebar"><section class="fx-state" aria-label="What needs you">/s', $html);
     }
 
     public function test_no_authenticated_page_carries_inline_style_or_an_unnonced_script(): void
@@ -132,7 +135,8 @@ class ResponsiveShellTest extends TestCase
         }
     }
 
-    private const ACCOUNT_SECTION = '//aside[@id="app-sidebar"]//div[contains(@class,"shell-account")]';
+    /** R-52: the account actions live in the shared header's account menu (they used to be the sidebar's foot). */
+    private const ACCOUNT_SECTION = '//header[contains(@class,"dh")]//div[contains(@class,"dh-account")]';
 
     private function accountXpath(string $html): DOMXPath
     {
@@ -157,15 +161,15 @@ class ResponsiveShellTest extends TestCase
         $xpath = $this->accountXpath($this->dashboardHtmlFor($user));
         $account = self::ACCOUNT_SECTION;
 
-        $this->assertSame(1, $xpath->query($account)->length, 'The account section lives inside the sidebar drawer');
-        $this->assertStringContainsString($team->name, $xpath->query($account.'//summary')->item(0)?->textContent ?? '', 'The current team is named in the account section');
-        $this->assertSame(1, $xpath->query($account.'//a[@href="'.route('teams.show', $team->id).'"][span[@class="team-label"][normalize-space()="Team settings"]]')->length);
-        $this->assertSame(1, $xpath->query($account.'//a[@href="'.route('teams.create').'"][span[@class="team-label"][normalize-space()="Create new team"]]')->length);
+        $this->assertSame(1, $xpath->query($account)->length, 'The account menu lives in the header');
+        $this->assertSame(1, $xpath->query($account.'//a[@href="'.route('profile.show').'"][span[@class="dh-menu__label"][normalize-space()="Profile and settings"]]')->length);
+        $this->assertSame(1, $xpath->query($account.'//a[@href="'.route('teams.show', $team->id).'"][span[@class="dh-menu__label"][normalize-space()="Team settings"]]')->length);
+        $this->assertSame(1, $xpath->query($account.'//a[@href="'.route('teams.create').'"][span[@class="dh-menu__label"][normalize-space()="Create new team"]]')->length);
 
-        $logout = $xpath->query($account.'//form[@method="POST"][@action="'.route('logout').'"]');
+        $logout = $xpath->query($account.'//form[@method="post"][@action="'.route('logout').'"]');
         $this->assertSame(1, $logout->length, 'Log out is a POST form');
         $this->assertSame(1, $xpath->query('.//input[@name="_token"]', $logout->item(0))->length);
-        $this->assertSame(1, $xpath->query('.//button[@type="submit"][span[@class="team-label"][normalize-space()="Log out"]]', $logout->item(0))->length);
+        $this->assertSame(1, $xpath->query('.//button[@type="submit"][normalize-space()="Sign out"]', $logout->item(0))->length);
         $this->assertSame(0, $xpath->query('//a[@href="'.route('logout').'"]')->length, 'There is no GET logout link');
     }
 
@@ -187,7 +191,7 @@ class ResponsiveShellTest extends TestCase
         $other = Team::factory()->create(['user_id' => $user->id, 'name' => 'Second Account Team', 'personal_team' => false]);
 
         $xpath = $this->accountXpath($this->dashboardHtmlFor($user));
-        $forms = $xpath->query(self::ACCOUNT_SECTION.'//form[@method="POST"][@action="'.route('current-team.update').'"]');
+        $forms = $xpath->query(self::ACCOUNT_SECTION.'//form[@method="post"][@action="'.route('current-team.update').'"]');
 
         $this->assertSame(2, $forms->length, 'One switch form per team the user belongs to');
         $this->assertSame(1, $xpath->query(self::ACCOUNT_SECTION.'//form[@action="'.route('current-team.update').'"][input[@name="_method"][@value="PUT"]][input[@name="_token"]][input[@name="team_id"][@value="'.$other->id.'"]]//button[@type="submit"][contains(.,"Second Account Team")][not(@aria-current)]')->length);
@@ -216,35 +220,33 @@ class ResponsiveShellTest extends TestCase
         $this->assertStringNotContainsString('Manage Account', $html, 'Text only the legacy bar rendered');
     }
 
-    public function test_no_css_rule_hides_the_account_section_at_any_width(): void
+    public function test_no_css_rule_hides_the_account_menu_the_bell_or_the_menu_button_at_any_width(): void
     {
         $user = User::factory()->withPersonalTeam()->create();
         $html = $this->dashboardHtmlFor($user);
 
         $this->assertSame(1, $this->accountXpath($html)->query(self::ACCOUNT_SECTION)->length);
 
-        $css = file_get_contents(dirname(__DIR__, 2).'/resources/css/shell.css');
-        $this->assertNotSame('', $css);
-
-        preg_match_all('/([^{}]+)\{([^{}]*)\}/', $css, $rules, PREG_SET_ORDER);
+        // R-52: in adopt mode the bell and the account have no drawer to hide in, so they stay in the bar on a phone: the host must not hide them.
         $checked = 0;
-        foreach ($rules as [, $selector, $declarations]) {
-            // The disclosure triangle of <details> is the one thing in there that is meant to be hidden.
-            if (preg_match('/fx-account|shell-account|team-switch|logout-btn|team-row/', $selector) !== 1 || str_contains($selector, 'details-marker')) {
-                continue;
+        foreach (glob(dirname(__DIR__, 2).'/resources/css/*.css') as $file) {
+            preg_match_all('/([^{}]+)\{([^{}]*)\}/', (string) file_get_contents($file), $rules, PREG_SET_ORDER);
+            foreach ($rules as [, $selector, $declarations]) {
+                if (preg_match('/dh-account|dh-bell|dh-menu-btn|dh-avatar|dh-search-btn/', $selector) !== 1) {
+                    continue;
+                }
+                $checked++;
+                $this->assertDoesNotMatchRegularExpression('/display\s*:\s*none|visibility\s*:\s*hidden/', $declarations, 'A rule hides a header control: '.trim($selector));
             }
-            $checked++;
-            $this->assertDoesNotMatchRegularExpression('/display\s*:\s*none|visibility\s*:\s*hidden/', $declarations, 'A rule hides the account section: '.trim($selector));
         }
-        $this->assertGreaterThan(0, $checked, 'The account section is styled by rules this guard can see');
+        $this->assertSame(0, $checked, 'Finance styles none of the shared controls: dot-ui does');
     }
 
-    public function test_the_sheet_focus_trap_skips_the_collapsed_team_list(): void
+    public function test_the_sheet_focus_trap_is_the_shared_scripts_and_skips_what_is_hidden(): void
     {
-
-        $script = file_get_contents(dirname(__DIR__, 2).'/resources/js/fx/shell.js');
-        $this->assertStringContainsString('a[href], button:not([disabled]), summary', $script);
-        $this->assertStringContainsString('offsetParent !== null', $script);
+        $script = file_get_contents(dirname(__DIR__, 2).'/public/dot-ui/js/dot-nav.js');
+        $this->assertStringContainsString("'Tab'", $script);
+        $this->assertStringContainsString('getClientRects', $script, 'the trap walks what is visible, so a collapsed <details> group is skipped');
     }
 
     public function test_the_ledger_switcher_and_the_team_account_section_sit_side_by_side_without_duplicating_each_other(): void

@@ -273,3 +273,11 @@
 @media (prefers-reduced-motion: reduce) {
     .fxd *, .fxd *::before, .fxd *::after { animation: none !important; transition: none !important; }
 }
+
+/* R-52 touch: the sort buttons in the accounts ledger header are 44px targets on a tablet and a phone (the ledger itself is unchanged). */
+@media (max-width: 1024px) {
+    .fxd-tbl thead button {
+        min-height: var(--touch);
+        min-width: var(--touch);
+    }
+}

@@ -48,7 +48,11 @@ class ContextSwitcherTest extends TestCase
         $user = $this->user();
         $acme = $this->company($user, 'Acme Mining');
 
-        $this->inCompany($user, $acme)->get(route('dashboard'))->assertOk()->assertSee('Company ledger')->assertSee('Acme Mining');
+        // R-52: the shell's sidebar brand row ("Company ledger") went with the shared header; the open ledger is marked in the ledger switcher
+        // and is the account menu's second line.
+        $html = $this->inCompany($user, $acme)->get(route('dashboard'))->assertOk()->assertSee('Acme Mining')->getContent();
+        $this->assertMatchesRegularExpression('/<button[^>]*aria-current="true"[^>]*disabled[^>]*>\s*<svg[^>]*>.*?<\/svg>\s*<span class="fx-ledger-opt__name">Acme Mining<\/span>/s', $html, 'the open ledger is the marked option');
+        $this->assertStringContainsString('<span class="dh-menu__sub" title="Acme Mining">', $html);
     }
 
     public function test_switching_to_a_company_is_remembered_for_the_following_requests(): void

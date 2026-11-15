@@ -107,6 +107,9 @@
 
 .fx-grid {
     display: grid;
+    /* One shrinkable column below the breakpoints. An implicit auto column sizes to its widest child (a text field's intrinsic width,
+       a long hint) and pushed the set-up form 33px past a 320px screen (R-52). */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--gap);
     align-items: start;
 }
@@ -161,6 +164,16 @@
     text-decoration: none;
     white-space: nowrap;
     transition: background-color 120ms var(--ease), border-color 120ms var(--ease), transform 120ms var(--ease);
+}
+
+/* A long label ("Create the chart and review the mapping") wraps inside the button on a narrow phone instead of running off the screen. */
+@media (max-width: 479.98px) {
+    .fx-btn {
+        max-width: 100%;
+        padding-block: var(--s-2);
+        white-space: normal;
+        text-align: center;
+    }
 }
 
 .fx-btn:hover {
@@ -261,12 +274,14 @@
 /* ---- Fields ---------------------------------------------------------------------------------------- */
 .fx-form {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-4);
     min-width: 0;
 }
 
 .fx-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-4);
 }
 
@@ -818,6 +833,20 @@
     }
 }
 
+/* On a 320px phone the label column and a "(ZAR 592,866.90)" with its tick no longer fit side by side (R-52: the page scrolled 22px sideways):
+   the label column narrows, and the figure may wrap its tick under it instead of running past the card. */
+@container fxt (max-width: 399.98px) {
+    .fx-table.fx-table--defs:not(.fx-table--keep) td:not(.is-lead):not(.is-actions) {
+        grid-template-columns: minmax(4.25rem, 6rem) minmax(0, 1fr);
+        gap: var(--s-1) var(--s-3);
+    }
+
+    .fx-table.fx-table--defs:not(.fx-table--keep) .fx-figure-line {
+        flex-wrap: wrap;
+        white-space: normal;
+    }
+}
+
 @container fxt (max-width: 479.98px) {
     .fx-table--compact:not(.fx-table--keep) thead {
         position: absolute;
@@ -998,7 +1027,6 @@
 
 .fx-empty__title {
     font-family: var(--font-display);
-    font-stretch: 108%;
     font-weight: 620;
     font-size: var(--fs-section);
     color: var(--ink);
@@ -1413,6 +1441,7 @@ dialog.fx-command {
     border: 1px solid transparent;
     border-radius: var(--r-control);
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     text-decoration: none;
     color: var(--ink);
 }
@@ -1460,7 +1489,8 @@ dialog.fx-command {
 .fx-drop__body .fx-icon { width: 1.5rem; height: 1.5rem; color: var(--ink-3); }
 .fx-drop__title { color: var(--ink); font-weight: 600; }
 .fx-drop__sub { font-size: var(--fs-small); color: var(--ink-3); }
-.fx-drop__name { font-family: var(--font-figure); font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
+.fx-drop__name { font-family: var(--font-code);
+    font-variant-numeric: tabular-nums lining-nums; font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
 .fx-drop__name:not(:empty) { margin-top: var(--s-1); padding: 0 var(--s-2); border: 1px solid var(--rule-strong); border-radius: var(--r-chip); background: var(--sheet); }
 
 /* ---- a reading of a document: the figures, how sure the reader was of each, and a cue when a person must look ---- */
@@ -1476,13 +1506,14 @@ dialog.fx-command {
 /* ---- Touch targets on a phone (R-44 acceptance QA, criterion 32) ------------------------------------------------
    Everything a thumb has to hit is at least 44 by 44 CSS px at phone widths. Inline links inside a sentence are left alone;
    standalone links, tabs, buttons-as-links, controls and the small "trace" icon links get the room. The trace icon keeps its
-   drawn size and grows its hit area with a pseudo-element, so the figures beside it do not move. */
-@media (max-width: 759.98px) {
+   drawn size and grows its hit area with a pseudo-element, so the figures beside it do not move.
+   R-52: the same on a tablet (up to and including 1024px, where the sidebar is still a touch surface), not only on a phone. */
+@media (max-width: 1024px) {
     :root {
         --control-h: 2.75rem;
     }
 
-    .fx-top__brand,
+
     .fx-tab,
     .fx-linkbtn,
     a.fx-link:not(p a, .fx-hint a, .fx-sub a, .fx-cell-sub a, dd a, li > a:only-child) {
@@ -1553,5 +1584,91 @@ dialog.fx-command {
         gap: var(--s-1);
         padding: var(--s-2) 0;
         text-align: left;
+    }
+}
+
+/* ---- R-52: touch targets on tablets and phones (up to and including 1024px, where the sidebar is still a touch surface) -----------
+   44 by 44 CSS px on the element itself, not only a hit area drawn by a pseudo-element: the small tick keeps its drawn size and
+   its place in the figure through a negative margin, so nothing beside it moves. Inline links inside a sentence are left alone. */
+@media (max-width: 1024px) {
+    .fx-trace {
+        width: var(--touch);
+        height: var(--touch);
+        margin: -0.625rem;
+    }
+
+    .fx-trace::after {
+        content: none;
+    }
+
+    .fx-pager a,
+    .fx-pager span.fx-pager__page {
+        min-width: var(--touch);
+        min-height: var(--touch);
+    }
+
+    .fx-table th > a,
+    .fx-table td > a:not(.fx-trace),
+    .fx-table th button,
+    .fxd th button,
+    .fxd-back a,
+    .fxd-sec__h a,
+    .fxd .fx-state__link,
+    .fxd-name,
+    .fxd-quiet,
+    .fx-panel__foot a.fx-link,
+    .sx-strip__item a.fx-link,
+    .fx-seg__opt {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--touch);
+    }
+
+    .fx-seg__opt {
+        justify-content: center;
+        min-width: var(--touch);
+    }
+
+    .fx-table th > a,
+    .fx-table td > a:not(.fx-trace) {
+        min-width: var(--touch);
+    }
+
+    /* the glossary word: a dotted underline (a border would sit under the padding), the touch box is padding that the margin gives back */
+    .fx-gloss {
+        display: inline-block;
+        padding: 0.8rem 0.6rem;
+        margin: -0.8rem -0.6rem;
+        border-bottom: 0;
+        text-decoration: underline dotted var(--ink-3);
+        text-underline-offset: 0.25em;
+    }
+
+    .fx-page .rp-header__working > summary,
+    .fx-page .rp-more > summary {
+        display: flex;
+        align-items: center;
+        min-height: var(--touch);
+    }
+
+    .fx-statebar .fx-state__chip {
+        min-height: var(--touch);
+    }
+}
+
+/* The state line on a narrow phone: the words matter more than "See the list", whose chevron stays. */
+@media (max-width: 479.98px) {
+    .fx-state__open {
+        font-size: 0;
+        gap: 0;
+    }
+}
+
+/* A filter fold that starts closed on a phone (forms.js) is drawn closed from the first paint: the script closes it after the page has been
+   painted, and an open panel collapsing then is a layout shift (R-52: CLS 0.2 on /transactions). Only where scripting runs, so a page without
+   JavaScript still shows the open filters; the rule ends when the script has handled the fold (data-fx-ready). */
+@media (max-width: 719.98px) and (scripting: enabled) {
+    details[data-fx-collapse-mobile]:not([data-active='1'])[open]:not([data-fx-ready]) > :not(summary) {
+        display: none;
     }
 }

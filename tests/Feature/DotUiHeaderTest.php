@@ -73,10 +73,10 @@ class DotUiHeaderTest extends TestCase
         return $m[0];
     }
 
-    /** The header pill only (its wrapper through the closing tag of the root). */
+    /** The header pill only (its root through the end of its form: R-52 moved it into the shared header's centre column). */
     private function pillHtml(string $html): string
     {
-        $this->assertSame(1, preg_match('/<div class="fx-hsearch">.*?<\/form>\s*<\/div>\s*<\/div>/s', $html, $m), 'the header carries the pill');
+        $this->assertSame(1, preg_match('/<div class="dsr[^"]*" data-dsr.*?<\/form>/s', $html, $m), 'the header carries the pill');
 
         return $m[0];
     }
@@ -102,30 +102,33 @@ class DotUiHeaderTest extends TestCase
         $this->assertSame(1, preg_match('/<form role="search" method="get"\s+action="([^"]+)"/', $pill, $form), 'a GET search form');
         $this->assertSame(route('transactions.index'), html_entity_decode($form[1]));
         $this->assertMatchesRegularExpression('/<input[^>]*\btype="search"[^>]*\bname="search"/', $pill, 'same parameter');
-        $this->assertStringContainsString('placeholder="Search transactions"', $pill);
+        $this->assertStringContainsString('placeholder="Search the books"', $pill, 'R-52: the pill also finds accounts, customers, invoices, bills and tax periods');
         $this->assertStringContainsString('class="dsr-input"', $pill, 'the shared pill');
         $this->assertStringContainsString('id="fx-search"', $pill, 'the input keeps its id');
         $this->assertStringNotContainsString('<form class="fx-search"', $html, 'the old search form is gone');
     }
 
-    public function test_the_header_search_shows_no_invented_shortcut(): void
+    public function test_ctrl_k_belongs_to_the_quick_actions_bar_and_the_pill_binds_no_chord(): void
     {
         [$owner, $team] = $this->acme();
         $this->fakeInfoDot([self::url($team->infodot_team_uuid) => Http::response(self::body($team->infodot_team_uuid))]);
 
         $pill = $this->pillHtml($this->inCompany($owner, $team)->get('/dashboard')->getContent());
 
-        $this->assertStringNotContainsString('dsr-kbd', $pill, 'Ctrl K already opens the quick-actions bar: the pill claims no shortcut');
-        $this->assertStringNotContainsString('data-dsr-shortcut', $pill);
-        $this->assertStringContainsString('dsr dsr--nohint', $pill);
+        // R-52 decision: one owner per chord. The quick-actions bar (command.js) keeps Ctrl/Cmd+K; the pill prints "/" and dot-search.js binds nothing
+        // (hint-key false), and "/" focuses the pill (search.js).
+        $this->assertStringNotContainsString('data-dsr-shortcut', $pill, 'dot-search.js must not bind Ctrl K');
+        $this->assertStringNotContainsString('Ctrl K', $pill);
+        $this->assertMatchesRegularExpression('/<kbd class="dsr-kbd"[^>]*>\/<\/kbd>/', $pill);
     }
 
-    public function test_the_quick_actions_bar_and_its_buttons_are_still_there(): void
+    public function test_the_quick_actions_bar_and_its_openers_are_still_there(): void
     {
         $html = $this->actingAs($this->user())->get('/dashboard')->assertOk()->getContent();
 
         $this->assertStringContainsString('id="fx-command"', $html);
-        $this->assertSame(2, substr_count($html, 'data-fx-command-open'), 'the wide and the phone button');
+        $this->assertStringContainsString('aria-keyshortcuts="Control+K Meta+K"', $html);
+        $this->assertSame(2, substr_count($html, 'data-fx-command-open'), 'the sidebar button and the search dropdown chip');
     }
 
     public function test_a_guest_sees_no_search_and_no_switcher(): void
@@ -364,11 +367,23 @@ class DotUiHeaderTest extends TestCase
         $response = $this->inCompany($owner, $team)->get('/dashboard')->assertOk();
         $html = $response->getContent();
 
-        foreach (['css/dot-fonts.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher-fonts.css', 'css/dot-switcher.css', 'js/dot-switcher.js'] as $asset) {
-            $this->assertStringContainsString('"/dot-ui/'.$asset.'"', $html, $asset.' is linked from this site');
+        // R-52 (dot-ui 0.6.1): one minified stylesheet (Roboto, type scale, tokens, search, switcher, header) is linked from the shared head, the minified boot
+        // script in the head and the full script bundle (it holds the results controller the host calls attach() on) from the layout.
+        // The legacy Archivo and stencil stylesheets are not distributed any more.
+        foreach (['css/dot-ui.min.css', 'js/dot-theme-boot.min.js', 'js/dot-ui.min.js'] as $asset) {
+            $this->assertMatchesRegularExpression('#"(https?://[^"/]+)?/dot-ui/'.preg_quote($asset, '#').'"#', $html, $asset.' is linked from this site');
             $this->assertFileExists(public_path('dot-ui/'.$asset));
         }
-        $this->assertMatchesRegularExpression('#<script src="/dot-ui/js/dot-switcher.js" defer nonce="[^"]+"#', $html, 'the script carries the CSP nonce');
+        foreach (['css/dot-fonts.css', 'css/dot-switcher-fonts.css'] as $gone) {
+            $this->assertStringNotContainsString($gone, $html, $gone.' is not linked');
+            $this->assertFileDoesNotExist(public_path('dot-ui/'.$gone));
+        }
+        foreach (['css/dot-roboto.css', 'css/dot-type.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher.css', 'css/dot-header.css', 'js/dot-search.js', 'js/dot-search-results.js', 'js/dot-switcher.js', 'js/dot-nav.js'] as $separate) {
+            $this->assertDoesNotMatchRegularExpression('#"(https?://[^"/]+)?/dot-ui/'.preg_quote($separate, '#').'"#', $html, $separate.' is inside the bundle, not linked on its own');
+        }
+        foreach (['dot-ui.min.js'] as $script) {
+            $this->assertMatchesRegularExpression('#<script src="/dot-ui/js/'.preg_quote($script, '#').'" defer nonce="[^"]+"#', $html, $script.' carries the CSP nonce');
+        }
 
         foreach (glob(public_path('dot-ui/css/*.css')) as $css) {
             preg_match_all('/url\(\s*[\'"]?([^\'")]+)[\'"]?\s*\)/', (string) file_get_contents($css), $urls);

@@ -106,6 +106,7 @@
 
 .intel-facts dd {
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-feature-settings: 'tnum' 1, 'zero' 1;
     text-align: right;
 }
@@ -142,6 +143,7 @@
 .intel-rows span:last-child {
     margin-left: auto;
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-feature-settings: 'tnum' 1, 'zero' 1;
 }
 

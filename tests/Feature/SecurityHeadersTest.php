@@ -59,14 +59,15 @@ class SecurityHeadersTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('#https?://#', $policy, 'no third-party origin is allowed anywhere');
     }
 
-    public function test_the_nonce_is_new_every_request_and_matches_the_inline_script_that_carries_it(): void
+    public function test_the_nonce_is_new_every_request_and_the_page_has_no_inline_script(): void
     {
         $first = $this->get('/login');
         $second = $this->get('/login');
 
         $nonce = $this->nonceFrom((string) $first->headers->get('Content-Security-Policy'));
         $this->assertNotSame($nonce, $this->nonceFrom((string) $second->headers->get('Content-Security-Policy')), 'a nonce is never reused');
-        $this->assertStringContainsString('<script nonce="'.$nonce.'">', $first->getContent(), 'the theme script carries this request\'s nonce');
+        // R-52: the first-paint theme script is dot-ui's external file now, so the page has no inline script at all (Vite is faked in the suite, so its tags are not here).
+        $this->assertDoesNotMatchRegularExpression('/<script\b(?![^>]*\bsrc=)/', $first->getContent(), 'no inline script on the sign-in page');
         $this->assertSame(1, preg_match('/<script src="[^"]*livewire[^"]*"[^>]*>/', $first->getContent(), $m), 'Livewire\'s script is on the page');
         $this->assertStringContainsString('nonce="'.$nonce.'"', $m[0], 'Livewire\'s script is nonced too');
     }

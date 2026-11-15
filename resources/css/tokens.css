@@ -95,16 +95,19 @@
     --pencil-bg: rgb(var(--pencil-bg-rgb));
     --pencil-line: rgb(var(--pencil-line-rgb));
 
-    /* Type. Display is Archivo at 112% width; text is Public Sans; figures are Chivo Mono. */
-    --font-display: 'Archivo Variable', 'Archivo', 'Arial Nova', 'Helvetica Neue', Arial, sans-serif;
-    --font-text: 'Public Sans Variable', 'Public Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    --font-figure: 'Chivo Mono Variable', 'Chivo Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    /* Type (R-52): Roboto everywhere (dot-ui, self-hosted). Display, text and figures are one family: weight and size carry the
+       hierarchy, and amounts are Roboto's tabular lining numerals so columns still line up on the decimal. Only code-like readouts
+       (account codes, tokens, references, file names) keep the shared monospace. */
+    --font-display: var(--dot-font-sans);
+    --font-text: var(--dot-font-sans);
+    --font-figure: var(--dot-font-sans);
+    --font-code: var(--dot-font-mono);
 
-    --fs-meta: 0.75rem;        /* 12 */
-    --fs-small: 0.8125rem;     /* 13 */
-    --fs-cell: 0.875rem;       /* 14 */
-    --fs-body: 0.9375rem;      /* 15 */
-    --fs-section: 1.0625rem;   /* 17 */
+    --fs-meta: var(--dot-text-caption-size);   /* 12 */
+    --fs-small: var(--dot-text-body-sm-size);  /* 14 (was 13: the shared scale has no 13) */
+    --fs-cell: var(--dot-text-body-sm-size);   /* 14 */
+    --fs-body: var(--dot-text-body-size);      /* 16 (was 15) */
+    --fs-section: var(--dot-text-h4-size);     /* 18 (was 17) */
     --fs-title: 1.5rem;        /* 24 */
     --fs-answer: 1.875rem;     /* 30: the one lead figure on a screen */
 
@@ -128,7 +131,7 @@
     --control-h-sm: 1.875rem;  /* 30 */
     --touch: 2.75rem;          /* 44 */
     --side-w: 15.5rem;         /* 248 */
-    --top-h: 3.5rem;           /* 56 */
+    --top-h: var(--dot-header-offset, 3.5rem);   /* the shared header: 56 on desktop, 52 on a phone */
     --bar-h: 3.5rem;           /* mobile bottom bar */
 
     --ease: cubic-bezier(0.22, 1, 0.36, 1);

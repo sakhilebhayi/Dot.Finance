@@ -158,6 +158,7 @@ return [
     'GET /sales/recurring/create' => 'OMAB',
     'GET /sales/recurring/{template}/edit' => 'OMAB',
     'GET /sales/reminders' => 'OMABPV',
+    'GET /search/suggest' => 'OMABPV',
     'GET /tax' => 'OMABPV',
     'GET /tax/accountant-pack' => 'OMABPV',
     'GET /tax/calendar' => 'OMABPV',

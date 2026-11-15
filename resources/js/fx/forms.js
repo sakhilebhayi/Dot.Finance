@@ -30,11 +30,13 @@ const wireTypeFilter = (category) => {
 document.querySelectorAll('[data-fx-type-filter]').forEach(wireTypeFilter);
 
 // details[data-fx-collapse-mobile]: closed on a phone unless a filter is active (data-active). Without scripting it stays open.
-if (window.matchMedia('(max-width: 719.98px)').matches) {
-    document.querySelectorAll('details[data-fx-collapse-mobile]').forEach((details) => {
-        if (details.dataset.active !== '1') details.open = false;
-    });
-}
+// R-52: until this runs, CSS (components.css, "no shift") already hides the body of a not-active fold on a phone, so closing it here moves nothing
+// (the layout shift of 0.2 on /transactions came from an open panel collapsing after the first paint). data-fx-ready ends that CSS rule.
+const phone = window.matchMedia('(max-width: 719.98px)').matches;
+document.querySelectorAll('details[data-fx-collapse-mobile]').forEach((details) => {
+    if (phone && details.dataset.active !== '1') details.open = false;
+    details.dataset.fxReady = '';
+});
 
 // form[data-fx-custom-dates]: typing a From/To date means "Custom dates", so the Period choice follows the dates.
 document.querySelectorAll('form[data-fx-custom-dates]').forEach((form) => {
