@@ -716,3 +716,11 @@
         display: none;
     }
 }
+
+/* The search results rows are 40.7 to 41.6px high between 861 and 1024px (dot-ui sizes them for a mouse): a tablet in landscape touches them, so they get 44px. */
+@media (max-width: 1024px) {
+    .dh .dsr-item,
+    .dh .dsr-chip {
+        min-height: var(--touch);
+    }
+}

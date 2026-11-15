@@ -58,8 +58,8 @@
                   :guest="Auth::check() ? null : ['login' => ['label' => 'Log in', 'href' => route('login')]]">
         <x-slot:brand>
             {{-- The original logo files, untouched: the day one on paper, the light one at night (dot-ui swaps the pair). --}}
-            <img class="dh-logo-day" src="{{ asset('images/logo.png') }}" alt="" width="1181" height="886" decoding="async">
-            <img class="dh-logo-night" src="{{ asset('images/logo-light.png') }}" alt="" width="1181" height="886" decoding="async">
+            <img class="dh-logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
+            <img class="dh-logo-night" src="{{ asset('images/logo-light.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">
         </x-slot:brand>
         @auth
         <x-slot:search>

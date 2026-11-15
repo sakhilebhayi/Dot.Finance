@@ -57,10 +57,10 @@ class OriginalLogoTest extends TestCase
         $page = $this->dom($this->actingAs(User::factory()->create())->get(route('dashboard'))->assertOk()->getContent());
 
         $this->assertSame(0, $page->query('//*[contains(@class, "fx-mark")]')->length);
-        // The sidebar and the phone top bar each carry the day and the night file; since R-51 the dashboard body does not repeat the logo.
-        $this->assertLogos($page, 2);
-        $this->assertGreaterThan(0, $page->query('//aside//img[@alt="Dot.Finance"]')->length, 'the sidebar brand');
-        $this->assertGreaterThan(0, $page->query('//header//img[@alt="Dot.Finance"]')->length, 'the top bar brand');
+        // R-52: the shared header carries the one logo, as the day and the night file (the sidebar's brand row went; the dashboard body does not repeat it).
+        $this->assertLogos($page, 1);
+        $this->assertSame(2, $page->query('//header//img[@alt="Dot.Finance"]')->length, 'the header brand');
+        $this->assertSame(0, $page->query('//aside//img')->length, 'the sidebar no longer repeats the logo');
     }
 
     public function test_the_sign_in_register_and_landing_pages_show_the_real_logo(): void
@@ -94,7 +94,8 @@ class OriginalLogoTest extends TestCase
 
     private function assertLogos(DOMXPath $page, int $groups, string $where = 'page'): void
     {
-        $imgs = $page->query('//img[contains(@class, "fx-logo__")]');
+        // The guest and error pages use <x-fx.logo> (fx-logo__day / __night); the signed-in header prints the same two files as dh-logo-day / dh-logo-night (dot-ui swaps them).
+        $imgs = $page->query('//img[contains(@class, "fx-logo__") or contains(@class, "dh-logo-")]');
         $this->assertSame($groups * 2, $imgs->length, "{$where}: the day and night file for each logo");
         $sources = [];
         foreach ($imgs as $img) {

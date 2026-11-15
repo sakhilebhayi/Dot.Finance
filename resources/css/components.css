@@ -1668,7 +1668,7 @@ dialog.fx-command {
    painted, and an open panel collapsing then is a layout shift (R-52: CLS 0.2 on /transactions). Only where scripting runs, so a page without
    JavaScript still shows the open filters; the rule ends when the script has handled the fold (data-fx-ready). */
 @media (max-width: 719.98px) and (scripting: enabled) {
-    details[data-fx-collapse-mobile][data-active='0'][open]:not([data-fx-ready]) > :not(summary) {
+    details[data-fx-collapse-mobile]:not([data-active='1'])[open]:not([data-fx-ready]) > :not(summary) {
         display: none;
     }
 }
