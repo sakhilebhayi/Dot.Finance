@@ -226,6 +226,7 @@ dl.rp-header {
 
 .rp-lead {
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: var(--fs-answer);
     font-weight: 600;
     letter-spacing: -0.03em;
@@ -264,6 +265,7 @@ dl.rp-header {
 .rp-chart text {
     fill: var(--ink-3);
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: 11px;
 }
 
@@ -274,7 +276,7 @@ dl.rp-header {
 .rp-chart__band { fill: rgb(var(--ink-rgb) / 0.06); }
 
 @media print {
-    .rp-toolbar, .rp-noprint, .fx-side, .fx-top, .fx-bar { display: none !important; }
+    .rp-toolbar, .rp-noprint, .fx-side, .dh, .dh-drawer, .fx-statebar, .fx-bar { display: none !important; }
     .rp-table { font-size: 11px; }
 }
 

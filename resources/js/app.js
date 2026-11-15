@@ -1,5 +1,4 @@
-import './fx/theme';
-import './fx/shell';
+import './fx/search';
 import './fx/command';
 import './fx/dialogs';
 import './fx/forms';

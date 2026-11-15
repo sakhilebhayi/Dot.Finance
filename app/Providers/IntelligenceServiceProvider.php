@@ -92,7 +92,7 @@ class IntelligenceServiceProvider extends ServiceProvider
 
         Navigation::add('money', ['key' => 'assistant', 'label' => 'Assistant', 'icon' => 'send', 'routes' => ['intel.assistant.index'], 'match' => ['intel.assistant.*'], 'can' => 'view-finance']);
         Navigation::add('money', ['key' => 'attention', 'label' => 'What needs attention', 'icon' => 'triangle-alert', 'routes' => ['intel.attention.index'], 'match' => ['intel.attention.*'], 'can' => 'view-finance']);
-        Navigation::add('money', ['key' => 'notifications', 'label' => 'Notifications', 'icon' => 'bell', 'routes' => ['intel.notifications.index'], 'match' => ['intel.notifications.*'], 'can' => 'view-finance']);
+        // Notifications: the header's bell is the way in (R-52, no duplicate in the sidebar); the page is still /notifications.
         Navigation::add('controls', ['key' => 'integrations', 'label' => 'Integrations', 'icon' => 'external-link', 'routes' => ['intel.integrations.index'], 'match' => ['intel.integrations.*'], 'can' => 'view-finance']);
 
         // The state line: one item for the open findings, red only when something is a warning or worse.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-ZA">
+<html lang="en-ZA" class="dot-roboto" data-dh-theme-key="dot-finance-theme" data-dh-theme-default="system">
     <head>
         @include('layouts.partials-head')
         <title>{{ $title ?? 'Sign in' }} · Dot.Finance</title>

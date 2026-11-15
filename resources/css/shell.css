@@ -1,7 +1,8 @@
 /*
- * App shell. Desktop (1024px and up): a ruled T-frame, sidebar and top bar on the paper ground, the work on
- * white sheets. Below 1024px the sidebar becomes a bottom sheet opened from "More" in the bottom bar; the
- * same markup, so there is one set of landmarks and one copy of the account controls at every width.
+ * App shell (R-52). The shared Dot header (dot-ui) runs across the top at every width; under it, from 1024px, the sidebar sits beside the
+ * work, a ruled frame on the paper ground with the work on white sheets. Below 1024px the sidebar is the bottom sheet that the header's menu
+ * button opens (dot-ui "adopt" mode: scrim, scroll lock, focus trap, inert page behind, Escape), so there is one set of landmarks.
+ * Account, notifications and the platform switcher live in the header; the ledger switcher stays in the sidebar.
  */
 .fx-app {
     display: grid;
@@ -26,42 +27,13 @@
 .fx-side__head {
     display: flex;
     align-items: center;
-    padding-right: var(--s-3);
+    justify-content: space-between;
+    padding: var(--s-2) var(--s-3) 0 var(--s-4);
 }
 
-.fx-side__brand {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    align-items: center;
-    gap: var(--s-3);
-    padding: var(--s-4) var(--s-4) var(--s-3);
-    text-decoration: none;
-}
-
-.fx-side__brand:hover {
-    text-decoration: none;
-}
-
-/* Logo sizes. The artwork carries its own clear space (about a tenth of the file on every side), so each box is pulled
-   back by that much to sit on its edge. The file itself is never cropped, recoloured or redrawn. */
-.fx-side__brand .fx-logo {
-    width: 6.5rem;
-    margin: -0.8rem 0 -0.8rem -0.7rem;
-}
-
-.fx-side__ledger {
-    margin-left: auto;
-    font-size: var(--fs-meta);
-    font-weight: 500;
-    color: var(--ink-3);
-    text-align: right;
-    white-space: nowrap;
-}
-
-.fx-top__brand .fx-logo {
-    width: 4.75rem;
-    margin: -0.7rem 0 -0.7rem -0.6rem;
+.fx-side__title {
+    font-size: var(--fs-body);
+    font-weight: 600;
 }
 
 .fx-auth__brand .fx-logo {
@@ -140,7 +112,6 @@
 .fx-start__title {
     margin: 0;
     font-family: var(--font-display);
-    font-stretch: 108%;
     font-size: var(--fs-cell);
     font-weight: 620;
 }
@@ -173,6 +144,7 @@
     border: 1px solid var(--rule-strong);
     border-radius: 50%;
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: 0.7rem;
     color: var(--ink-2);
 }
@@ -291,21 +263,6 @@
     color: var(--ink-3);
 }
 
-.fx-side__foot {
-    flex: none;
-    max-height: 48vh;
-    overflow-y: auto;
-    padding: var(--s-3);
-    border-top: 1px solid var(--rule);
-}
-
-.fx-user {
-    display: flex;
-    align-items: center;
-    gap: var(--s-3);
-    padding: var(--s-1) var(--s-2) var(--s-2);
-}
-
 .fx-avatar {
     flex: none;
     display: grid;
@@ -319,119 +276,9 @@
     font-weight: 700;
 }
 
-.fx-user__name {
-    display: block;
-    font-size: var(--fs-cell);
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.fx-user__sub {
-    display: block;
-    font-size: var(--fs-meta);
-    color: var(--ink-3);
-}
-
-.fx-user__text {
-    min-width: 0;
-}
-
-.fx-account {
-    display: grid;
-    gap: 1px;
-}
-
-.fx-account summary,
-.fx-account .team-row,
-.fx-account .logout-btn {
-    display: flex;
-    align-items: center;
-    gap: var(--s-2);
-    width: 100%;
-    min-height: 2.25rem;
-    padding: 0 var(--s-2);
-    border: 0;
-    border-radius: var(--r-control);
-    background: none;
-    font-size: var(--fs-cell);
-    font-weight: 500;
-    color: var(--ink-2);
-    text-align: left;
-    text-decoration: none;
-    list-style: none;
-    cursor: pointer;
-}
-
-.fx-account summary::-webkit-details-marker {
-    display: none;
-}
-
-.fx-account summary:hover,
-.fx-account .team-row:hover,
-.fx-account .logout-btn:hover {
-    background: var(--sunk);
-    color: var(--ink);
-}
-
-.fx-account .team-row[aria-current='true'] {
-    color: var(--ink);
-    font-weight: 650;
-}
-
-.fx-account .team-label {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.fx-account .team-switch-label {
-    padding: var(--s-2) var(--s-2) 2px;
-    font-size: var(--fs-meta);
-    color: var(--ink-3);
-}
-
-.fx-account .fx-icon {
-    width: 1rem;
-    height: 1rem;
-    flex: none;
-    color: var(--ink-3);
-}
-
-/* ---- Top bar -------------------------------------------------------------------------------------------- */
-.fx-top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--s-2) var(--s-3);
-    padding: var(--s-2) var(--s-4);
-    background: var(--paper);
-    border-bottom: 1px solid var(--rule);
-}
-
-.fx-top__brand {
-    display: flex;
-    align-items: center;
-    gap: var(--s-2);
-    margin-right: auto;
-    text-decoration: none;
-}
-
-.fx-top__brand:hover {
-    text-decoration: none;
-}
-
-.fx-top__tools {
-    display: flex;
-    align-items: center;
-    gap: var(--s-2);
-}
-
-/* ---- Dot UI: the shared search pill and platform switcher (public/dot-ui, mapped here to the Finance tokens) ------------ */
+/* ---- Dot UI: the shared header, search pill and platform switcher (public/dot-ui, mapped here to the Finance tokens) ------------ */
 :root {
+    /* the search surface (dropdown, filters) */
     --dsr-panel: var(--sheet);
     --dsr-hover: var(--sunk);
     --dsr-rule: var(--rule);
@@ -439,6 +286,7 @@
     --dsr-text: var(--ink);
     --dsr-text-2: var(--ink-2);
     --dsr-text-3: var(--ink-3);
+    --dsr-focus-ring: var(--ink);
     /* The in-page filters sit beside .fx-input, so they take its height, radius, border and surface. */
     --dsr-filter-h: var(--control-h);
     --dsr-filter-radius: var(--r-control);
@@ -448,29 +296,94 @@
     --dsr-filter-border-focus: var(--ink);
     --dsr-filter-ink: var(--ink);
     --dsr-filter-placeholder: var(--ink-3);
+
+    /* the bar: the paper ground with a hairline, as the sidebar and the old top bar were; ink for the current mark and the focus ring */
+    --dh-bg: var(--paper);
+    --dh-ink: var(--ink);
+    --dh-ink-2: var(--ink-2);
+    --dh-rule: var(--rule);
+    --dh-hover: var(--sunk);
+    --dh-accent: var(--ink);
+    --dh-focus: var(--ink);
+    --dh-avatar-bg: var(--sunk);
+    --dh-avatar-ink: var(--ink);
+    --dh-badge-bg: var(--pencil);
+    --dh-badge-ink: var(--paper);
+    --dh-radius: var(--r-control);
+    /* the logo files are 4:3 with their own clear space */
+    --dh-logo-h: 56px;
+    /* the sidebar is 15.5rem wide: keep the pill's column modest so the logo, the ledger name and the tools never crowd it */
+    --dh-search-w: clamp(280px, 30vw, 560px);
+    --dh-scrim: var(--scrim);
 }
 
-.fx-top .dsw {
-    --dsw-btn-ink: var(--ink);
-    --dsw-btn-border: var(--rule-strong);
-    --dsw-btn-bg-hover: var(--sunk);
-    --dsw-focus: var(--ink);
+/* The switcher's panel follows the Finance surface, not InfoDot's cream. */
+.dh.dh--swpanel .dsw,
+.dh .dsw {
+    --dsw-paper: var(--sheet);
+    --dsw-ink: var(--ink);
+    --dsw-ink-2: var(--ink-2);
+    --dsw-rule: var(--rule);
 }
 
-/* The switcher's panel hangs from the header's bottom edge, so the header is the positioned ancestor at every width. */
-.fx-top {
-    position: relative;
+/* The artwork carries its own clear space (about a tenth on every side): pull the box back so the mark sits on the bar's left edge. The file
+   itself is never cropped, recoloured or redrawn. */
+.dh .dh-brand img {
+    margin-left: -0.7rem;
 }
 
-/* The pill keeps InfoDot's own size and look; the header only decides how much room it may take. */
-.fx-hsearch {
-    display: none;
-    flex: 0 1 22rem;
-    min-width: 0;
+/* The header sits above the sidebar's shadow, and its bottom hairline replaces the old top bar's. */
+.dh {
+    border-bottom: 1px solid var(--rule);
 }
 
-.fx-hsearch .dsr {
-    margin: 0;
+/* The "Ctrl K" key in the search dropdown's quick-actions chip. */
+.fx-chipkey {
+    margin-left: var(--s-2);
+    font-size: var(--fs-meta);
+    color: var(--ink-3);
+}
+
+/* Quick actions: a button at the top of the sidebar (it used to be in the top bar). */
+.fx-cmdbtn {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    width: calc(100% - var(--s-2));
+    min-height: 2.25rem;
+    margin: 0 var(--s-1) var(--s-3);
+    padding: 0 var(--s-2) 0 var(--s-3);
+    border: 1px solid var(--edge);
+    border-radius: var(--r-control);
+    background: var(--sheet);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--ink-2);
+    text-align: left;
+}
+
+.fx-cmdbtn .fx-icon {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    color: var(--ink-3);
+}
+
+.fx-cmdbtn span {
+    flex: 1;
+}
+
+.fx-cmdbtn kbd {
+    font-family: var(--font-text);
+    font-size: var(--fs-meta);
+    color: var(--ink-3);
+    background: none;
+    padding: 0;
+}
+
+.fx-cmdbtn:hover {
+    color: var(--ink);
+    border-color: var(--ink);
 }
 
 .fx-iconbtn {
@@ -494,34 +407,18 @@
     height: 1.125rem;
 }
 
-.fx-cmdbtn {
-    display: none;
-    align-items: center;
-    gap: var(--s-2);
-    height: var(--control-h-sm);
-    padding: 0 var(--s-2) 0 var(--s-3);
-    border: 1px solid var(--edge);
-    border-radius: var(--r-control);
-    background: var(--sheet);
-    font-size: var(--fs-small);
-    font-weight: 500;
-    color: var(--ink-2);
-    white-space: nowrap;
-}
-
-.fx-cmdbtn:hover {
-    color: var(--ink);
-    border-color: var(--ink);
+/* The state strip: one slim line under the header saying what needs the owner. It is the first thing in the page, at every width. */
+.fx-statebar {
+    padding: var(--s-1) var(--s-4);
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
 }
 
 /* The state line: one sentence, in words, saying what needs the owner. It is the first thing in the page. */
 .fx-state {
-    order: 3;
-    flex: 1 1 100%;
     min-width: 0;
     margin: 0;
     font-family: var(--font-display);
-    font-stretch: 108%;
     font-weight: 560;
     font-size: var(--fs-cell);
     line-height: 1.35;
@@ -566,7 +463,6 @@
     flex: none;
     gap: 0.1rem;
     font-family: var(--font-text);
-    font-stretch: 100%;
     font-weight: 500;
     color: var(--ink-2);
 }
@@ -586,7 +482,6 @@
 
 .fx-state__link {
     font-family: var(--font-text);
-    font-stretch: 100%;
     font-weight: 600;
     text-decoration-color: var(--rule-strong);
 }
@@ -597,6 +492,7 @@
 
 .fx-state__count {
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
 }
 
 .fx-state__ok {
@@ -650,7 +546,7 @@
     inset: auto 0 0 0;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     height: calc(var(--bar-h) + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     background: var(--sheet);
@@ -699,32 +595,15 @@
     color: var(--ink-2);
 }
 
-.fx-scrim {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background: var(--scrim);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 180ms var(--ease), visibility 0s linear 180ms;
-}
-
-.fx-scrim.is-open {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 180ms var(--ease), visibility 0s;
-}
-
-html.is-locked,
-html.is-locked body {
-    overflow: hidden;
-}
-
 @media (max-width: 1023.98px) {
+    /* The sidebar is a bottom sheet, opened by the header's menu button. dot-ui sets data-dh-open on it, draws the scrim on <body> and makes the
+       page behind inert. The open sheet sits above that scrim (z-index >= --dh-z-drawer); a closed one is hidden with a DELAYED visibility, so the
+       slide out is not cut and its links leave the tab order. */
     .fx-side {
         position: fixed;
         inset: auto 0 0 0;
-        z-index: 60;
+        z-index: calc(var(--dh-z-drawer, 120) + 1);
+        align-self: stretch;
         max-height: 88dvh;
         border-radius: var(--r-float) var(--r-float) 0 0;
         border-top: 1px solid var(--rule-strong);
@@ -734,17 +613,14 @@ html.is-locked body {
         visibility: hidden;
         transition: transform 220ms var(--ease), visibility 0s linear 220ms;
         padding-bottom: env(safe-area-inset-bottom);
+        overflow-y: auto;
+        overscroll-behavior: contain;
     }
 
-    .fx-side.is-open {
+    .fx-side[data-dh-open] {
         transform: none;
         visibility: visible;
         transition: transform 220ms var(--ease), visibility 0s;
-    }
-
-    .fx-side {
-        overflow-y: auto;
-        overscroll-behavior: contain;
     }
 
     .fx-side__scroll {
@@ -752,28 +628,30 @@ html.is-locked body {
         overflow: visible;
     }
 
-    .fx-side__foot {
-        max-height: none;
-        overflow: visible;
+    .fx-ledger-switch__label {
+        padding-block: var(--s-2);
     }
 
-    .fx-side__close {
-        margin-left: auto;
+    /* Content must clear the bottom bar and the safe area. */
+    .fx-main {
+        padding-bottom: calc(var(--bar-h) + var(--s-7) + env(safe-area-inset-bottom));
     }
+}
 
+@media (prefers-reduced-motion: reduce) {
+    .fx-side {
+        transition: none;
+    }
+}
+
+/* The sidebar's rows are 44px up to and including 1024px (a tablet in landscape shows the sidebar and is touched). */
+@media (max-width: 1024px) {
     .fx-nav__item,
+    .fx-nav__group > summary,
     .fx-ledger-opt,
-    .fx-account summary,
-    .fx-account .team-row,
-    .fx-account .logout-btn {
+    .fx-cmdbtn {
         min-height: var(--touch);
     }
-
-    .fx-top {
-        padding-top: var(--s-2);
-    }
-
-    /* The top bar scrolls away on a phone: the bottom bar is the persistent navigation. */
 }
 
 @media (min-width: 640px) {
@@ -781,7 +659,7 @@ html.is-locked body {
         padding-inline: var(--s-5);
     }
 
-    .fx-top {
+    .fx-statebar {
         padding-inline: var(--s-5);
     }
 }
@@ -791,57 +669,31 @@ html.is-locked body {
         grid-template-columns: var(--side-w) minmax(0, 1fr);
     }
 
+    /* Under the sticky header, never sliding beneath it. */
     .fx-side {
         position: sticky;
-        top: 0;
-        height: 100dvh;
+        top: var(--dot-header-offset);
+        height: calc(100vh - var(--dot-header-offset));
+        height: calc(100dvh - var(--dot-header-offset));
         border-right: 1px solid var(--rule);
     }
 
-    .fx-side__close,
-    .fx-top__brand,
-    .fx-bar,
-    .fx-scrim {
+    .fx-side__head,
+    .fx-bar {
         display: none;
     }
 
-    .fx-top {
-        position: sticky;
-        top: 0;
-        z-index: 30;
-        flex-wrap: nowrap;
-        min-height: var(--top-h);
-        padding-block: var(--s-1);
+    .fx-app {
+        min-height: calc(100dvh - var(--dot-header-offset));
     }
 
     .fx-state {
-        order: 0;
-        flex: 1 1 auto;
         font-size: var(--fs-body);
-        padding-block: var(--s-2);
-    }
-
-    .fx-hsearch,
-    .fx-cmdbtn {
-        display: flex;
-    }
-
-    .fx-iconbtn--phone {
-        display: none;
-    }
-
-    .fx-iconbtn {
-        width: var(--control-h-sm);
-        height: var(--control-h-sm);
+        padding-block: var(--s-1);
     }
 
     .fx-main {
         padding: var(--s-6) var(--s-6) var(--s-7);
-    }
-
-    /* The "More" button only opens the sheet; the sidebar is always there. */
-    [data-shell-menu] {
-        display: none;
     }
 }
 
@@ -855,4 +707,12 @@ html.is-locked body {
     width: 3rem;
     height: 3rem;
     font-size: var(--fs-section);
+}
+
+/* A phone has no Ctrl key: the chord is only printed where a keyboard is likely. */
+@media (pointer: coarse) {
+    .fx-chipkey,
+    .fx-cmdbtn kbd {
+        display: none;
+    }
 }

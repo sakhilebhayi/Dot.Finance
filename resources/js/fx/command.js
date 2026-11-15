@@ -58,6 +58,9 @@ if (dialog && typeof dialog.showModal === 'function') {
     };
 
     const open = () => {
+        // From the search dropdown or the phone's search sheet: close those first, so two overlays are never open at once.
+        window.DotNav?.closeAll?.();
+        document.activeElement?.blur?.();
         if (!dialog.open) dialog.showModal();
         input.value = '';
         filter();

@@ -526,8 +526,8 @@ jobs:
             CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL/build/$ASSET" || true)
             if [ "$CODE" = "200" ]; then echo "200 $SITE_URL/build/$ASSET"; else echo "::error::$SITE_URL/build/$ASSET answered ${CODE:-no response} (expected 200): the docroot is not serving the new build"; FAILED=1; fi
           done
-          # The shared Dot UI files the signed-in header loads (served from the docroot's own copy until the docroot is <app>/public).
-          for DOTUI in dot-ui/css/dot-search.css dot-ui/css/dot-switcher.css dot-ui/js/dot-switcher.js; do
+          # The shared Dot UI files the signed-in header and Roboto load (served from the docroot's own copy until the docroot is <app>/public).
+          for DOTUI in dot-ui/css/dot-roboto.css dot-ui/css/dot-type.css dot-ui/css/dot-search.css dot-ui/css/dot-switcher.css dot-ui/css/dot-header.css dot-ui/js/dot-switcher.js dot-ui/js/dot-nav.js dot-ui/js/dot-theme-boot.js dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2; do
             CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL/$DOTUI" || true)
             if [ "$CODE" = "200" ]; then echo "200 $SITE_URL/$DOTUI"; else echo "::error::$SITE_URL/$DOTUI answered ${CODE:-no response} (expected 200): the docroot is not serving the shared Dot UI files"; FAILED=1; fi
           done

@@ -242,7 +242,7 @@ class DesignSystemTest extends TestCase
         foreach (['dashboard', 'transactions.index', 'accounts.index', 'budgets.index', 'reconciliation.index', 'forecast.index'] as $name) {
             $html = $this->actingAs($user)->get(route($name))->getContent();
             $this->assertSame(1, preg_match_all('/<h1[ >]/', $html), "[$name] has exactly one h1");
-            $this->assertStringContainsString('class="fx-skip"', $html);
+            $this->assertStringContainsString('class="dh-skip skip-link" href="#main"', $html, 'the shared header carries the skip link');
         }
     }
 }

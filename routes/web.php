@@ -13,6 +13,7 @@ use App\Http\Controllers\InsightController;
 use App\Http\Controllers\LedgerContextController;
 use App\Http\Controllers\ReconciliationController;
 use App\Http\Controllers\RecurringRuleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionImportController;
 use App\Http\Controllers\TransferController;
@@ -58,6 +59,9 @@ Route::middleware([
     EnsureCompanyEntitled::class,
 ])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // The header search's suggestions (JSON): the open ledger only, by role. Enter still submits the GET form to transactions.index.
+    Route::get('/search/suggest', [SearchController::class, 'suggest'])->middleware('throttle:90,1')->name('search.suggest');
 
     // Which ledger is active: the person's own, or one of their companies. Validated against
     // what they belong to (see LedgerContextManager); the active one is kept in the session.

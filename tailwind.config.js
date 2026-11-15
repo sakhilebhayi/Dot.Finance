@@ -1,5 +1,6 @@
 import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
+import dotPreset from './dot-ui/tailwind/tailwind-preset.cjs';
 
 /*
  * Utilities only. The look of Dot.Finance lives in resources/css (tokens as custom properties, then the fx-*
@@ -13,6 +14,9 @@ import typography from '@tailwindcss/typography';
 const token = (name) => `rgb(var(--${name}-rgb) / <alpha-value>)`;
 
 export default {
+    // Roboto and the shared type scale (font-sans, font-mono, text-dot-*), copied in by dot-ui/sync.sh.
+    presets: [dotPreset],
+
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './vendor/laravel/jetstream/**/*.blade.php',
@@ -92,13 +96,6 @@ export default {
                 700: token('ink'),
                 800: token('ink'),
                 900: token('ink'),
-            },
-        },
-        extend: {
-            fontFamily: {
-                sans: ['var(--font-text)'],
-                display: ['var(--font-display)'],
-                mono: ['var(--font-figure)'],
             },
         },
     },

@@ -19,9 +19,9 @@ class Acceptance32_MobileTest extends AcceptanceCase
     {
         $css = File::get(resource_path('css/components.css'));
         $this->assertStringContainsString('Touch targets on a phone', $css);
-        preg_match('/@media \(max-width: 759\.98px\) \{\s*:root \{\s*--control-h: 2\.75rem;.*?\n\}\n/s', $css, $block);
-        $this->assertNotEmpty($block, 'the phone block sets the control height to 44px');
-        foreach (['.fx-top__brand', '.fx-tab', '.fx-linkbtn', 'a.fx-link', '.fx-trace::after', '.fx-check', '.tax-drill > summary', '.sx-lead > a.fx-link'] as $selector) {
+        preg_match('/@media \(max-width: 1024px\) \{\s*:root \{\s*--control-h: 2\.75rem;.*?\n\}\n/s', $css, $block);
+        $this->assertNotEmpty($block, 'the phone and tablet block (R-52: up to 1024px, it was 759.98px) sets the control height to 44px');
+        foreach (['.fx-tab', '.fx-linkbtn', 'a.fx-link', '.fx-trace::after', '.fx-check', '.tax-drill > summary', '.sx-lead > a.fx-link'] as $selector) {
             $this->assertStringContainsString($selector, $block[0], "{$selector} is in the phone touch-target block");
         }
         $this->assertSame(2.75 * 16, 44.0, '2.75rem is 44px at the default size');

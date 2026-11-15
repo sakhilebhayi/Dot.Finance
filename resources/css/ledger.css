@@ -6,6 +6,7 @@
 /* ---- Small text helpers ------------------------------------------------------------------------------------- */
 .fx-figure {
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: 0.93em;
     font-variant-numeric: tabular-nums slashed-zero;
     letter-spacing: -0.01em;
@@ -22,7 +23,6 @@
 
 .fx-subhead {
     font-family: var(--font-display);
-    font-stretch: 108%;
     font-size: var(--fs-body);
     font-weight: 650;
     color: var(--ink);
@@ -347,6 +347,7 @@
     border-radius: var(--r-control);
     background: var(--sheet);
     font-family: var(--font-figure);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: var(--fs-small);
     font-weight: 600;
     color: var(--ink-2);
@@ -490,7 +491,6 @@
     padding: var(--s-5) var(--s-3) var(--s-2);
     border-bottom: 0;
     font-family: var(--font-display);
-    font-stretch: 108%;
     font-size: var(--fs-body);
     font-weight: 650;
     color: var(--ink);
@@ -795,7 +795,8 @@
 
 .fx-voucher__ref {
     margin-top: 2px;
-    font-family: var(--font-figure);
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: var(--fs-answer);
     font-weight: 600;
     letter-spacing: -0.03em;
@@ -871,7 +872,6 @@
 
 .fx-lock__title {
     font-family: var(--font-display);
-    font-stretch: 112%;
     font-size: var(--fs-section);
     font-weight: 650;
 }
@@ -1101,19 +1101,20 @@
     padding: var(--s-4);
     border-radius: var(--r-control);
     background: var(--sunk);
-    font-family: var(--font-figure);
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: var(--fs-cell);
 }
 
 .fx-input--token {
-    font-family: var(--font-figure);
+    font-family: var(--font-code);
+    font-variant-numeric: tabular-nums lining-nums;
     font-size: var(--fs-cell);
     overflow-wrap: anywhere;
 }
 
 .fx-section-title h3 {
     font-family: var(--font-display);
-    font-stretch: 108%;
 }
 
 /* The pager's current page: the generic span rule in components.css out-ranks `.is-current`, which left the page number
