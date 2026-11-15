@@ -691,6 +691,14 @@
     text-decoration: none;
 }
 
+/* Legal links in the public footer: a 44px-tall hit area, the text size unchanged. */
+.fx-bare__foot .fx-cluster a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 var(--s-1);
+}
+
 .fx-bare__main {
     display: grid;
     align-content: center;
