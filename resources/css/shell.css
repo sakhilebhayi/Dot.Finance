@@ -649,8 +649,15 @@
     .fx-nav__item,
     .fx-nav__group > summary,
     .fx-ledger-opt,
-    .fx-cmdbtn {
+    .fx-cmdbtn,
+    .fx-start__list li,
+    .fx-start__list a {
         min-height: var(--touch);
+    }
+
+    .fx-start__list a {
+        display: inline-flex;
+        align-items: center;
     }
 }
 
