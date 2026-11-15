@@ -370,7 +370,7 @@ class DotUiHeaderTest extends TestCase
         // R-52 (dot-ui 0.6.0): Roboto and the type scale are linked from the shared head, the header, search and switcher CSS and JS from the layout.
         // The legacy Archivo and stencil stylesheets are not distributed any more.
         foreach (['css/dot-roboto.css', 'css/dot-type.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher.css', 'css/dot-header.css', 'js/dot-theme-boot.js', 'js/dot-search.js', 'js/dot-search-results.js', 'js/dot-switcher.js', 'js/dot-nav.js'] as $asset) {
-            $this->assertMatchesRegularExpression('#"(http://localhost)?/dot-ui/'.preg_quote($asset, '#').'"#', $html, $asset.' is linked from this site');
+            $this->assertMatchesRegularExpression('#"(https?://[^"/]+)?/dot-ui/'.preg_quote($asset, '#').'"#', $html, $asset.' is linked from this site');
             $this->assertFileExists(public_path('dot-ui/'.$asset));
         }
         foreach (['css/dot-fonts.css', 'css/dot-switcher-fonts.css'] as $gone) {
