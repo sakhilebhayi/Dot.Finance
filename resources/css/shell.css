@@ -38,7 +38,7 @@
 
 .fx-auth__brand .fx-logo {
     width: 12rem;
-    margin: -1.2rem 0 -1.2rem -1.2rem;
+    margin: -1.2rem 0 -1.2rem calc(-1 * var(--s-4));
 }
 
 .fx-side__scroll {

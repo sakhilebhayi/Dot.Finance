@@ -150,7 +150,10 @@ kbd {
     left: var(--s-3);
     top: var(--s-3);
     z-index: 100;
-    padding: var(--s-2) var(--s-4);
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 var(--s-4);
     border-radius: var(--r-control);
     background: var(--ink);
     color: var(--paper);
