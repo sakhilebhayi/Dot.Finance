@@ -2,8 +2,10 @@
 
 namespace Tests\Concerns;
 
+use App\Models\Licences\LicenceBatch;
 use App\Services\Licences\LicenceSignature;
 use App\Services\Paystack\PaystackGateway;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\FakePaystackGateway;
 
@@ -40,5 +42,21 @@ trait BuildsLicences
         return $this->call('POST', $uri, [], [], [], $this->transformHeadersToServerVars([
             $family.'-Timestamp' => (string) $ts, $family.'-Signature' => LicenceSignature::sign($secret ?? $this->licenceSecret, $ts, $raw), 'Content-Type' => 'application/json', 'Accept' => 'application/json',
         ]), $raw);
+    }
+
+    protected string $pushSecret = 'fake-push-secret-for-tests';
+
+    protected function configurePush(): void
+    {
+        config(['licences.push.url' => 'https://infodot.test/api/finance/platform-subscription-events', 'licences.push.secret' => $this->pushSecret, 'licences.push.max_attempts' => 3]);
+    }
+
+    protected function makeBatch(array $over = []): LicenceBatch
+    {
+        return LicenceBatch::query()->create($over + [
+            'batch_uuid' => (string) Str::uuid(), 'team_uuid' => '22222222-2222-4222-8222-222222222222', 'quantity' => 3, 'interval' => 'monthly', 'interval_raw' => 'monthly',
+            'total_minor' => 29700, 'currency' => 'ZAR', 'customer_name' => 'Acme Retail', 'customer_email' => 'owner@acme.test', 'status' => 'awaiting_payment',
+            'paystack_reference' => 'lic_'.bin2hex(random_bytes(6)),
+        ]);
     }
 }
