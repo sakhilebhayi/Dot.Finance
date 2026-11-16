@@ -15,6 +15,8 @@ use App\Services\Accounting\Chart;
 use App\Services\Accounting\FxRateProvider;
 use App\Services\Accounting\FxServiceRateProvider;
 use App\Services\Accounting\GlSync;
+use App\Services\Paystack\HttpPaystackGateway;
+use App\Services\Paystack\PaystackGateway;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
@@ -48,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FxRateProvider::class, FxServiceRateProvider::class);
         $this->app->scoped(Chart::class);
         $this->app->scoped(GlSync::class);
+
+        // R-53: Paystack sits behind one interface; tests swap in FakePaystackGateway. No key = the feature is off.
+        $this->app->singleton(PaystackGateway::class, HttpPaystackGateway::class);
     }
 
     /**
