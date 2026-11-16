@@ -4,6 +4,7 @@ namespace Tests\Concerns;
 
 use App\Models\Licences\LicenceBatch;
 use App\Services\Licences\LicenceSignature;
+use App\Services\Licences\PaystackSignature;
 use App\Services\Paystack\PaystackGateway;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -58,5 +59,37 @@ trait BuildsLicences
             'total_minor' => 29700, 'currency' => 'ZAR', 'customer_name' => 'Acme Retail', 'customer_email' => 'owner@acme.test', 'status' => 'awaiting_payment',
             'paystack_reference' => 'lic_'.bin2hex(random_bytes(6)),
         ]);
+    }
+
+    protected string $paystackKey = 'sk_test_fake_key_for_tests';
+
+    protected function configureWebhook(): void
+    {
+        config(['paystack.secret_key' => $this->paystackKey]);
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    protected function webhook(array $payload, ?string $key = null, ?string $rawOverride = null): TestResponse
+    {
+        $raw = $rawOverride ?? json_encode($payload);
+
+        return $this->call('POST', '/api/paystack/webhook', [], [], [], $this->transformHeadersToServerVars([
+            'x-paystack-signature' => PaystackSignature::sign($raw, $key ?? $this->paystackKey), 'Content-Type' => 'application/json', 'Accept' => 'application/json',
+        ]), $raw);
+    }
+
+    /** A batch that went through checkout, ready for its first charge. @return array{0: \App\Models\Licences\LicenceBatch, 1: string} */
+    protected function checkedOut(array $over = []): array
+    {
+        $this->signedPost('/api/licences/checkout', $this->checkoutBody($over))->assertOk();
+        $batch = LicenceBatch::query()->where('batch_uuid', $this->checkoutBody($over)['batch_uuid'])->firstOrFail();
+
+        return [$batch, (string) $batch->paystack_reference];
+    }
+
+    /** @return array<string, mixed> */
+    protected function chargeSuccess(string $reference, int $amount = 29700, array $data = []): array
+    {
+        return ['event' => 'charge.success', 'data' => $data + ['reference' => $reference, 'amount' => $amount, 'currency' => 'ZAR', 'status' => 'success', 'customer' => ['customer_code' => 'CUS_fake', 'email' => 'owner@acme.test']]];
     }
 }

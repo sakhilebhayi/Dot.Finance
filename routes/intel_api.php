@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\EcosystemMembershipController;
 use App\Http\Controllers\Api\EmallSalesController;
 use App\Http\Controllers\Api\LicenceCheckoutController;
+use App\Http\Controllers\Api\PaystackWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,3 +22,6 @@ Route::post('/integrations/emall/sales', EmallSalesController::class)->middlewar
 
 // InfoDot -> this app: start a licence batch checkout (R-53, signed; contract r53/CONTRACT.md).
 Route::post('/licences/checkout', LicenceCheckoutController::class)->middleware('throttle:60,1')->name('api.licences.checkout');
+
+// Paystack -> this app: licence billing events (R-53). Verified by x-paystack-signature (HMAC-SHA512 of the raw body); not a signed Dot call.
+Route::post('/paystack/webhook', PaystackWebhookController::class)->middleware('throttle:240,1')->name('api.paystack.webhook');
