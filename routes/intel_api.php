@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\EcosystemMembershipController;
 use App\Http\Controllers\Api\EmallSalesController;
 use App\Http\Controllers\Api\LicenceCheckoutController;
+use App\Http\Controllers\Api\LicenceEntitlementController;
 use App\Http\Controllers\Api\PaystackWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,3 +26,6 @@ Route::post('/licences/checkout', LicenceCheckoutController::class)->middleware(
 
 // Paystack -> this app: licence billing events (R-53). Verified by x-paystack-signature (HMAC-SHA512 of the raw body); not a signed Dot call.
 Route::post('/paystack/webhook', PaystackWebhookController::class)->middleware('throttle:240,1')->name('api.paystack.webhook');
+
+// InfoDot -> this app: read what Finance holds for a company (R-53, signed GET; reconciliation only).
+Route::get('/entitlements/{teamUuid}', LicenceEntitlementController::class)->whereUuid('teamUuid')->middleware('throttle:120,1')->name('api.licences.entitlements');

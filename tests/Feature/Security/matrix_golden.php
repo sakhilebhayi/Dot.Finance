@@ -200,6 +200,7 @@ return [
     'POST /accounting/setup/mapping' => 'OMA',
     'POST /accounts' => 'OMAB',
     'POST /accounts/{account}/opening-balance' => 'OM',
+    'GET /api/entitlements/{teamUuid}' => '',
     'POST /api/ecosystem/membership' => '',
     'POST /api/integrations/emall/sales' => '',
     'POST /api/licences/checkout' => '',

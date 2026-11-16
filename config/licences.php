@@ -27,6 +27,16 @@ return [
         'cash_account_id' => env('LICENCE_CASH_ACCOUNT_ID'), // the ledger's Paystack clearing account; unset = invoices stay open
     ],
 
+    // What Finance tells InfoDot's read pull (GET /api/entitlements/{team_uuid}) is seat_limit = included + licensed quantity.
+    'included_seats' => (int) env('LICENCE_INCLUDED_SEATS', 1),
+
+    // Reconciliation only (read-only): where to ask InfoDot what it holds per company. {team_uuid} is replaced. Unset = Finance-side checks only.
+    'reconcile' => [
+        'infodot_url' => env('LICENCE_RECONCILE_INFODOT_URL'),
+        'timeout' => 8,
+        'period_tolerance_seconds' => 86400,
+    ],
+
     // 7 days on a first purchase (D10, legal review pending).
     'refund_window_days' => (int) env('LICENCE_REFUND_WINDOW_DAYS', 7),
 
