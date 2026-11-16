@@ -33,7 +33,7 @@ class LicenceBatch extends Model
         return [
             'quantity' => 'integer', 'total_minor' => 'integer', 'init_attempts' => 'integer', 'needs_review' => 'boolean',
             'authorization_code' => 'encrypted', 'subscription_email_token' => 'encrypted',
-            'period_start' => 'datetime', 'period_end' => 'datetime', 'first_paid_at' => 'datetime', 'cancelled_at' => 'datetime',
+            'customer_address' => 'array', 'cancel_requested_at' => 'datetime', 'period_start' => 'datetime', 'period_end' => 'datetime', 'first_paid_at' => 'datetime', 'cancelled_at' => 'datetime',
         ];
     }
 }

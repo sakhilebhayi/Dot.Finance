@@ -48,6 +48,15 @@ class LicenceCheckoutController extends Controller
             'customer' => ['required', 'array'],
             'customer.name' => ['required', 'string', 'max:200'],
             'customer.email' => ['required', 'email', 'max:200'],
+            // Optional, stored for credit notes. VAT treatment is recorded only: amounts and VAT follow the seller's company settings.
+            'customer.address' => ['nullable', 'array'],
+            'customer.address.line1' => ['nullable', 'string', 'max:200'],
+            'customer.address.line2' => ['nullable', 'string', 'max:200'],
+            'customer.address.city' => ['nullable', 'string', 'max:120'],
+            'customer.address.region' => ['nullable', 'string', 'max:120'],
+            'customer.address.postal_code' => ['nullable', 'string', 'max:20'],
+            'customer.address.country' => ['nullable', 'string', 'size:2'],
+            'vat_treatment' => ['nullable', 'string', 'in:standard,zero_rated,exempt,outside_scope,reverse_charge'],
         ]);
 
         if ($valid->fails()) {

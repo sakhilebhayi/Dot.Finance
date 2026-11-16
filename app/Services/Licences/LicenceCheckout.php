@@ -34,11 +34,21 @@ final class LicenceCheckout
                     'batch_uuid' => $in['batch_uuid'], 'team_uuid' => $in['team_uuid'], 'quantity' => $in['quantity'],
                     'interval' => PlanRegistry::interval($in['interval']), 'interval_raw' => $in['interval'],
                     'total_minor' => $in['total_minor'], 'currency' => $in['currency'],
-                    'customer_name' => $in['customer']['name'], 'customer_email' => $in['customer']['email'], 'status' => LicenceBatch::PENDING,
+                    'customer_name' => $in['customer']['name'], 'customer_email' => $in['customer']['email'],
+                    'customer_address' => $in['customer']['address'] ?? null, 'vat_treatment' => $in['vat_treatment'] ?? null, 'status' => LicenceBatch::PENDING,
                 ]));
             } catch (UniqueConstraintViolationException) {
                 $batch = LicenceBatch::query()->where('batch_uuid', $in['batch_uuid'])->firstOrFail();
             }
+        }
+
+        // Buyer details InfoDot adds on a repeat call fill an empty record; they never overwrite what is stored and are not part of the terms.
+        $fill = array_filter([
+            'customer_address' => $batch->customer_address === null ? ($in['customer']['address'] ?? null) : null,
+            'vat_treatment' => $batch->vat_treatment === null ? ($in['vat_treatment'] ?? null) : null,
+        ], fn ($v) => $v !== null);
+        if ($fill !== [] && $this->sameTerms($batch, $in)) {
+            $batch->forceFill($fill)->save();
         }
 
         if (! $this->sameTerms($batch, $in)) {

@@ -16,8 +16,9 @@ use Throwable;
  * Finance-side checks (always): a payment whose confirmation never reached InfoDot, a confirmation that is dead or rejected,
  * money that fits no batch, a batch flagged for review, a paid batch with no invoice or a failed one, a checkout abandoned for a day.
  * InfoDot-side check (only when LICENCE_RECONCILE_INFODOT_URL is set): per company, each batch's status, quantity and period end
- * against InfoDot's answer. The shape of that answer is an ASSUMPTION to agree with the InfoDot build:
- * {"batches":[{"batch_uuid","status","quantity","period_end"}]}, signed like every Finance read (X-InfoDot headers, empty body).
+ * against InfoDot's answer. The shape is InfoDot's real GET /api/licences/reconcile/{team_uuid} (branch r53/phase-4, LicenceReconcileController):
+ * {"team_uuid", "batches":[{"batch_uuid","status","quantity","interval","period_end","counts_now"}]}, status active|grace|ended, signed like every
+ * Finance read (X-InfoDot headers, empty body, same shared secret). Set LICENCE_RECONCILE_INFODOT_URL to https://<infodot>/api/licences/reconcile/{team_uuid}.
  */
 final class LicenceReconciler
 {
