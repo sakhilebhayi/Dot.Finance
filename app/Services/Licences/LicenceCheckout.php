@@ -8,6 +8,7 @@ use App\Services\Paystack\PaystackGateway;
 use App\Services\Paystack\PlanRegistry;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Creates (or replays) the hosted checkout for one batch. Idempotent on batch_uuid: the same signed request again gives the same
@@ -29,12 +30,12 @@ final class LicenceCheckout
 
         if ($batch === null) {
             try {
-                $batch = LicenceBatch::query()->create([
+                $batch = DB::transaction(fn () => LicenceBatch::query()->create([
                     'batch_uuid' => $in['batch_uuid'], 'team_uuid' => $in['team_uuid'], 'quantity' => $in['quantity'],
                     'interval' => PlanRegistry::interval($in['interval']), 'interval_raw' => $in['interval'],
                     'total_minor' => $in['total_minor'], 'currency' => $in['currency'],
                     'customer_name' => $in['customer']['name'], 'customer_email' => $in['customer']['email'], 'status' => LicenceBatch::PENDING,
-                ]);
+                ]));
             } catch (UniqueConstraintViolationException) {
                 $batch = LicenceBatch::query()->where('batch_uuid', $in['batch_uuid'])->firstOrFail();
             }
