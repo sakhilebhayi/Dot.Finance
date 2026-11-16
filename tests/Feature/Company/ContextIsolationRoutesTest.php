@@ -314,6 +314,10 @@ class ContextIsolationRoutesTest extends TestCase
             if (str_starts_with($route->getActionName(), 'App\\Http\\Controllers\\Controls\\')) {
                 continue;
             }
+            // R-53: the signed entitlement read takes an InfoDot company uuid (not a ledger row id) and holds no per-ledger data.
+            if ($route->getActionName() === 'App\\Http\\Controllers\\Api\\LicenceEntitlementController') {
+                continue;
+            }
             foreach ($route->parameterNames() as $name) {
                 if (! array_key_exists($name, self::BINDINGS)) {
                     $unknown[] = $route->methods()[0].' '.$route->uri().' {'.$name.'}';
