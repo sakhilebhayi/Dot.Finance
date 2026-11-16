@@ -10,6 +10,7 @@ use App\Services\Paystack\PaystackException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -48,9 +49,9 @@ class PaystackWebhookController extends Controller
         $key = $this->eventKey($type, $data, $raw);
 
         try {
-            $row = PaystackWebhookEvent::query()->firstOrCreate(['event_key' => $key], [
+            $row = DB::transaction(fn () => PaystackWebhookEvent::query()->firstOrCreate(['event_key' => $key], [
                 'event_type' => mb_substr($type, 0, 60), 'reference' => $this->reference($data), 'body_hash' => hash('sha256', $raw), 'status' => 'received',
-            ]);
+            ]));
         } catch (UniqueConstraintViolationException) {
             $row = PaystackWebhookEvent::query()->where('event_key', $key)->firstOrFail();
         }
