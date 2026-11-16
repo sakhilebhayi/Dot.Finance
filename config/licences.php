@@ -19,6 +19,17 @@ return [
     // Where Paystack sends the buyer after paying (an InfoDot page). Never carries anything that grants value.
     'return_url' => env('LICENCE_CHECKOUT_RETURN_URL'),
 
+    // The selling entity: the company ledger in Finance (by its InfoDot uuid) whose books receive the licence invoices. Unset = no
+    // invoices are made (payments are still recorded and confirmed). VAT follows that ledger's own business profile; nothing is assumed.
+    'seller' => [
+        'team_uuid' => env('LICENCE_SELLER_TEAM_UUID'),
+        'user_email' => env('LICENCE_SELLER_USER_EMAIL'), // who the books say issued it; default the ledger's owner
+        'cash_account_id' => env('LICENCE_CASH_ACCOUNT_ID'), // the ledger's Paystack clearing account; unset = invoices stay open
+    ],
+
+    // 7 days on a first purchase (D10, legal review pending).
+    'refund_window_days' => (int) env('LICENCE_REFUND_WINDOW_DAYS', 7),
+
     // Finance -> InfoDot confirmation (R-50 endpoint, kind "licence_batch").
     'push' => [
         'url' => env('LICENCE_PUSH_URL'),
