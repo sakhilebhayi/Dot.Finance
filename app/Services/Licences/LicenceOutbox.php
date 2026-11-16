@@ -49,10 +49,11 @@ final class LicenceOutbox
         ];
 
         try {
-            $event = LicenceOutboxEvent::query()->create([
+            // A savepoint, so a lost race on the unique key cannot poison the caller's transaction (PostgreSQL aborts it otherwise).
+            $event = DB::transaction(fn () => LicenceOutboxEvent::query()->create([
                 'event_id' => $eventId, 'batch_uuid' => $batch->batch_uuid, 'type' => $type,
                 'payload' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), 'status' => LicenceOutboxEvent::PENDING, 'next_attempt_at' => now(),
-            ]);
+            ]));
         } catch (UniqueConstraintViolationException) {
             return LicenceOutboxEvent::query()->where('event_id', $eventId)->firstOrFail();
         }
