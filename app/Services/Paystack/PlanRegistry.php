@@ -5,6 +5,7 @@ namespace App\Services\Paystack;
 use App\Models\Licences\PaystackPlan;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
@@ -55,7 +56,7 @@ final class PlanRegistry
             $created = $this->gateway->createPlan($name, $amountMinor, $currency, $interval);
 
             try {
-                return PaystackPlan::query()->create(['amount_minor' => $amountMinor, 'currency' => $currency, 'interval' => $interval, 'plan_code' => $created['plan_code'], 'name' => $name]);
+                return DB::transaction(fn () => PaystackPlan::query()->create(['amount_minor' => $amountMinor, 'currency' => $currency, 'interval' => $interval, 'plan_code' => $created['plan_code'], 'name' => $name]));
             } catch (UniqueConstraintViolationException) {
                 return $find() ?? throw new PaystackException('Plan cache is inconsistent.');
             }
