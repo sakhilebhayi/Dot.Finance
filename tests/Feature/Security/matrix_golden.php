@@ -203,6 +203,7 @@ return [
     'POST /api/ecosystem/membership' => '',
     'POST /api/integrations/emall/sales' => '',
     'POST /api/licences/checkout' => '',
+    'POST /api/paystack/webhook' => '',
     'POST /api/tax/payroll-import' => 'OMABPV',
     'POST /assistant' => 'OMABPV',
     'POST /assistant/drafts/{draft}/confirm' => 'O',
