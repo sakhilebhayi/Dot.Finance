@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Events\Licences\LicencePaymentRecorded;
+use App\Events\Licences\LicenceRefundRecorded;
 use App\Http\Middleware\EnsureCompanyEntitled;
+use App\Jobs\IssueLicenceInvoice;
 use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
@@ -15,6 +18,8 @@ use App\Services\Accounting\Chart;
 use App\Services\Accounting\FxRateProvider;
 use App\Services\Accounting\FxServiceRateProvider;
 use App\Services\Accounting\GlSync;
+use App\Services\Paystack\HttpPaystackGateway;
+use App\Services\Paystack\PaystackGateway;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
@@ -22,6 +27,7 @@ use App\Support\Ui\Navigation;
 use App\Support\Ui\StartHere;
 use App\Support\Ui\StateLine;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -48,6 +54,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FxRateProvider::class, FxServiceRateProvider::class);
         $this->app->scoped(Chart::class);
         $this->app->scoped(GlSync::class);
+
+        // R-53: Paystack sits behind one interface; tests swap in FakePaystackGateway. No key = the feature is off.
+        $this->app->singleton(PaystackGateway::class, HttpPaystackGateway::class);
     }
 
     /**
@@ -55,6 +64,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // R-53: a recorded licence payment or refund becomes an invoice or credit note, off the webhook path.
+        Event::listen(LicencePaymentRecorded::class, fn ($e) => IssueLicenceInvoice::dispatch($e->payment->id));
+        Event::listen(LicenceRefundRecorded::class, fn ($e) => IssueLicenceInvoice::dispatch($e->payment->id, $e->amountMinor, $e->refundId));
+
         // R-50: Livewire updates from a page in the signed-in area carry that page's entitlement check with them.
         Livewire::addPersistentMiddleware([EnsureCompanyEntitled::class]);
 

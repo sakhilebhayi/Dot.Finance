@@ -6,6 +6,7 @@ use App\Console\Commands\Gl\PostPending;
 use App\Console\Commands\Gl\Verify;
 use App\Console\Commands\Intelligence\RunNotifications;
 use App\Console\Commands\Intelligence\ScanInsights;
+use App\Console\Commands\Licences\PushOutbox;
 use App\Console\Commands\Ops\BackupCheck;
 use App\Console\Commands\PruneImports;
 use App\Console\Commands\PublishMetrics;
@@ -117,3 +118,9 @@ Schedule::command(BackupCheck::class)
     ->withoutOverlapping()
     ->onOneServer();
 // --- end ops ---
+
+// R-53: the safety net under the licence confirmation queue. Minutes picked so no other command starts in them.
+Schedule::command(PushOutbox::class)
+    ->cron('7,17,27,37,47,57 * * * *')
+    ->withoutOverlapping()
+    ->onOneServer();
