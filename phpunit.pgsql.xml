@@ -13,6 +13,10 @@
         </testsuite>
         <testsuite name="DotSsoClient">
             <directory suffix="Test.php">packages/dot-sso-client/tests</directory>
+            <!-- Finance refuses ANY Bearer token on the web group (RejectBearerTokensOnWeb, QA D-1405), so this one package test, which sends
+                 a Bearer to POST /login and expects a 200 from the harness route, cannot hold here. Its carve-outs (machine APIs, signed
+                 URLs, Sanctum, break-glass, deep link) are covered against Finance's real routes in tests/Feature/Sso/CentralSignInRolloutTest. -->
+            <exclude>packages/dot-sso-client/tests/Feature/InterceptLocalAuthTest.php</exclude>
         </testsuite>
     </testsuites>
     <source>
