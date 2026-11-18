@@ -15,7 +15,7 @@
 @if ($fxSignedIn)
 <a href="{{ route('dashboard') }}" class="fx-btn fx-btn--primary">Back to the Command centre</a>
 @else
-@if (Route::has('login'))<a href="{{ route('login') }}" class="fx-btn fx-btn--primary">Sign in</a>@endif
+@if (Route::has('login'))<a href="{{ \App\Support\CentralSignIn::login() }}" class="fx-btn fx-btn--primary">Sign in</a>@endif
 <a href="/" class="fx-btn">Go to the home page</a>
 @endif
 <a href="{{ $fxReport }}" class="fx-btn">Report this problem</a>
