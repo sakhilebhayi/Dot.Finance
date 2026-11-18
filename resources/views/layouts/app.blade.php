@@ -50,7 +50,7 @@
          the bar has no nav list of its own: drawer-target adopts the sidebar as the phone menu. The search is centred by the header's grid. --}}
     <x-dot.header id="dh" :brand-href="route('dashboard')" brand-label="Dot.Finance, command centre" drawer-target="app-sidebar" skip="#main"
                   :context="$activeLedger?->isCompany() ? $activeLedger->label() : null" :account="$account"
-                  :guest="Auth::check() ? null : ['login' => ['label' => 'Log in', 'href' => route('login')]]">
+                  :guest="Auth::check() ? null : ['login' => ['label' => 'Log in', 'href' => \App\Support\CentralSignIn::login()]] + (\App\Support\CentralSignIn::active() ? ['register' => ['label' => 'Create account', 'href' => \App\Support\CentralSignIn::register('')]] : [])">
         <x-slot:brand>
             {{-- The original logo files, untouched: the day one on paper, the light one at night (dot-ui swaps the pair). --}}
             <img class="dh-logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Finance" width="1181" height="886" decoding="async">

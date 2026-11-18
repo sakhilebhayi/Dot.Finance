@@ -13,7 +13,8 @@
                 @auth
                     <a href="{{ route('dashboard') }}" class="fx-btn fx-btn--primary">Open the command centre</a>
                 @else
-                    @if (Route::has('login'))<a href="{{ route('login') }}" class="fx-btn">Sign in</a>@endif
+                    @if (Route::has('login'))<a href="{{ \App\Support\CentralSignIn::login() }}" class="fx-btn">Sign in</a>@endif
+                    @if (\App\Support\CentralSignIn::active())<a href="{{ \App\Support\CentralSignIn::register('') }}" class="fx-btn fx-btn--primary">Create account</a>@endif
                 @endauth
             </header>
 
@@ -26,7 +27,8 @@
                             @auth
                                 <a href="{{ route('dashboard') }}" class="fx-btn fx-btn--primary">Open the command centre</a>
                             @else
-                                @if (Route::has('login'))<a href="{{ route('login') }}" class="fx-btn fx-btn--primary">Sign in</a>@endif
+                                @if (Route::has('login'))<a href="{{ \App\Support\CentralSignIn::login() }}" class="fx-btn fx-btn--primary">Sign in</a>@endif
+                                @if (\App\Support\CentralSignIn::active())<a href="{{ \App\Support\CentralSignIn::register('') }}" class="fx-btn">Create account</a>@endif
                             @endauth
                             <a href="#today" class="fx-btn">What is here today</a>
                         </div>

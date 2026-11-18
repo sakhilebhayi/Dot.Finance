@@ -13,6 +13,7 @@ use App\Providers\ReportingServiceProvider;
 use App\Providers\SalesServiceProvider;
 use App\Providers\SharedDataServiceProvider;
 use App\Providers\TaxServiceProvider;
+use Dot\SsoClient\DotSsoServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -28,4 +29,5 @@ return [
     SalesServiceProvider::class,
     TaxServiceProvider::class,
     IntegrationServiceProvider::class,
+    DotSsoServiceProvider::class,
 ];

@@ -140,7 +140,7 @@ class CompanyEntitlementTest extends TestCase
     {
         $this->infodotSays([self::REDEEM => Http::response([
             'platform' => 'finance',
-            'user' => ['id' => 1, 'uuid' => (string) Str::uuid(), 'name' => ucfirst(strstr($email, '@', true)), 'email' => $email, 'email_verified' => true],
+            'user' => ['id' => 1, 'uuid' => 'infodot-'.md5($email), 'name' => ucfirst(strstr($email, '@', true)), 'email' => $email, 'email_verified' => true],
             'teams' => $teams,
             'current_team_id' => 1,
             'current_team_uuid' => $current,
