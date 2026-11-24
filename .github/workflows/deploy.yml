@@ -520,6 +520,19 @@ jobs:
           FAILED=0
           for PAGE in "/" "/login" "/up"; do
             CODE=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$SITE_URL$PAGE" || true)
+            # Central sign-in (R-54, DOTSSO_ENABLED): /login hands over to this app's own /sso/login instead of showing a form. That is a
+            # healthy answer. It is accepted only for that exact redirect, and the target must itself answer (a page or a redirect), never an
+            # error. Any other answer on /login still fails.
+            if [ "$PAGE" = "/login" ] && [ "$CODE" = "302" ]; then
+              TARGET=$(curl -s --max-time 30 -o /dev/null -w '%{redirect_url}' "$SITE_URL$PAGE" || true)
+              if [ "$TARGET" = "$SITE_URL/sso/login" ]; then
+                HOP=$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "$TARGET" || true)
+                case "$HOP" in
+                  200|302) echo "302 $SITE_URL$PAGE -> $TARGET ($HOP): central sign-in is on"; continue ;;
+                  *) echo "::error::$SITE_URL$PAGE redirects to central sign-in, but $TARGET answered ${HOP:-no response}"; FAILED=1; continue ;;
+                esac
+              fi
+            fi
             if [ "$CODE" = "200" ]; then echo "200 $SITE_URL$PAGE"; else echo "::error::$SITE_URL$PAGE answered ${CODE:-no response} (expected 200)"; FAILED=1; fi
           done
           for ASSET in $(python3 -c "import json; m=json.load(open('public/build/manifest.json')); print(' '.join(sorted({v['file'] for v in m.values() if v.get('isEntry')} | {f for v in m.values() if v.get('isEntry') for f in v.get('css', [])})))"); do
