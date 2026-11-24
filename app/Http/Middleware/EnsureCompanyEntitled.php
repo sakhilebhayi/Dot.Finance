@@ -18,10 +18,14 @@ use Symfony\Component\HttpFoundation\Response;
  * The signed-in area honours the company's entitlement (R-50).
  *
  * InfoDot decides whether a company holds Dot.Finance. A person already signed in must stop working in a company's
- * books when that ends, so each request in the signed-in area asks (through a ten-minute cache) whether the company
+ * books when that ends, so each request in the signed-in area asks (through a one-minute cache) whether the company
  * whose ledger is active still holds the platform. A clear "no" answers with the plain refusal page and HTTP 403:
  * nothing is read from or written to the books. Anything else, including every kind of failure, lets the request
  * through exactly as before.
+ *
+ * R-61: when InfoDot says the platform itself is unavailable (maintenance), every request this middleware guards answers 503 with
+ * InfoDot's message, before the entitlement question. The EXEMPT routes still work (a company keeps its own records), and the signed
+ * server-to-server routes are in no guarded group, so payment and membership webhooks keep arriving.
  *
  * Which company: the one named by a {team} in the address (Jetstream's team pages) when the person belongs to it,
  * otherwise the active ledger (LedgerContextManager). The personal ledger is not a company: InfoDot is never asked
@@ -90,11 +94,30 @@ class EnsureCompanyEntitled
 
         $answer = $this->entitlements->forCompany((string) $team->infodot_team_uuid);
 
+        // R-61: a platform InfoDot has switched off (maintenance, unavailable) is off for everyone, whatever they hold. Nothing is deleted or
+        // changed. Checked before what the company holds, because it is a different question. The EXEMPT routes (report and attachment
+        // downloads, leaving, the person's own account) returned above, so they keep working while the platform is unavailable.
+        if ($answer !== null && ! $answer['available']) {
+            return $this->unavailable($request, $answer['message']);
+        }
+
         if ($answer === null || $answer['entitled'] === true) {
             return $next($request);
         }
 
         return $this->refuse($request, fn () => EntitlementRefusal::response($answer['status'], $team->name, $this->others($user, $team)));
+    }
+
+    private function unavailable(Request $request, ?string $message): Response
+    {
+        // Livewire discards a non-redirect response from a persistent middleware, so its updates must get a real error status too.
+        if ($request->expectsJson() || $request->headers->has('X-Livewire') || $request->is('livewire/*')) {
+            return response()->json(['message' => $message ?? 'Dot.Finance is temporarily unavailable.', 'reason' => 'platform_unavailable'], 503)
+                ->header('Retry-After', '60')->header('Cache-Control', 'no-store, private');
+        }
+
+        return response()->view('errors.platform-unavailable', ['message' => $message], 503)
+            ->header('Cache-Control', 'no-store, private')->header('Retry-After', '60');
     }
 
     /**
