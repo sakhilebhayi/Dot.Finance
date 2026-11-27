@@ -13,6 +13,8 @@ class EssentialCronTest extends TestCase
         $labels = collect(app(Schedule::class)->events())
             ->map(fn ($event) => strtolower(($event->command ?? '').' '.($event->description ?? '')));
 
+        $this->assertIsArray(config('dot_cron.essential'));
+
         foreach ((array) config('dot_cron.essential') as $needle) {
             $this->assertTrue(
                 $labels->contains(fn (string $label): bool => str_contains($label, strtolower((string) $needle))),
