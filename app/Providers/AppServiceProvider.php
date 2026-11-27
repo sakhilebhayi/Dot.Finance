@@ -20,6 +20,7 @@ use App\Services\Accounting\FxServiceRateProvider;
 use App\Services\Accounting\GlSync;
 use App\Services\Paystack\HttpPaystackGateway;
 use App\Services\Paystack\PaystackGateway;
+use App\Support\EssentialCron;
 use App\Support\Ledger\LedgerAccess;
 use App\Support\Ledger\LedgerContext;
 use App\Support\Ledger\LedgerContextManager;
@@ -64,6 +65,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        EssentialCron::listen();
+
         // R-53: a recorded licence payment or refund becomes an invoice or credit note, off the webhook path.
         Event::listen(LicencePaymentRecorded::class, fn ($e) => IssueLicenceInvoice::dispatch($e->payment->id));
         Event::listen(LicenceRefundRecorded::class, fn ($e) => IssueLicenceInvoice::dispatch($e->payment->id, $e->amountMinor, $e->refundId));
